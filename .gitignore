@@ -1,0 +1,39 @@
+# Python virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment secrets
+.env
+!.env.example
+
+# Databases and Vector caches (local runtime state)
+*.sqlite
+*.sqlite3
+*.db
+!data/seeds/*.sqlite
+data/chroma/
+data/cache/
+data/crawl_state.db
+
+# IDE / OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Legacy backup
+_legacy_recruitment/

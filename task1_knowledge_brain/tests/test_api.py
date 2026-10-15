@@ -1,14 +1,49 @@
-"""End-to-End REST API Tests for Task 1: Knowledge Brain."""
+"""End-to-End REST API Tests for Task 1: Knowledge Brain.
+
+Uses isolated test fixtures (tmp_path) to ensure 100% hermetic tests that never collide
+with live crawler data or across consecutive test runs.
+"""
 
 import uuid
 import pytest
 from fastapi.testclient import TestClient
 
+from task1_knowledge_brain.app.crawler.runner import ResumableCrawler
+from task1_knowledge_brain.app.crawler.state import CrawlStateStore
 from task1_knowledge_brain.app.main import app
+from task1_knowledge_brain.app.rag.engine import KnowledgeBrainEngine
+from task1_knowledge_brain.app.rag.expert_store import ExpertFeedbackStore
+from task1_knowledge_brain.app.rag.store import RAGVectorStore
+from task1_knowledge_brain.app.rag.sync import KnowledgeBrainSynchronizer
+import task1_knowledge_brain.app.api.routes as routes_module
 
 
 @pytest.fixture
-def client():
+def client(tmp_path, monkeypatch):
+    """Hermetic test client fixture using temporary SQLite and ChromaDB paths."""
+    test_db = str(tmp_path / "test_api_hermetic.db")
+    test_chroma = str(tmp_path / "test_chroma_hermetic")
+
+    isolated_state_store = CrawlStateStore(test_db)
+    isolated_vector_store = RAGVectorStore(test_chroma)
+    isolated_expert_store = ExpertFeedbackStore(test_db)
+    isolated_crawler = ResumableCrawler(state_store=isolated_state_store)
+    isolated_synchronizer = KnowledgeBrainSynchronizer(
+        state_store=isolated_state_store,
+        vector_store=isolated_vector_store,
+    )
+    isolated_engine = KnowledgeBrainEngine(
+        vector_store=isolated_vector_store,
+        expert_store=isolated_expert_store,
+    )
+
+    monkeypatch.setattr(routes_module, "_state_store", isolated_state_store)
+    monkeypatch.setattr(routes_module, "_vector_store", isolated_vector_store)
+    monkeypatch.setattr(routes_module, "_expert_store", isolated_expert_store)
+    monkeypatch.setattr(routes_module, "_crawler", isolated_crawler)
+    monkeypatch.setattr(routes_module, "_synchronizer", isolated_synchronizer)
+    monkeypatch.setattr(routes_module, "_engine", isolated_engine)
+
     with TestClient(app) as test_client:
         yield test_client
 
@@ -35,9 +70,9 @@ def test_api_status_endpoint(client):
 def test_api_query_refusal_and_expert_approval_flow(client):
     """Verify that an unknown question triggers refusal and can be resolved by an expert."""
     unique_tag = uuid.uuid4().hex[:8]
-    question = f"How do I configure subspace warp engine {unique_tag} on Brilliant Directories?"
+    question = f"How do I configure quantum subspace engine {unique_tag}?"
 
-    # 1. Ask unknown question -> expect refusal
+    # 1. Ask unknown question in isolated DB -> expect refusal
     res1 = client.post("/api/v1/query", json={"question": question, "top_k": 3})
     assert res1.status_code == 200
     data1 = res1.json()
@@ -56,7 +91,7 @@ def test_api_query_refusal_and_expert_approval_flow(client):
         "/api/v1/feedback/approve",
         json={
             "question": question,
-            "answer": f"Warp engines {unique_tag} are science fiction. Brilliant Directories is an enterprise directory CMS.",
+            "answer": f"Subspace engine {unique_tag} is fictional. Brilliant Directories is an enterprise directory CMS.",
             "expert_name": "Chief Systems Architect",
         },
     )

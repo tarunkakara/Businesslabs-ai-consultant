@@ -1,0 +1,241 @@
+[
+  {
+    "case_id": "T3-01",
+    "description": "Functional requirement extraction",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.58,
+    "error": null,
+    "details": {
+      "title": "We need a custom member directory search filter"
+    }
+  },
+  {
+    "case_id": "T3-02",
+    "description": "Integration requirement classification",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.09,
+    "error": null,
+    "details": {
+      "type": "integration"
+    }
+  },
+  {
+    "case_id": "T3-03",
+    "description": "Project constraint extraction (budget and timeline)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.06,
+    "error": null,
+    "details": {
+      "constraints": [
+        "We must launch by November 15th, and our maximum budget is limited to $10,000."
+      ]
+    }
+  },
+  {
+    "case_id": "T3-04",
+    "description": "External dependency extraction",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.07,
+    "error": null,
+    "details": {
+      "dependencies": [
+        "We will provide API credentials and Figma mockups."
+      ]
+    }
+  },
+  {
+    "case_id": "T3-05",
+    "description": "Implementation assumption extraction",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.05,
+    "error": null,
+    "details": {
+      "assumptions": [
+        "We assume Brilliant Directories handles the underlying server SSL and database backups."
+      ]
+    }
+  },
+  {
+    "case_id": "T3-06",
+    "description": "Ambiguous vague phrase detection",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.06,
+    "error": null,
+    "details": {
+      "vague_count": 1
+    }
+  },
+  {
+    "case_id": "T3-07",
+    "description": "Follow-up clarification question formulation",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.06,
+    "error": null,
+    "details": {
+      "question": "The requirement mentions 'some sort of'. What are the exact acceptance criteria and design specifications?"
+    }
+  },
+  {
+    "case_id": "T3-08",
+    "description": "Native feature recognition: Stripe payments (~3h config)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 6080.75,
+    "error": null,
+    "details": {
+      "is_native": true,
+      "hours": 3.0
+    }
+  },
+  {
+    "case_id": "T3-09",
+    "description": "Native feature recognition: Webhooks (~3h config)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 3038.28,
+    "error": null,
+    "details": {
+      "is_native": true
+    }
+  },
+  {
+    "case_id": "T3-10",
+    "description": "Native feature recognition: Lead distribution (~3h config)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 3054.62,
+    "error": null,
+    "details": {
+      "is_native": true
+    }
+  },
+  {
+    "case_id": "T3-11",
+    "description": "Custom development requirement: Native Mobile App (~24h)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 3061.0,
+    "error": null,
+    "details": {
+      "is_native": false,
+      "hours": 24.0
+    }
+  },
+  {
+    "case_id": "T3-12",
+    "description": "Custom development requirement: Database Sync Bridge (~24h)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 2998.86,
+    "error": null,
+    "details": {
+      "is_native": false
+    }
+  },
+  {
+    "case_id": "T3-13",
+    "description": "Work package breakdown with dedicated QA allocation",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 6085.99,
+    "error": null,
+    "details": {
+      "tasks_count": 3,
+      "qa_hours": 4.0
+    }
+  },
+  {
+    "case_id": "T3-14",
+    "description": "Budget arithmetic verification at $120/hr",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 3040.45,
+    "error": null,
+    "details": {
+      "hours": 7.0,
+      "cost": 840.0
+    }
+  },
+  {
+    "case_id": "T3-15",
+    "description": "Long transcript resilience (>100 conversation turns)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 3.5,
+    "error": null,
+    "details": {
+      "requirements_extracted": 121
+    }
+  },
+  {
+    "case_id": "T3-16",
+    "description": "Revision comparison: Added requirements detection",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.34,
+    "error": null,
+    "details": {
+      "added": [
+        "We also need custom Zapier webhook integration"
+      ]
+    }
+  },
+  {
+    "case_id": "T3-17",
+    "description": "Revision comparison: Removed requirements detection",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.25,
+    "error": null,
+    "details": {
+      "removed": [
+        "We need custom Zapier webhook integration"
+      ]
+    }
+  },
+  {
+    "case_id": "T3-18",
+    "description": "Scope creep warning triggered on budget surge & multi-feature add",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.32,
+    "error": null,
+    "details": {
+      "warnings": [
+        "Scope expansion alert: 3 new features added in revision (In addition we need a native iOS app, In addition we need a native Android app, In addition we need custom ERP sync).",
+        "Budget surge warning: Total project cost increased by 294.3% (+$9,888.00). Requires formal change order."
+      ],
+      "cost_delta": 9888.0
+    }
+  },
+  {
+    "case_id": "T3-19",
+    "description": "Client proposal human approval boundary enforced",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.14,
+    "error": null,
+    "details": {
+      "is_approved": false
+    }
+  },
+  {
+    "case_id": "T3-20",
+    "description": "Proposal sign-off finalization with consultant name & timestamp",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.21,
+    "error": null,
+    "details": {
+      "approved_by": "Lead Consultant",
+      "approved_at": "2026-10-15T14:22:23.994560+00:00"
+    }
+  }
+]

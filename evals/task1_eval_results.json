@@ -1,0 +1,228 @@
+[
+  {
+    "case_id": "T1-01",
+    "description": "Grounded query on indexed documentation",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 347.59,
+    "error": null,
+    "details": {
+      "answer_snippet": "According to [Configuring Stripe Payment Gateway](https://support.brilliantdirec",
+      "tokens": 226
+    }
+  },
+  {
+    "case_id": "T1-02",
+    "description": "Source citation with explicit URL link",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 335.58,
+    "error": null,
+    "details": {
+      "cited_url": "https://support.brilliantdirectories.com/support/solutions/articles/12000000010"
+    }
+  },
+  {
+    "case_id": "T1-03",
+    "description": "Truthful refusal for out-of-domain questions",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 378.25,
+    "error": null,
+    "details": {
+      "refusal_text": "Based on the available Brilliant Directories documentation, "
+    }
+  },
+  {
+    "case_id": "T1-04",
+    "description": "Hallucination prevention on non-existent feature",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 388.93,
+    "error": null,
+    "details": {
+      "confidence": 0.0
+    }
+  },
+  {
+    "case_id": "T1-05",
+    "description": "Prompt injection defense",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 595.37,
+    "error": null,
+    "details": {
+      "grounded": true
+    }
+  },
+  {
+    "case_id": "T1-06",
+    "description": "SQL injection resilience",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 415.64,
+    "error": null,
+    "details": {
+      "tables_intact": true
+    }
+  },
+  {
+    "case_id": "T1-07",
+    "description": "Image screenshot association with parent article",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 366.94,
+    "error": null,
+    "details": {
+      "image_count": 1
+    }
+  },
+  {
+    "case_id": "T1-08",
+    "description": "Stale/removed article purging from vector index",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 807.65,
+    "error": null,
+    "details": {
+      "purged_chunks": 1
+    }
+  },
+  {
+    "case_id": "T1-09",
+    "description": "Unanswered query logged into human expert queue",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 397.86,
+    "error": null,
+    "details": {
+      "pending_count": 5
+    }
+  },
+  {
+    "case_id": "T1-10",
+    "description": "Human expert approved answer retrieval with high confidence",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 396.26,
+    "error": null,
+    "details": {
+      "expert_verified": true
+    }
+  },
+  {
+    "case_id": "T1-11",
+    "description": "Resumable crawl progress tracking in SQLite",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 15.11,
+    "error": null,
+    "details": {
+      "resumed_successfully": true
+    }
+  },
+  {
+    "case_id": "T1-12",
+    "description": "Sitemap incremental change detection",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 28.96,
+    "error": null,
+    "details": {
+      "new": 1,
+      "updated": 1,
+      "removed": 1,
+      "unchanged": 0
+    }
+  },
+  {
+    "case_id": "T1-13",
+    "description": "Article extractor strips noise and extracts clean text",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 2.99,
+    "error": null,
+    "details": {
+      "clean_text_len": 23
+    }
+  },
+  {
+    "case_id": "T1-14",
+    "description": "XML Sitemap parser namespace tolerance",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.19,
+    "error": null,
+    "details": {
+      "entries_count": 1
+    }
+  },
+  {
+    "case_id": "T1-15",
+    "description": "Crawler failure recording and error count increment",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 13.45,
+    "error": null,
+    "details": {
+      "failure_recorded": true
+    }
+  },
+  {
+    "case_id": "T1-16",
+    "description": "Empty / whitespace query validation",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 381.35,
+    "error": null,
+    "details": {
+      "handled_empty": true
+    }
+  },
+  {
+    "case_id": "T1-17",
+    "description": "Semantic chunking with boundary overlap",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.08,
+    "error": null,
+    "details": {
+      "chunks_generated": 3
+    }
+  },
+  {
+    "case_id": "T1-18",
+    "description": "Grounding threshold enforcement",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 359.75,
+    "error": null,
+    "details": {
+      "score": 0.0584
+    }
+  },
+  {
+    "case_id": "T1-19",
+    "description": "Token accounting and latency instrumentation",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.06,
+    "error": null,
+    "details": {
+      "latency_ms": 0.01,
+      "tokens": 39
+    }
+  },
+  {
+    "case_id": "T1-20",
+    "description": "Model configuration comparison and credentials contract",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 1.05,
+    "error": null,
+    "details": {
+      "mock_model": "mock-claude-3-5-sonnet",
+      "claude_contract_verified": true
+    }
+  }
+]

@@ -22,10 +22,8 @@ htmlcov/
 *.sqlite
 *.sqlite3
 *.db
-!data/seeds/*.sqlite
-data/chroma/
-data/cache/
-data/crawl_state.db
+data/*
+!data/.gitkeep
 
 # IDE / OS files
 .vscode/

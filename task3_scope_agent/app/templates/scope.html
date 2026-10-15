@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusinessLabs — Meeting-to-Scope Agent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card { border-radius: 10px; border: 1px solid #e2e8f0; }
+        .metric-card { background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .native-badge { background-color: #10b981; color: white; }
+        .custom-badge { background-color: #6366f1; color: white; }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <i class="bi bi-file-earmark-spreadsheet-fill text-warning"></i>
+                <strong>BusinessLabs Meeting-to-Scope Agent</strong>
+                <span class="badge bg-secondary ms-2 small">Task 3</span>
+            </a>
+            <span class="badge bg-warning text-dark px-3 py-2">
+                <i class="bi bi-person-check-fill me-1"></i> Human Approval Required Before Finalizing
+            </span>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container my-4 flex-grow-1">
+        <div class="row g-4">
+            <!-- Left: Transcript Input & Controls -->
+            <div class="col-lg-5">
+                <div class="card p-3 shadow-sm h-100">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-mic-fill text-primary me-1"></i> Input Meeting Transcript</h5>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Client / Company Name:</label>
+                        <input type="text" id="clientNameInput" class="form-control" value="HealthHub Directories" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Meeting Transcript Text:</label>
+                        <textarea id="transcriptInput" class="form-control" rows="11" placeholder="Paste meeting transcript here..."></textarea>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="small text-muted w-100">Quick sample transcripts:</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadSample(1)">Sample 1: Initial Discovery</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadSample(2)">Sample 2: Revised Transcript (Scope Creep)</button>
+                    </div>
+
+                    <input type="hidden" id="prevMeetingId" value="" />
+
+                    <button id="processBtn" class="btn btn-primary w-100 py-2 fw-medium" onclick="processTranscript()">
+                        <i class="bi bi-gear-wide-connected me-1"></i> Run 5-Stage Scope Pipeline
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Scope of Work, Proposal & Revision Diff -->
+            <div class="col-lg-7">
+                <div id="outputEmpty" class="card p-5 text-center text-muted h-100 d-flex align-items-center justify-content-center shadow-sm">
+                    <div>
+                        <i class="bi bi-file-text fs-1 text-secondary mb-3 d-block"></i>
+                        <h5>Submit a transcript on the left to generate SOW, check native features, and review proposal.</h5>
+                    </div>
+                </div>
+
+                <div id="outputActive" class="d-none">
+                    <!-- Metric Cards -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-4">
+                            <div class="metric-card p-3 shadow-sm">
+                                <div class="small text-muted fw-bold">Estimated Hours</div>
+                                <div id="displayHours" class="fs-3 fw-bold text-dark">-</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="metric-card p-3 shadow-sm">
+                                <div class="small text-muted fw-bold">Estimated Cost ($120/h)</div>
+                                <div id="displayCost" class="fs-3 fw-bold text-primary">-</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="metric-card p-3 shadow-sm">
+                                <div class="small text-muted fw-bold">Timeline Estimate</div>
+                                <div id="displayTimeline" class="fs-3 fw-bold text-dark">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Revision Diff Notice (If applicable) -->
+                    <div id="diffAlertBox" class="alert alert-warning d-none shadow-sm mb-3">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Transcript Revision Detected:</h6>
+                        <div id="diffContent" class="small" style="white-space: pre-wrap;"></div>
+                    </div>
+
+                    <!-- Proposal Container -->
+                    <div class="card p-4 shadow-sm mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 id="proposalTitle" class="fw-bold mb-1">Proposal Title</h5>
+                                <div id="proposalVersion" class="small text-muted">Version 1</div>
+                            </div>
+                            <span id="approvalBadge" class="badge bg-warning text-dark px-3 py-2">
+                                <i class="bi bi-clock-history me-1"></i> Awaiting Human Sign-Off
+                            </span>
+                        </div>
+
+                        <!-- Executive Summary -->
+                        <div class="p-3 bg-light rounded border mb-3">
+                            <h6 class="small fw-bold text-secondary mb-1">Executive Summary:</h6>
+                            <p id="proposalSummary" class="small mb-0"></p>
+                        </div>
+
+                        <!-- Task Breakdown Table -->
+                        <h6 class="fw-bold mb-2">Detailed Work Packages:</h6>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm table-bordered align-middle">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Type</th>
+                                        <th class="text-end">Hours</th>
+                                        <th class="text-end">Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tasksTableBody" class="small"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Open Questions -->
+                        <div id="questionsContainer" class="alert alert-info py-2 px-3 small d-none">
+                            <strong><i class="bi bi-question-circle me-1"></i> Ambiguous Requirements & Follow-Up Questions:</strong>
+                            <ul id="questionsList" class="mb-0 mt-1 ps-3"></ul>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="exportProposal()">
+                                <i class="bi bi-download me-1"></i> Export SOW (Markdown)
+                            </button>
+                            <button id="approveProposalBtn" class="btn btn-success" onclick="approveProposal()">
+                                <i class="bi bi-check2-circle me-1"></i> Approve & Finalize Proposal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        let currentMeetingId = null;
+
+        const SAMPLES = {
+            1: `John (Client): We are building a directory for certified physical therapists. We need a way to accept membership payments through Stripe.
+Sarah (Consultant): Does Brilliant Directories support Stripe natively?
+John: Yes, we want members to pay monthly. We also need webhooks to notify our marketing software.
+John: Then we need a custom bidirectional integration with our internal patient scheduling database.
+John: We must launch within 4 weeks, and our budget is around $8,000.
+John: Also, make sure the search is really fast and has some sort of modern design.`,
+
+            2: `John (Client): Hi Sarah, we had an internal board meeting and updated our requirements.
+John: We still need Stripe payment processing and webhooks.
+John: In addition to the patient scheduling database, we now need a custom native mobile app for iOS and Android.
+John: We also need full multi-currency billing supporting Euros and British Pounds with dynamic exchange rate recalculation.
+John: And we dropped the fast search requirement for now.`
+        };
+
+        function loadSample(num) {
+            document.getElementById('transcriptInput').value = SAMPLES[num];
+            if (num === 2 && currentMeetingId) {
+                document.getElementById('prevMeetingId').value = currentMeetingId;
+            }
+        }
+
+        async function processTranscript() {
+            const text = document.getElementById('transcriptInput').value.trim();
+            const client = document.getElementById('clientNameInput').value.trim() || 'Client';
+            const prevId = document.getElementById('prevMeetingId').value || null;
+
+            if (!text) {
+                alert('Please enter or select a transcript first.');
+                return;
+            }
+
+            const btn = document.getElementById('processBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Executing Stages...';
+
+            try {
+                const res = await fetch('/api/v1/scope/process', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        transcript_text: text,
+                        client_name: client,
+                        previous_meeting_id: prevId
+                    })
+                });
+                const data = await res.json();
+                renderProposal(data);
+            } catch (err) {
+                alert('Pipeline failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-gear-wide-connected me-1"></i> Run 5-Stage Scope Pipeline';
+            }
+        }
+
+        function renderProposal(data) {
+            const p = data.proposal;
+            const sow = p.scope_of_work;
+            currentMeetingId = p.meeting_id;
+            document.getElementById('prevMeetingId').value = currentMeetingId;
+
+            document.getElementById('outputEmpty').classList.add('d-none');
+            document.getElementById('outputActive').classList.remove('d-none');
+
+            document.getElementById('displayHours').textContent = `${sow.total_developer_hours} hrs`;
+            document.getElementById('displayCost').textContent = `$${sow.total_cost_usd.toLocaleString()}`;
+            document.getElementById('displayTimeline').textContent = `${p.estimated_timeline_weeks} wks`;
+
+            document.getElementById('proposalTitle').textContent = p.title;
+            document.getElementById('proposalVersion').textContent = `Meeting ID: ${p.meeting_id} &bull; Revision Version ${p.version}`;
+            document.getElementById('proposalSummary').textContent = p.executive_summary;
+
+            // Revision Diff
+            const diffBox = document.getElementById('diffAlertBox');
+            if (data.diff) {
+                diffBox.classList.remove('d-none');
+                document.getElementById('diffContent').textContent = data.diff.diff_summary_markdown;
+            } else {
+                diffBox.classList.add('d-none');
+            }
+
+            // Task breakdown
+            const tbody = document.getElementById('tasksTableBody');
+            tbody.innerHTML = '';
+            sow.tasks.forEach(t => {
+                const isNative = t.work_type === 'platform_configuration';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <strong>${t.title}</strong>
+                        <div class="text-muted" style="font-size:0.75rem;">${t.rationale}</div>
+                    </td>
+                    <td><span class="badge ${isNative ? 'native-badge' : 'custom-badge'}">${isNative ? 'Native Config' : 'Custom Dev'}</span></td>
+                    <td class="text-end fw-bold">${t.developer_hours}h</td>
+                    <td class="text-end fw-bold">$${t.estimated_cost.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Approval status
+            const badge = document.getElementById('approvalBadge');
+            const approveBtn = document.getElementById('approveProposalBtn');
+            if (p.is_approved_by_human) {
+                badge.className = 'badge bg-success px-3 py-2';
+                badge.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Approved by ${p.approved_by}`;
+                approveBtn.disabled = true;
+                approveBtn.textContent = 'Proposal Finalized';
+            } else {
+                badge.className = 'badge bg-warning text-dark px-3 py-2';
+                badge.innerHTML = '<i class="bi bi-clock-history me-1"></i> Awaiting Human Sign-Off';
+                approveBtn.disabled = false;
+                approveBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Approve & Finalize Proposal';
+            }
+        }
+
+        async function approveProposal() {
+            if (!currentMeetingId) return;
+            try {
+                const res = await fetch(`/api/v1/scope/${currentMeetingId}/approve`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ approver_name: "Lead Solutions Architect" })
+                });
+                const data = await res.json();
+                alert(`Proposal approved and finalized by ${data.approved_by}!`);
+                document.getElementById('approvalBadge').className = 'badge bg-success px-3 py-2';
+                document.getElementById('approvalBadge').innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Approved by ${data.approved_by}`;
+                document.getElementById('approveProposalBtn').disabled = true;
+                document.getElementById('approveProposalBtn').textContent = 'Proposal Finalized';
+            } catch (err) {
+                alert('Approval failed: ' + err.message);
+            }
+        }
+
+        function exportProposal() {
+            if (!currentMeetingId) return;
+            window.open(`/api/v1/scope/${currentMeetingId}/export`, '_blank');
+        }
+    </script>
+</body>
+</html>

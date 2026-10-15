@@ -1,0 +1,246 @@
+[
+  {
+    "case_id": "T2-01",
+    "description": "Classification accuracy: Product Question",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.16,
+    "error": null,
+    "details": {
+      "category": "product_question",
+      "confidence": 0.98
+    }
+  },
+  {
+    "case_id": "T2-02",
+    "description": "Classification accuracy: Project Request",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.07,
+    "error": null,
+    "details": {
+      "category": "project_request",
+      "confidence": 0.88
+    }
+  },
+  {
+    "case_id": "T2-03",
+    "description": "Classification accuracy: Refund",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.08,
+    "error": null,
+    "details": {
+      "category": "refund",
+      "confidence": 0.98
+    }
+  },
+  {
+    "case_id": "T2-04",
+    "description": "Classification accuracy: Complaint",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.05,
+    "error": null,
+    "details": {
+      "category": "complaint",
+      "confidence": 0.94
+    }
+  },
+  {
+    "case_id": "T2-05",
+    "description": "Classification accuracy: Quote",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.05,
+    "error": null,
+    "details": {
+      "category": "quote",
+      "confidence": 0.98
+    }
+  },
+  {
+    "case_id": "T2-06",
+    "description": "Classification accuracy: Follow-up",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.06,
+    "error": null,
+    "details": {
+      "category": "follow_up",
+      "confidence": 0.98
+    }
+  },
+  {
+    "case_id": "T2-07",
+    "description": "Urgent priority detection on outage keywords",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.04,
+    "error": null,
+    "details": {
+      "priority": "urgent"
+    }
+  },
+  {
+    "case_id": "T2-08",
+    "description": "High priority assignment for financial disputes",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.04,
+    "error": null,
+    "details": {
+      "priority": "urgent"
+    }
+  },
+  {
+    "case_id": "T2-09",
+    "description": "Named technical entity extraction",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.04,
+    "error": null,
+    "details": {
+      "entities": [
+        "Stripe",
+        "Webhooks",
+        "Google Maps"
+      ]
+    }
+  },
+  {
+    "case_id": "T2-10",
+    "description": "Knowledge Brain fact retrieval integration in draft",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 6343.59,
+    "error": null,
+    "details": {
+      "draft_snippet": "Hello Lisa,\n\nThank you for reaching out to the BusinessLabs Support Team.\n\nRegar"
+    }
+  },
+  {
+    "case_id": "T2-11",
+    "description": "Empathetic voice styling contains sincere apology",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.15,
+    "error": null,
+    "details": {
+      "voice": "empathetic"
+    }
+  },
+  {
+    "case_id": "T2-12",
+    "description": "Concise voice styling ensures direct brevity",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.08,
+    "error": null,
+    "details": {
+      "length": 388
+    }
+  },
+  {
+    "case_id": "T2-13",
+    "description": "Executive voice styling uses advisory consultation tone",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.08,
+    "error": null,
+    "details": {
+      "voice": "executive"
+    }
+  },
+  {
+    "case_id": "T2-14",
+    "description": "Levenshtein exact match verification (Score: 1.0)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.01,
+    "error": null,
+    "details": {
+      "similarity_score": 1.0,
+      "is_unchanged": true,
+      "edit_distance": 0,
+      "added_words": 0,
+      "removed_words": 0,
+      "diff_summary": "No edits made (100% match)."
+    }
+  },
+  {
+    "case_id": "T2-15",
+    "description": "Levenshtein substantive human edit detection (<0.60)",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 1.07,
+    "error": null,
+    "details": {
+      "similarity_score": 0.1525,
+      "is_unchanged": false,
+      "edit_distance": 50,
+      "added_words": 7,
+      "removed_words": 9,
+      "diff_summary": "Similarity: 15.3%. Edit distance: 50 chars. Added words: 7, Removed: 9."
+    }
+  },
+  {
+    "case_id": "T2-16",
+    "description": "Enforcement of exactly 20 consecutive approvals before autonomy",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.21,
+    "error": null,
+    "details": {
+      "can_at_19": false,
+      "can_at_20": true,
+      "msg": "Autonomous sending authorized (streak: 20 unchanged)."
+    }
+  },
+  {
+    "case_id": "T2-17",
+    "description": "Immediate automatic revocation on human edit",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.4,
+    "error": null,
+    "details": {
+      "revocation_confirmed": true,
+      "reason": "Category 'refund' requires 20 consecutive unchanged approvals (current streak: 0)."
+    }
+  },
+  {
+    "case_id": "T2-18",
+    "description": "Default-to-human-approval safety boundary enforcement",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 0.12,
+    "error": null,
+    "details": {
+      "policy_enforced": true
+    }
+  },
+  {
+    "case_id": "T2-19",
+    "description": "Transparent audit trail storage with edit distance & reviewer",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 8.82,
+    "error": null,
+    "details": {
+      "row_id": 1,
+      "logs_count": 1
+    }
+  },
+  {
+    "case_id": "T2-20",
+    "description": "RFC 822 customer email export format compliance",
+    "status": "PASSED",
+    "score": 1.0,
+    "latency_ms": 3049.8,
+    "error": null,
+    "details": {
+      "rfc822_compliant": true
+    }
+  }
+]

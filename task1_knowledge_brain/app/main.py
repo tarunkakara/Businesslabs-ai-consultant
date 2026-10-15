@@ -6,10 +6,12 @@ grounded RAG query execution, and human expert feedback.
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
+from task1_knowledge_brain.app.api.routes import router as api_router
 from task1_knowledge_brain.app.config import settings
 from task1_knowledge_brain.app.providers import get_llm_provider
 
@@ -17,7 +19,6 @@ from task1_knowledge_brain.app.providers import get_llm_provider
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle startup and teardown handler."""
-    # Ensure required data directories exist
     Path(settings.chroma_persist_directory).mkdir(parents=True, exist_ok=True)
     Path(settings.sqlite_db_path).parent.mkdir(parents=True, exist_ok=True)
     yield
@@ -42,6 +43,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount API routes
+app.include_router(api_router)
+
 
 class HealthResponse(BaseModel):
     status: str
@@ -52,19 +56,27 @@ class HealthResponse(BaseModel):
     active_model: str
 
 
-@app.get("/", tags=["General"])
-async def root():
-    """Root metadata endpoint with system capabilities."""
+TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "index.html"
+
+
+@app.get("/", tags=["UI & General"])
+async def root(request: Request):
+    """Serves the Knowledge Brain Web Dashboard or JSON metadata depending on Accept header."""
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header and TEMPLATE_PATH.exists():
+        return HTMLResponse(content=TEMPLATE_PATH.read_text(encoding="utf-8"))
+
     llm = get_llm_provider()
-    return {
+    return JSONResponse({
         "service": "BusinessLabs Knowledge Brain",
         "version": "1.0.0",
         "status": "online",
+        "ui_url": "/",
         "docs_url": "/docs",
         "provider_mode": "mock" if settings.is_mock_mode else "anthropic",
         "active_model": getattr(llm, "model_name", "unknown"),
         "sitemap_target": settings.crawl_sitemap_url,
-    }
+    })
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])

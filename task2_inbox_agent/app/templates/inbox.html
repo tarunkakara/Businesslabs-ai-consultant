@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusinessLabs — Inbox Agent Review Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .sidebar-email-item { cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s ease-in-out; }
+        .sidebar-email-item:hover { background-color: #f1f5f9; }
+        .sidebar-email-item.active { background-color: #e0e7ff; border-left-color: #4f46e5; }
+        .badge-cat { font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
+        .streak-card { border-radius: 8px; border: 1px solid #e2e8f0; }
+        .draft-textarea { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9rem; }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Top Nav -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <i class="bi bi-inbox-fill text-indigo" style="color: #818cf8;"></i>
+                <strong>BusinessLabs Inbox Agent</strong>
+                <span class="badge bg-secondary ms-2 small">Task 2</span>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Human Approval Enforced (Default Safe)
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="seedSyntheticEmails()">
+                    <i class="bi bi-database-fill-add me-1"></i> Seed 55 Emails
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-4 py-3 flex-grow-1">
+        <!-- Autonomy Readiness Bar -->
+        <div class="card mb-3 p-3 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0 text-secondary">
+                    <i class="bi bi-speedometer2 me-1"></i> Autonomous Sending Readiness (20 Consecutive Unchanged Approvals Required)
+                </h6>
+                <button class="btn btn-sm btn-link text-decoration-none p-0" onclick="loadAutonomyStatus()">
+                    <i class="bi bi-arrow-repeat"></i> Refresh Streaks
+                </button>
+            </div>
+            <div id="autonomyStreakGrid" class="row g-2">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Two Column Layout: Email List (Left) and Review/Edit Workspace (Right) -->
+        <div class="row g-3">
+            <!-- Left: Email List -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0">Inbox Stream (<span id="emailCount">0</span>)</h6>
+                        <select id="categoryFilter" class="form-select form-select-sm w-auto" onchange="loadEmails()">
+                            <option value="">All Categories</option>
+                            <option value="product_question">Product Question</option>
+                            <option value="project_request">Project Request</option>
+                            <option value="refund">Refund</option>
+                            <option value="complaint">Complaint</option>
+                            <option value="quote">Quote</option>
+                            <option value="follow_up">Follow Up</option>
+                        </select>
+                    </div>
+                    <div id="emailList" class="list-group list-group-flush overflow-auto" style="max-height: 650px;">
+                        <div class="p-4 text-center text-muted">Loading emails...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Review, Edit & Approval Workspace -->
+            <div class="col-md-8">
+                <div id="workspaceEmpty" class="card h-100 shadow-sm p-5 text-center text-muted d-flex align-items-center justify-content-center">
+                    <div>
+                        <i class="bi bi-envelope-open fs-1 text-secondary mb-3 d-block"></i>
+                        <h5>Select an email from the left to inspect, draft, or approve.</h5>
+                    </div>
+                </div>
+
+                <div id="workspaceActive" class="card shadow-sm h-100 d-none">
+                    <!-- Email Header -->
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 id="activeSubject" class="fw-bold mb-1">Subject</h5>
+                                <div class="text-muted small">
+                                    From: <span id="activeSender" class="fw-medium text-dark">Name</span>
+                                    &bull; Received: <span id="activeDate">Date</span>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <span id="activePriorityBadge" class="badge bg-warning text-dark">MEDIUM</span>
+                                <span id="activeCategoryBadge" class="badge bg-primary">CATEGORY</span>
+                            </div>
+                        </div>
+
+                        <!-- Original Email Body -->
+                        <div class="p-3 bg-light rounded border mt-2">
+                            <h6 class="small text-secondary fw-bold mb-1">Customer Message:</h6>
+                            <p id="activeBody" class="mb-0 small" style="white-space: pre-wrap;"></p>
+                        </div>
+                    </div>
+
+                    <!-- Draft & Controls Section -->
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="fw-bold mb-0">AI Reply Draft</h6>
+                                <span id="activeVoiceBadge" class="badge bg-secondary">Voice: Professional</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="small text-muted mb-0">Voice Style:</label>
+                                <select id="voiceSelect" class="form-select form-select-sm w-auto">
+                                    <option value="professional">Professional</option>
+                                    <option value="empathetic">Empathetic</option>
+                                    <option value="concise">Concise</option>
+                                    <option value="executive">Executive</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary" onclick="generateDraft()">
+                                    <i class="bi bi-magic me-1"></i> (Re)Generate
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Draft Textarea -->
+                        <textarea id="draftTextarea" class="form-control draft-textarea mb-3" rows="11" oninput="onDraftEdited()"></textarea>
+
+                        <!-- Similarity & Edit Distance Tracker -->
+                        <div class="alert alert-light border d-flex justify-content-between align-items-center py-2 px-3 mb-3">
+                            <div class="small">
+                                <span class="fw-bold text-secondary">Similarity to Original AI Draft:</span>
+                                <span id="similarityDisplay" class="fw-bold text-success ms-1">100.0% (Unchanged)</span>
+                            </div>
+                            <div id="streakImpactNotice" class="small text-muted">
+                                Approving without changes advances autonomous streak (+1).
+                            </div>
+                        </div>
+
+                        <!-- Feedback Notes -->
+                        <input type="text" id="feedbackNotes" class="form-control form-control-sm mb-3" placeholder="Optional reviewer feedback notes or quality comment..." />
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="exportDraft()">
+                                <i class="bi bi-box-arrow-down me-1"></i> Export Reply Text
+                            </button>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-danger btn-sm" onclick="submitReview('reject')">
+                                    <i class="bi bi-x-circle me-1"></i> Reject Draft
+                                </button>
+                                <button id="approveBtn" class="btn btn-success" onclick="submitReview('approve')">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Approve & Send Draft
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        let currentEmail = null;
+        let currentOriginalDraft = "";
+
+        async function loadAutonomyStatus() {
+            try {
+                const res = await fetch('/api/v1/autonomy/status');
+                const data = await res.json();
+                const grid = document.getElementById('autonomyStreakGrid');
+                grid.innerHTML = '';
+
+                for (const [cat, s] of Object.entries(data)) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-2 col-sm-4';
+                    const isAuto = s.autonomous_enabled;
+                    const streak = s.consecutive_unchanged_count;
+                    const pct = Math.min(100, Math.round((streak / 20) * 100));
+
+                    col.innerHTML = `
+                        <div class="streak-card p-2 bg-white ${isAuto ? 'border-success' : ''}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-truncate" title="${cat}">${cat.replace('_', ' ')}</span>
+                                <span class="badge ${isAuto ? 'bg-success' : 'bg-secondary'} small">${streak}/20</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar ${isAuto ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${pct}%;"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 0.7rem;">
+                                <span>Quality: ${(s.quality_score * 100).toFixed(0)}%</span>
+                                <span class="${isAuto ? 'text-success fw-bold' : ''}">${isAuto ? 'AUTO' : 'MANUAL'}</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(col);
+                }
+            } catch (err) {
+                console.error("Autonomy load err:", err);
+            }
+        }
+
+        async function loadEmails() {
+            const cat = document.getElementById('categoryFilter').value;
+            const url = cat ? `/api/v1/emails?category=${cat}` : '/api/v1/emails';
+            try {
+                const res = await fetch(url);
+                const emails = await res.json();
+                document.getElementById('emailCount').textContent = emails.length;
+                const list = document.getElementById('emailList');
+                list.innerHTML = '';
+
+                if (emails.length === 0) {
+                    list.innerHTML = '<div class="p-4 text-center text-muted">No emails found. Click "Seed 55 Emails" above!</div>';
+                    return;
+                }
+
+                emails.forEach(e => {
+                    const a = document.createElement('a');
+                    a.className = `list-group-item list-group-item-action sidebar-email-item p-3 ${currentEmail && currentEmail.id === e.id ? 'active' : ''}`;
+                    a.onclick = () => selectEmail(e);
+                    a.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold small text-truncate" style="max-width: 170px;">${e.sender_name}</span>
+                            <span class="badge bg-secondary badge-cat">${e.category || 'inquiry'}</span>
+                        </div>
+                        <div class="fw-medium text-truncate small mb-1 text-dark">${e.subject}</div>
+                        <div class="d-flex justify-content-between align-items-center small text-muted">
+                            <span class="badge ${e.status === 'approved' ? 'bg-success' : (e.status === 'edited_and_approved' ? 'bg-info' : 'bg-light text-dark')}">${e.status}</span>
+                            <span style="font-size: 0.7rem;">${e.id}</span>
+                        </div>
+                    `;
+                    list.appendChild(a);
+                });
+            } catch (err) {
+                console.error("Load emails err:", err);
+            }
+        }
+
+        function selectEmail(email) {
+            currentEmail = email;
+            document.getElementById('workspaceEmpty').classList.add('d-none');
+            document.getElementById('workspaceActive').classList.remove('d-none');
+
+            document.getElementById('activeSubject').textContent = email.subject;
+            document.getElementById('activeSender').textContent = `${email.sender_name} <${email.sender_email}>`;
+            document.getElementById('activeDate').textContent = email.received_at;
+            document.getElementById('activeCategoryBadge').textContent = (email.category || '').toUpperCase();
+            document.getElementById('activePriorityBadge').textContent = (email.priority || '').toUpperCase();
+            document.getElementById('activeBody').textContent = email.body;
+
+            // Automatically trigger draft generation if not drafted yet
+            generateDraft();
+            loadEmails();
+        }
+
+        async function generateDraft() {
+            if (!currentEmail) return;
+            const voice = document.getElementById('voiceSelect').value;
+            try {
+                const res = await fetch(`/api/v1/emails/${currentEmail.id}/draft?voice=${voice}`, { method: 'POST' });
+                const draft = await res.json();
+                currentOriginalDraft = draft.original_draft;
+                document.getElementById('draftTextarea').value = draft.original_draft;
+                document.getElementById('activeVoiceBadge').textContent = `Voice: ${draft.voice}`;
+                onDraftEdited();
+            } catch (err) {
+                alert("Draft generation failed: " + err.message);
+            }
+        }
+
+        function onDraftEdited() {
+            const currentText = document.getElementById('draftTextarea').value;
+            const display = document.getElementById('similarityDisplay');
+            const notice = document.getElementById('streakImpactNotice');
+            const approveBtn = document.getElementById('approveBtn');
+
+            if (currentText.trim() === currentOriginalDraft.trim()) {
+                display.className = 'fw-bold text-success ms-1';
+                display.textContent = '100.0% (Unchanged)';
+                notice.textContent = 'Approving without changes advances autonomous streak (+1).';
+                notice.className = 'small text-success';
+                approveBtn.className = 'btn btn-success';
+                approveBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Approve Unchanged';
+            } else {
+                // Approximate ratio
+                const maxLen = Math.max(currentText.length, currentOriginalDraft.length) || 1;
+                const diffLen = Math.abs(currentText.length - currentOriginalDraft.length);
+                const ratio = Math.max(0, 1 - (diffLen / maxLen));
+                display.className = 'fw-bold text-warning ms-1';
+                display.textContent = `${(ratio * 100).toFixed(1)}% (Edited)`;
+                notice.textContent = 'Human edits reset autonomous streak to 0 or revoke active autonomy.';
+                notice.className = 'small text-danger';
+                approveBtn.className = 'btn btn-primary';
+                approveBtn.innerHTML = '<i class="bi bi-pencil-square me-1"></i> Save & Approve Edits';
+            }
+        }
+
+        async function submitReview(action) {
+            if (!currentEmail) return;
+            const text = document.getElementById('draftTextarea').value;
+            const feedback = document.getElementById('feedbackNotes').value;
+
+            try {
+                const res = await fetch(`/api/v1/emails/${currentEmail.id}/review`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email_id: currentEmail.id,
+                        action: action,
+                        edited_draft: text,
+                        feedback_notes: feedback,
+                        reviewer_name: "Lead Support Specialist"
+                    })
+                });
+                const result = await res.json();
+                alert(`Action recorded! Status: ${result.status}\n${result.message || ''}`);
+                loadAutonomyStatus();
+                loadEmails();
+            } catch (err) {
+                alert("Review submission failed: " + err.message);
+            }
+        }
+
+        async function exportDraft() {
+            if (!currentEmail) return;
+            window.open(`/api/v1/emails/${currentEmail.id}/export`, '_blank');
+        }
+
+        async function seedSyntheticEmails() {
+            try {
+                const res = await fetch('/api/v1/emails/seed', { method: 'POST' });
+                const data = await res.json();
+                alert(`Successfully seeded ${data.count} synthetic emails!`);
+                loadEmails();
+                loadAutonomyStatus();
+            } catch (err) {
+                alert("Seed failed: " + err.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAutonomyStatus();
+            loadEmails();
+        });
+    </script>
+</body>
+</html>

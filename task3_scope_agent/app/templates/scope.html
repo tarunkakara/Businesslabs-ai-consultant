@@ -354,9 +354,9 @@ John: And we dropped the fast search requirement for now.`
             document.getElementById('outputEmpty').classList.add('d-none');
             document.getElementById('outputActive').classList.remove('d-none');
 
-            document.getElementById('displayHours').textContent = `${sow.total_developer_hours} hrs`;
-            document.getElementById('displayCost').textContent = `$${sow.total_cost_usd.toLocaleString()}`;
-            document.getElementById('displayTimeline').textContent = `${p.estimated_timeline_weeks} wks`;
+            document.getElementById('displayHours').textContent = `${sow.total_developer_hours.toFixed(1)} hrs`;
+            document.getElementById('displayCost').textContent = `$${sow.total_cost_usd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('displayTimeline').textContent = `${p.estimated_timeline_weeks.toFixed(0)} wks`;
 
             document.getElementById('proposalTitle').textContent = p.title;
             document.getElementById('proposalVersion').textContent = `Meeting ID: ${p.meeting_id} &bull; Revision Version ${p.version}`;
@@ -376,15 +376,29 @@ John: And we dropped the fast search requirement for now.`
             tbody.innerHTML = '';
             sow.tasks.forEach(t => {
                 const isNative = t.work_type === 'platform_configuration';
+                const isQA = t.work_type === 'qa_testing';
+                let citationsHtml = '';
+                if (t.source_citations && t.source_citations.length > 0) {
+                    citationsHtml = '<div class="mt-2 pt-1 border-top border-secondary border-opacity-25 small">' +
+                        '<strong class="text-indigo me-1" style="color: #a5b4fc;"><i class="bi bi-bookmark-check-fill me-1"></i>Verified Source:</strong> ' +
+                        t.source_citations.map(c => `<a href="${c.url}" target="_blank" class="citation-link me-2 text-decoration-none" style="color: #818cf8;"><i class="bi bi-box-arrow-up-right me-1"></i>${c.title}</a>`).join('') +
+                        '</div>';
+                }
+
+                let typeBadge = '<span class="badge custom-badge">Custom Dev</span>';
+                if (isNative) typeBadge = '<span class="badge native-badge">Native Config</span>';
+                else if (isQA) typeBadge = '<span class="badge bg-info text-dark">Dedicated QA</span>';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>
-                        <strong>${t.title}</strong>
-                        <div class="text-muted" style="font-size:0.75rem;">${t.rationale}</div>
+                        <strong class="text-light">${t.title}</strong>
+                        <div class="text-muted small mt-1">${t.rationale}</div>
+                        ${citationsHtml}
                     </td>
-                    <td><span class="badge ${isNative ? 'native-badge' : 'custom-badge'}">${isNative ? 'Native Config' : 'Custom Dev'}</span></td>
-                    <td class="text-end fw-bold">${t.developer_hours}h</td>
-                    <td class="text-end fw-bold">$${t.estimated_cost.toLocaleString()}</td>
+                    <td>${typeBadge}</td>
+                    <td class="text-end fw-bold text-light">${t.developer_hours.toFixed(1)}h</td>
+                    <td class="text-end fw-bold text-indigo" style="color: #a5b4fc !important;">$${t.estimated_cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -392,11 +406,13 @@ John: And we dropped the fast search requirement for now.`
             // Ambiguity & Open Questions
             const qBox = document.getElementById('questionsContainer');
             const qList = document.getElementById('questionsList');
-            if (data.analysis && data.analysis.open_questions && data.analysis.open_questions.length > 0) {
+            const questions = (data.analysis && data.analysis.open_questions) || (p.scope_of_work && p.scope_of_work.open_questions) || [];
+            if (questions.length > 0) {
                 qBox.classList.remove('d-none');
                 qList.innerHTML = '';
-                data.analysis.open_questions.forEach(q => {
+                questions.forEach(q => {
                     const li = document.createElement('li');
+                    li.className = 'mb-1';
                     li.textContent = q;
                     qList.appendChild(li);
                 });

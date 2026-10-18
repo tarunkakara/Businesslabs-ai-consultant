@@ -18,9 +18,11 @@ class RequirementItem(BaseModel):
     id: str
     title: str
     description: str
+    canonical_key: Optional[str] = None
     req_type: RequirementType = RequirementType.FUNCTIONAL
     is_native_feature: bool = False
     native_feature_evidence: Optional[str] = None
+    source_citations: List[Dict[str, Any]] = Field(default_factory=list)
     is_ambiguous: bool = False
     clarification_question: Optional[str] = None
     estimated_hours: float = 0.0
@@ -44,11 +46,12 @@ class TaskEstimate(BaseModel):
     """Work package item breakdown."""
     task_id: str
     title: str
-    work_type: str = "custom_development"  # "configuration", "custom_development", "qa_testing"
+    work_type: str = "custom_development"  # "platform_configuration", "custom_development", "qa_testing"
     developer_hours: float
     hourly_rate: float = 120.0
     estimated_cost: float
     rationale: str
+    source_citations: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class ScopeOfWork(BaseModel):
@@ -61,6 +64,9 @@ class ScopeOfWork(BaseModel):
     total_cost_usd: float = 0.0
     native_features_utilized: List[str] = Field(default_factory=list)
     custom_development_packages: List[str] = Field(default_factory=list)
+    unaccounted_requirements: List[str] = Field(default_factory=list)
+    qa_allowance_percentage: float = 15.0
+    qa_rounding_rule: str = "15% of total development hours, rounded to 1 decimal place"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 

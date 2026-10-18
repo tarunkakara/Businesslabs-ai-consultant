@@ -4,10 +4,10 @@
     "description": "Functional requirement extraction",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.46,
+    "latency_ms": 0.71,
     "error": null,
     "details": {
-      "title": "We need a custom member directory search filter"
+      "title": "Medical License Number Directory Search Filter"
     }
   },
   {
@@ -15,7 +15,7 @@
     "description": "Integration requirement classification",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.07,
+    "latency_ms": 0.06,
     "error": null,
     "details": {
       "type": "integration"
@@ -26,7 +26,7 @@
     "description": "Project constraint extraction (budget and timeline)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.05,
+    "latency_ms": 0.04,
     "error": null,
     "details": {
       "constraints": [
@@ -52,7 +52,7 @@
     "description": "Implementation assumption extraction",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.04,
+    "latency_ms": 0.52,
     "error": null,
     "details": {
       "assumptions": [
@@ -65,7 +65,7 @@
     "description": "Ambiguous vague phrase detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.05,
+    "latency_ms": 0.06,
     "error": null,
     "details": {
       "vague_count": 1
@@ -76,10 +76,10 @@
     "description": "Follow-up clarification question formulation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.05,
+    "latency_ms": 0.04,
     "error": null,
     "details": {
-      "question": "The requirement mentions 'some sort of'. What are the exact acceptance criteria and design specifications?"
+      "question": "What specific reference websites, typography, or UI component criteria define your preferred modern aesthetic? Do you have Figma mockups or style guides?"
     }
   },
   {
@@ -87,7 +87,7 @@
     "description": "Native feature recognition: Stripe payments (~3h config)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 797.28,
+    "latency_ms": 723.39,
     "error": null,
     "details": {
       "is_native": true,
@@ -99,7 +99,7 @@
     "description": "Native feature recognition: Webhooks (~3h config)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 641.96,
+    "latency_ms": 556.49,
     "error": null,
     "details": {
       "is_native": true
@@ -110,7 +110,7 @@
     "description": "Native feature recognition: Lead distribution (~3h config)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 573.92,
+    "latency_ms": 556.3,
     "error": null,
     "details": {
       "is_native": true
@@ -121,7 +121,7 @@
     "description": "Custom development requirement: Native Mobile App (~24h)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 604.38,
+    "latency_ms": 578.88,
     "error": null,
     "details": {
       "is_native": false,
@@ -133,7 +133,7 @@
     "description": "Custom development requirement: Database Sync Bridge (~24h)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 563.01,
+    "latency_ms": 555.46,
     "error": null,
     "details": {
       "is_native": false
@@ -144,7 +144,7 @@
     "description": "Work package breakdown with dedicated QA allocation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 1135.95,
+    "latency_ms": 1329.09,
     "error": null,
     "details": {
       "tasks_count": 3,
@@ -156,11 +156,11 @@
     "description": "Budget arithmetic verification at $120/hr",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 553.73,
+    "latency_ms": 649.96,
     "error": null,
     "details": {
-      "hours": 7.0,
-      "cost": 840.0
+      "hours": 3.4,
+      "cost": 408.0
     }
   },
   {
@@ -168,10 +168,10 @@
     "description": "Long transcript resilience (>100 conversation turns)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 2.74,
+    "latency_ms": 4.8,
     "error": null,
     "details": {
-      "requirements_extracted": 121
+      "requirements_extracted": 122
     }
   },
   {
@@ -179,11 +179,11 @@
     "description": "Revision comparison: Added requirements detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.23,
+    "latency_ms": 0.28,
     "error": null,
     "details": {
       "added": [
-        "We also need custom Zapier webhook integration"
+        "Webhook Event Notification Setup"
       ]
     }
   },
@@ -192,11 +192,11 @@
     "description": "Revision comparison: Removed requirements detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.18,
+    "latency_ms": 0.26,
     "error": null,
     "details": {
       "removed": [
-        "We need custom Zapier webhook integration"
+        "Webhook Event Notification Setup"
       ]
     }
   },
@@ -205,14 +205,14 @@
     "description": "Scope creep warning triggered on budget surge & multi-feature add",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.22,
+    "latency_ms": 0.33,
     "error": null,
     "details": {
       "warnings": [
-        "Scope expansion alert: 3 new features added in revision (In addition we need a native iOS app, In addition we need a native Android app, In addition we need custom ERP sync).",
-        "Budget surge warning: Total project cost increased by 294.3% (+$9,888.00). Requires formal change order."
+        "Scope expansion alert: 2 new feature package(s) added in revision (Custom Native Mobile App (iOS & Android), We Need Custom ERP Sync).",
+        "Budget surge warning: Total project cost increased by 200.0% (+$6,624.00). Requires formal change order."
       ],
-      "cost_delta": 9888.0
+      "cost_delta": 6624.0
     }
   },
   {
@@ -220,7 +220,7 @@
     "description": "Client proposal human approval boundary enforced",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.09,
+    "latency_ms": 0.15,
     "error": null,
     "details": {
       "is_approved": false
@@ -235,7 +235,7 @@
     "error": null,
     "details": {
       "approved_by": "Lead Consultant",
-      "approved_at": "2026-10-18T11:22:53.759512+00:00"
+      "approved_at": "2026-10-18T11:43:43.335887+00:00"
     }
   }
 ]

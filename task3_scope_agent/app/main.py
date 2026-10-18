@@ -77,9 +77,11 @@ async def process_transcript(request: ProcessTranscriptRequest):
             client_name=request.client_name,
             previous_meeting_id=request.previous_meeting_id,
         )
+        record = _pipeline.get_meeting(proposal.meeting_id)
         return {
             "proposal": proposal,
             "diff": diff,
+            "analysis": record.get("analysis") if record else None,
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Pipeline processing failed: {str(exc)}")
@@ -117,27 +119,38 @@ async def export_proposal(meeting_id: str):
 
     p: ProposalDocument = record["proposal"]
     sow = p.scope_of_work
+    analysis = record.get("analysis")
 
-    tasks_md = "\n".join(
-        f"| {t.task_id} | {t.title} | {t.work_type} | {t.developer_hours}h | ${t.estimated_cost:,.2f} |"
-        for t in sow.tasks
-    )
+    tasks_rows = []
+    for t in sow.tasks:
+        citations_str = "None (Custom)" if not t.source_citations else ", ".join(f"[{c['title']}]({c['url']})" for c in t.source_citations)
+        tasks_rows.append(f"| {t.task_id} | {t.title} | {t.work_type} | {t.developer_hours:.1f}h | ${t.estimated_cost:,.2f} | {citations_str} |")
 
-    diff_md = record["diff"].diff_summary_markdown if record.get("diff") else ""
+    tasks_md = "\n".join(tasks_rows)
+    diff_md = f"\n{record['diff'].diff_summary_markdown}\n" if record.get("diff") else ""
+
+    questions_md = ""
+    if analysis and analysis.open_questions:
+        q_lines = "\n".join(f"- {q}" for q in analysis.open_questions)
+        questions_md = f"\n## Ambiguous Requirements & Client Clarification Questions\n{q_lines}\n"
+
+    status_str = f"APPROVED (Signed off by {p.approved_by} on {p.approved_at})" if p.is_approved_by_human else "AWAITING HUMAN SIGN-OFF (Draft)"
 
     markdown = (
         f"# {p.title}\n\n"
-        f"**Client**: {p.client_name} | **Version**: v{p.version} | **Status**: {'APPROVED' if p.is_approved_by_human else 'DRAFT (Pending Review)'}\n\n"
+        f"**Client**: {p.client_name} | **Version**: v{p.version} | **Status**: {status_str}\n\n"
         f"## Executive Summary\n{p.executive_summary}\n\n"
         f"## Estimated Budget & Timeline\n"
-        f"- **Total Hours**: {sow.total_developer_hours} hrs\n"
-        f"- **Total Estimated Budget**: ${sow.total_cost_usd:,.2f} USD\n"
-        f"- **Estimated Timeline**: {p.estimated_timeline_weeks} weeks\n\n"
+        f"- **Total Development & QA Hours**: {sow.total_developer_hours:.1f} hrs\n"
+        f"- **Total Estimated Budget**: ${sow.total_cost_usd:,.2f} USD (Blended Rate: $120.00/hr)\n"
+        f"- **Quality Assurance Policy**: {sow.qa_allowance_percentage}% of development hours ({sow.qa_rounding_rule})\n"
+        f"- **Estimated Delivery Timeline**: {p.estimated_timeline_weeks:.0f} weeks\n"
+        f"{questions_md}\n"
         f"## Work Package Breakdown\n"
-        f"| ID | Task | Type | Hours | Cost |\n"
-        f"|---|---|---|---|---|\n"
+        f"| ID | Work Package Title | Type | Hours | Cost (USD) | Verified Source Documentation |\n"
+        f"|---|---|---|---|---|---|\n"
         f"{tasks_md}\n\n"
-        f"{diff_md}\n"
+        f"{diff_md}"
     )
 
     return PlainTextResponse(markdown, media_type="text/markdown")

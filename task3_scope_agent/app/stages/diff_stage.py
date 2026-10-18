@@ -18,25 +18,25 @@ class TranscriptDiffStage:
         new_analysis: ExtractedMeetingAnalysis,
         new_sow: ScopeOfWork,
     ) -> TranscriptRevisionDiff:
-        prev_titles = {r.title.lower(): r.title for r in prev_analysis.requirements}
-        new_titles = {r.title.lower(): r.title for r in new_analysis.requirements}
+        prev_keys = {r.canonical_key or r.title.lower(): r.title for r in prev_analysis.requirements}
+        new_keys = {r.canonical_key or r.title.lower(): r.title for r in new_analysis.requirements}
 
-        added = [new_titles[k] for k in new_titles if k not in prev_titles]
-        removed = [prev_titles[k] for k in prev_titles if k not in new_titles]
+        added = [new_keys[k] for k in new_keys if k not in prev_keys]
+        removed = [prev_keys[k] for k in prev_keys if k not in new_keys]
 
         hours_delta = round(new_sow.total_developer_hours - prev_sow.total_developer_hours, 1)
         cost_delta = round(new_sow.total_cost_usd - prev_sow.total_cost_usd, 2)
 
         scope_creep: List[str] = []
 
-        # Scope creep rule 1: More than 2 new requirements added in revision
-        if len(added) >= 2:
+        # Scope creep rule 1: New requirements added in revision
+        if len(added) >= 1:
             scope_creep.append(
-                f"Scope expansion alert: {len(added)} new features added in revision ({', '.join(added)})."
+                f"Scope expansion alert: {len(added)} new feature package(s) added in revision ({', '.join(added)})."
             )
 
-        # Scope creep rule 2: Budget increased by more than 20%
-        if prev_sow.total_cost_usd > 0 and (cost_delta / prev_sow.total_cost_usd) > 0.20:
+        # Scope creep rule 2: Budget increased by more than 20% or > $1,500
+        if prev_sow.total_cost_usd > 0 and ((cost_delta / prev_sow.total_cost_usd) > 0.20 or cost_delta >= 1500.0):
             pct = round((cost_delta / prev_sow.total_cost_usd) * 100, 1)
             scope_creep.append(
                 f"Budget surge warning: Total project cost increased by {pct}% (+${cost_delta:,.2f}). Requires formal change order."

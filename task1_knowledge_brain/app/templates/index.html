@@ -7,32 +7,185 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
+        :root {
+            --bg-base: #090d16;
+            --bg-card: rgba(22, 30, 49, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.09);
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+        }
+        body {
+            background: radial-gradient(ellipse at 20% 0%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
+            background-attachment: fixed;
+            color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-glass);
+        }
+        .brand-gradient {
+            background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .nav-service-pill {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .nav-service-pill:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .nav-service-pill.active {
+            color: #ffffff;
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
         .badge-mode { font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 9999px; }
-        .card { border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .source-card { border-left: 4px solid #3b82f6; background-color: #f1f5f9; }
-        .citation-link { font-weight: 600; color: #1d4ed8; text-decoration: none; }
-        .citation-link:hover { text-decoration: underline; }
-        .stat-val { font-size: 1.8rem; font-weight: 700; color: #0f172a; }
-        .nav-pills .nav-link.active { background-color: #2563eb; }
-        .screenshot-thumb { max-height: 120px; object-fit: cover; border-radius: 6px; }
+        .card {
+            background: var(--bg-card) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass) !important;
+            border-radius: 16px;
+            box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.45);
+            color: #f1f5f9;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            border-color: rgba(99, 102, 241, 0.3) !important;
+        }
+        .source-card {
+            border-left: 4px solid var(--accent-primary) !important;
+            background: rgba(15, 23, 42, 0.7) !important;
+            border: 1px solid var(--border-glass);
+        }
+        .citation-link { font-weight: 600; color: #818cf8; text-decoration: none; }
+        .citation-link:hover { color: #a5b4fc; text-decoration: underline; }
+        .stat-val {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-pills .nav-link {
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .nav-pills .nav-link:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 18px var(--accent-glow);
+        }
+        .form-control, .form-select {
+            background-color: rgba(15, 23, 42, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #f8fafc !important;
+            border-radius: 10px;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(15, 23, 42, 0.95) !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+            color: #ffffff !important;
+        }
+        .form-control::placeholder { color: #64748b !important; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+            transform: translateY(-1px);
+        }
+        .btn-outline-secondary {
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #cbd5e1 !important;
+        }
+        .btn-outline-secondary:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+        }
+        .table {
+            color: #f1f5f9 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .table thead th {
+            background-color: rgba(15, 23, 42, 0.85) !important;
+            color: #94a3b8 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            color: #ffffff !important;
+        }
+        .text-muted { color: #94a3b8 !important; }
+        .answer-box {
+            background: rgba(15, 23, 42, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 12px;
+        }
+        footer {
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border-glass) !important;
+            color: #64748b !important;
+        }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+    <nav class="navbar navbar-expand-lg navbar-dark py-3 sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-cpu-fill text-primary"></i>
-                BusinessLabs AI Tech Consultant
+                <i class="bi bi-cpu-fill text-indigo fs-4" style="color: #818cf8;"></i>
+                <span class="brand-gradient">BusinessLabs AI Tech Consultant</span>
+                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 ms-1">Task 1: Knowledge Brain</span>
             </a>
-            <div class="d-flex align-items-center gap-3">
-                <span id="providerBadge" class="badge badge-mode bg-warning text-dark">
+
+            <!-- Cross-Task Quick Nav Switcher -->
+            <div class="d-none d-lg-flex align-items-center gap-1 mx-auto">
+                <a href="http://127.0.0.1:8000" class="nav-service-pill active">
+                    <i class="bi bi-brain me-1"></i> Brain (:8000)
+                </a>
+                <a href="http://127.0.0.1:8001" class="nav-service-pill">
+                    <i class="bi bi-inbox me-1"></i> Inbox Agent (:8001)
+                </a>
+                <a href="http://127.0.0.1:8002" class="nav-service-pill">
+                    <i class="bi bi-file-earmark-text me-1"></i> Scope Agent (:8002)
+                </a>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <span id="providerBadge" class="badge badge-mode bg-secondary text-white">
                     <i class="bi bi-info-circle me-1"></i> Checking...
                 </span>
-                <a href="/docs" target="_blank" class="btn btn-outline-light btn-sm">
+                <a href="/docs" target="_blank" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-book me-1"></i> API Docs
                 </a>
             </div>
@@ -64,7 +217,7 @@
             <div class="col-md-3">
                 <div class="card p-3">
                     <div class="text-muted small fw-medium">Unanswered Questions</div>
-                    <div id="statUnanswered" class="stat-val text-danger">-</div>
+                    <div id="statUnanswered" class="stat-val" style="color: #f87171;">-</div>
                 </div>
             </div>
         </div>
@@ -98,7 +251,7 @@
             <!-- 1. Query Pane -->
             <div class="tab-pane fade show active" id="query-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3">Ask Technical Questions (Grounded in Solution Center)</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-chat-quote-fill me-2 text-indigo" style="color: #818cf8;"></i>Ask Technical Questions (Grounded in Solution Center)</h5>
                     <div class="input-group mb-3">
                         <input type="text" id="questionInput" class="form-control form-control-lg" placeholder="e.g., How do I set up webhooks in Brilliant Directories?" />
                         <button id="askBtn" class="btn btn-primary px-4 fw-medium" onclick="submitQuestion()">
@@ -123,23 +276,23 @@
 
                     <!-- Answer Container -->
                     <div id="answerContainer" class="d-none">
-                        <div class="p-3 border rounded mb-3 bg-white">
+                        <div class="p-4 answer-box mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span id="answerStatusBadge" class="badge bg-success">Grounded Answer</span>
                                 <span id="modelInfoBadge" class="small text-muted"></span>
                             </div>
-                            <div id="answerText" class="lead fs-6 mb-3" style="white-space: pre-wrap;"></div>
+                            <div id="answerText" class="lead fs-6 mb-3 text-light" style="white-space: pre-wrap;"></div>
 
-                            <div class="row g-2 small text-muted border-top pt-2">
-                                <div class="col-sm-4">Confidence: <span id="answerConfidence" class="fw-bold">-</span></div>
-                                <div class="col-sm-4">Latency: <span id="answerLatency" class="fw-bold">-</span></div>
-                                <div class="col-sm-4">Tokens: <span id="answerTokens" class="fw-bold">-</span></div>
+                            <div class="row g-2 small text-muted border-top border-secondary border-opacity-25 pt-2">
+                                <div class="col-sm-4">Confidence: <span id="answerConfidence" class="fw-bold text-light">-</span></div>
+                                <div class="col-sm-4">Latency: <span id="answerLatency" class="fw-bold text-light">-</span></div>
+                                <div class="col-sm-4">Tokens: <span id="answerTokens" class="fw-bold text-light">-</span></div>
                             </div>
                         </div>
 
                         <!-- Sources Section -->
                         <div id="sourcesContainer" class="mt-4">
-                            <h6 class="fw-bold text-secondary mb-3">Cited Sources & Relevant Screenshots:</h6>
+                            <h6 class="fw-bold text-light mb-3"><i class="bi bi-bookmark-check-fill text-indigo me-1" style="color: #818cf8;"></i>Cited Sources & Relevant Screenshots:</h6>
                             <div id="sourcesList" class="row g-3"></div>
                         </div>
                     </div>
@@ -149,14 +302,14 @@
             <!-- 2. Crawler & Sync Pane -->
             <div class="tab-pane fade" id="crawl-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3">Sitemap Crawl & Synchronization Control</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-diagram-3-fill text-indigo me-2" style="color: #818cf8;"></i>Sitemap Crawl & Synchronization Control</h5>
                     <p class="text-muted small">
-                        The crawler periodically checks <code>https://support.brilliantdirectories.com/support/sitemap.xml</code>
+                        The crawler periodically checks <code class="text-info">https://support.brilliantdirectories.com/support/sitemap.xml</code>
                         for added, modified, and removed pages. Removed pages are automatically purged from the vector index.
                     </p>
 
                     <div class="d-flex gap-3 my-3">
-                        <button class="btn btn-outline-primary" onclick="triggerSitemapSync()">
+                        <button class="btn btn-outline-secondary" onclick="triggerSitemapSync()">
                             <i class="bi bi-arrow-repeat me-1"></i> Sync Sitemap (Detect Changes)
                         </button>
                         <button class="btn btn-primary" onclick="triggerCrawlBatch()">
@@ -171,7 +324,7 @@
             <!-- 3. Human Expert Review Pane -->
             <div class="tab-pane fade" id="expert-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3">Human Expert Review Queue</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-person-badge-fill text-indigo me-2" style="color: #818cf8;"></i>Human Expert Review Queue</h5>
                     <p class="text-muted small">
                         Questions where the AI system found insufficient documentation evidence are queued here.
                         Once a human expert submits an approved answer, it is stored and immediately retrievable for future queries.
@@ -187,14 +340,14 @@
             <div class="tab-pane fade" id="articles-pane" role="tabpanel">
                 <div class="card p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title fw-bold mb-0">Indexed Solution Articles</h5>
+                        <h5 class="card-title fw-bold mb-0"><i class="bi bi-collection-fill text-indigo me-2" style="color: #818cf8;"></i>Indexed Solution Articles</h5>
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadArticles()">
                             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                         </button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
-                            <thead class="table-light">
+                            <thead>
                                 <tr>
                                     <th>Title</th>
                                     <th>URL</th>
@@ -213,10 +366,10 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-light py-3 border-top mt-auto">
-        <div class="container text-center text-muted small">
+    <footer class="py-3 mt-auto">
+        <div class="container text-center small">
             BusinessLabs AI Tech Consultant &bull; Capstone Task 1: Python Knowledge Brain &bull;
-            <span id="footerStatus">Online</span>
+            <span id="footerStatus" class="text-success"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Online</span>
         </div>
     </footer>
 
@@ -304,7 +457,7 @@
                                     <i class="bi bi-box-arrow-up-right me-1"></i> ${s.title || 'Documentation Article'}
                                 </a>
                                 <p class="small text-muted mb-2">${s.snippet || ''}</p>
-                                <span class="badge bg-light text-secondary align-self-start">Relevance: ${(s.similarity_score * 100).toFixed(0)}%</span>
+                                <span class="badge bg-secondary bg-opacity-50 text-light align-self-start">Relevance: ${(s.similarity_score * 100).toFixed(0)}%</span>
                             </div>
                         `;
                         sourcesList.appendChild(col);
@@ -323,20 +476,19 @@
         }
 
         function formatMarkdown(text) {
-            // Simple markdown link converter: [Title](URL) -> <a href="URL">Title</a>
             return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="citation-link">$1</a>');
         }
 
         async function triggerSitemapSync() {
             const logBox = document.getElementById('crawlActionLog');
-            logBox.className = 'alert alert-info mt-3';
+            logBox.className = 'alert alert-info mt-3 bg-dark text-info border-info';
             logBox.textContent = 'Syncing sitemap from support.brilliantdirectories.com...';
             logBox.classList.remove('d-none');
 
             try {
                 const res = await fetch('/api/v1/crawl/sync', { method: 'POST' });
                 const data = await res.json();
-                logBox.className = 'alert alert-success mt-3';
+                logBox.className = 'alert alert-success mt-3 bg-dark text-success border-success';
                 logBox.innerHTML = `
                     <strong>Sitemap Sync Finished!</strong><br/>
                     New URLs: ${data.sitemap_changes?.new || 0} &bull;
@@ -346,14 +498,14 @@
                 `;
                 fetchStatus();
             } catch (err) {
-                logBox.className = 'alert alert-danger mt-3';
+                logBox.className = 'alert alert-danger mt-3 bg-dark text-danger border-danger';
                 logBox.textContent = 'Sync failed: ' + err.message;
             }
         }
 
         async function triggerCrawlBatch() {
             const logBox = document.getElementById('crawlActionLog');
-            logBox.className = 'alert alert-info mt-3';
+            logBox.className = 'alert alert-info mt-3 bg-dark text-info border-info';
             logBox.textContent = 'Crawling batch of 10 articles...';
             logBox.classList.remove('d-none');
 
@@ -364,7 +516,7 @@
                     body: JSON.stringify({ batch_size: 10 })
                 });
                 const data = await res.json();
-                logBox.className = 'alert alert-success mt-3';
+                logBox.className = 'alert alert-success mt-3 bg-dark text-success border-success';
                 logBox.innerHTML = `
                     <strong>Batch Crawled Successfully!</strong><br/>
                     Processed: ${data.crawl_result?.processed || 0} &bull;
@@ -375,7 +527,7 @@
                 fetchStatus();
                 loadArticles();
             } catch (err) {
-                logBox.className = 'alert alert-danger mt-3';
+                logBox.className = 'alert alert-danger mt-3 bg-dark text-danger border-danger';
                 logBox.textContent = 'Batch crawl failed: ' + err.message;
             }
         }
@@ -383,7 +535,7 @@
         function renderUnanswered(items) {
             const list = document.getElementById('unansweredList');
             if (!items || items.length === 0) {
-                list.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle me-1"></i> No unanswered questions currently pending! All queries are grounded.</div>';
+                list.innerHTML = '<div class="alert alert-success bg-dark text-success border-success"><i class="bi bi-check-circle me-1"></i> No unanswered questions currently pending! All queries are grounded.</div>';
                 return;
             }
 
@@ -449,7 +601,7 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td class="fw-medium">${a.title || 'Untitled'}</td>
-                        <td><a href="${a.url}" target="_blank" class="small text-truncate d-inline-block" style="max-width:300px;">${a.url}</a></td>
+                        <td><a href="${a.url}" target="_blank" class="small text-truncate d-inline-block text-info" style="max-width:300px;">${a.url}</a></td>
                         <td class="small text-muted">${a.lastmod || a.last_crawled_at || '-'}</td>
                         <td><span class="badge bg-success">Crawled</span></td>
                     `;

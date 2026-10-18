@@ -7,25 +7,153 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .card { border-radius: 10px; border: 1px solid #e2e8f0; }
-        .metric-card { background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
+        :root {
+            --bg-base: #090d16;
+            --bg-card: rgba(22, 30, 49, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.09);
+            --accent-indigo: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+        }
+        body {
+            background: radial-gradient(ellipse at 80% 0%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
+            background-attachment: fixed;
+            color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-glass);
+        }
+        .brand-gradient {
+            background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .nav-service-pill {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .nav-service-pill:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .nav-service-pill.active {
+            color: #ffffff;
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .card {
+            background: var(--bg-card) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass) !important;
+            border-radius: 16px;
+            box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.45);
+            color: #f1f5f9;
+        }
+        .metric-card {
+            background: rgba(15, 23, 42, 0.75) !important;
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+        }
         .native-badge { background-color: #10b981; color: white; }
         .custom-badge { background-color: #6366f1; color: white; }
+        .form-control, .form-select {
+            background-color: rgba(15, 23, 42, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #f8fafc !important;
+            border-radius: 10px;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(15, 23, 42, 0.95) !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+            color: #ffffff !important;
+        }
+        .form-control::placeholder { color: #64748b !important; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            font-weight: 600;
+        }
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-outline-secondary {
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #cbd5e1 !important;
+        }
+        .btn-outline-secondary:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+        }
+        .table {
+            color: #f1f5f9 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .table thead th {
+            background-color: rgba(15, 23, 42, 0.85) !important;
+            color: #94a3b8 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+        }
+        .summary-box {
+            background: rgba(15, 23, 42, 0.7) !important;
+            border: 1px solid var(--border-glass) !important;
+            border-radius: 10px;
+        }
+        .text-muted { color: #94a3b8 !important; }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+    <nav class="navbar navbar-expand-lg navbar-dark py-3 sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-file-earmark-spreadsheet-fill text-warning"></i>
-                <strong>BusinessLabs Meeting-to-Scope Agent</strong>
-                <span class="badge bg-secondary ms-2 small">Task 3</span>
+                <i class="bi bi-file-earmark-spreadsheet-fill text-warning fs-4"></i>
+                <span class="brand-gradient">BusinessLabs AI Tech Consultant</span>
+                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 ms-1">Task 3: Scope Agent</span>
             </a>
-            <span class="badge bg-warning text-dark px-3 py-2">
-                <i class="bi bi-person-check-fill me-1"></i> Human Approval Required Before Finalizing
+
+            <!-- Cross-Task Quick Nav Switcher -->
+            <div class="d-none d-lg-flex align-items-center gap-1 mx-auto">
+                <a href="http://127.0.0.1:8000" class="nav-service-pill">
+                    <i class="bi bi-brain me-1"></i> Brain (:8000)
+                </a>
+                <a href="http://127.0.0.1:8001" class="nav-service-pill">
+                    <i class="bi bi-inbox me-1"></i> Inbox Agent (:8001)
+                </a>
+                <a href="http://127.0.0.1:8002" class="nav-service-pill active">
+                    <i class="bi bi-file-earmark-text me-1"></i> Scope Agent (:8002)
+                </a>
+            </div>
+
+            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 px-3 py-2">
+                <i class="bi bi-person-check-fill me-1"></i> Human Sign-Off Enforced
             </span>
         </div>
     </nav>
@@ -35,16 +163,16 @@
         <div class="row g-4">
             <!-- Left: Transcript Input & Controls -->
             <div class="col-lg-5">
-                <div class="card p-3 shadow-sm h-100">
-                    <h5 class="fw-bold mb-3"><i class="bi bi-mic-fill text-primary me-1"></i> Input Meeting Transcript</h5>
+                <div class="card p-4 h-100">
+                    <h5 class="fw-bold mb-3 text-light"><i class="bi bi-mic-fill text-indigo me-2" style="color: #818cf8;"></i>Input Meeting Transcript</h5>
 
-                    <div class="mb-2">
-                        <label class="form-label small fw-bold">Client / Company Name:</label>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-light">Client / Company Name:</label>
                         <input type="text" id="clientNameInput" class="form-control" value="HealthHub Directories" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Meeting Transcript Text:</label>
+                        <label class="form-label small fw-bold text-light">Meeting Transcript Text:</label>
                         <textarea id="transcriptInput" class="form-control" rows="11" placeholder="Paste meeting transcript here..."></textarea>
                     </div>
 
@@ -64,10 +192,11 @@
 
             <!-- Right: Scope of Work, Proposal & Revision Diff -->
             <div class="col-lg-7">
-                <div id="outputEmpty" class="card p-5 text-center text-muted h-100 d-flex align-items-center justify-content-center shadow-sm">
+                <div id="outputEmpty" class="card p-5 text-center text-muted h-100 d-flex align-items-center justify-content-center">
                     <div>
                         <i class="bi bi-file-text fs-1 text-secondary mb-3 d-block"></i>
-                        <h5>Submit a transcript on the left to generate SOW, check native features, and review proposal.</h5>
+                        <h5 class="text-light">Submit a transcript on the left to generate SOW, check native features, and review proposal.</h5>
+                        <p class="small text-muted">The 5-stage pipeline detects ambiguities, cross-references Brilliant Directories docs, computes $120/hr estimates, and monitors scope creep.</p>
                     </div>
                 </div>
 
@@ -75,36 +204,36 @@
                     <!-- Metric Cards -->
                     <div class="row g-2 mb-3">
                         <div class="col-sm-4">
-                            <div class="metric-card p-3 shadow-sm">
+                            <div class="metric-card p-3">
                                 <div class="small text-muted fw-bold">Estimated Hours</div>
-                                <div id="displayHours" class="fs-3 fw-bold text-dark">-</div>
+                                <div id="displayHours" class="fs-3 fw-bold text-light">-</div>
                             </div>
                         </div>
                         <div class="col-sm-4">
-                            <div class="metric-card p-3 shadow-sm">
+                            <div class="metric-card p-3">
                                 <div class="small text-muted fw-bold">Estimated Cost ($120/h)</div>
-                                <div id="displayCost" class="fs-3 fw-bold text-primary">-</div>
+                                <div id="displayCost" class="fs-3 fw-bold text-indigo" style="color: #a5b4fc !important;">-</div>
                             </div>
                         </div>
                         <div class="col-sm-4">
-                            <div class="metric-card p-3 shadow-sm">
+                            <div class="metric-card p-3">
                                 <div class="small text-muted fw-bold">Timeline Estimate</div>
-                                <div id="displayTimeline" class="fs-3 fw-bold text-dark">-</div>
+                                <div id="displayTimeline" class="fs-3 fw-bold text-light">-</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Revision Diff Notice (If applicable) -->
-                    <div id="diffAlertBox" class="alert alert-warning d-none shadow-sm mb-3">
+                    <div id="diffAlertBox" class="alert alert-warning d-none bg-dark text-warning border-warning shadow-sm mb-3">
                         <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Transcript Revision Detected:</h6>
                         <div id="diffContent" class="small" style="white-space: pre-wrap;"></div>
                     </div>
 
                     <!-- Proposal Container -->
-                    <div class="card p-4 shadow-sm mb-3">
+                    <div class="card p-4 mb-3">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h5 id="proposalTitle" class="fw-bold mb-1">Proposal Title</h5>
+                                <h5 id="proposalTitle" class="fw-bold mb-1 text-light">Proposal Title</h5>
                                 <div id="proposalVersion" class="small text-muted">Version 1</div>
                             </div>
                             <span id="approvalBadge" class="badge bg-warning text-dark px-3 py-2">
@@ -113,16 +242,16 @@
                         </div>
 
                         <!-- Executive Summary -->
-                        <div class="p-3 bg-light rounded border mb-3">
-                            <h6 class="small fw-bold text-secondary mb-1">Executive Summary:</h6>
-                            <p id="proposalSummary" class="small mb-0"></p>
+                        <div class="p-3 summary-box mb-3">
+                            <h6 class="small fw-bold text-indigo mb-1" style="color: #a5b4fc;"><i class="bi bi-card-text me-1"></i>Executive Summary:</h6>
+                            <p id="proposalSummary" class="small mb-0 text-light"></p>
                         </div>
 
                         <!-- Task Breakdown Table -->
-                        <h6 class="fw-bold mb-2">Detailed Work Packages:</h6>
+                        <h6 class="fw-bold mb-2 text-light"><i class="bi bi-list-check text-indigo me-1" style="color: #818cf8;"></i>Detailed Work Packages:</h6>
                         <div class="table-responsive mb-3">
                             <table class="table table-sm table-bordered align-middle">
-                                <thead class="table-light small">
+                                <thead>
                                     <tr>
                                         <th>Task</th>
                                         <th>Type</th>
@@ -135,13 +264,13 @@
                         </div>
 
                         <!-- Open Questions -->
-                        <div id="questionsContainer" class="alert alert-info py-2 px-3 small d-none">
+                        <div id="questionsContainer" class="alert alert-info py-2 px-3 small d-none bg-dark text-info border-info">
                             <strong><i class="bi bi-question-circle me-1"></i> Ambiguous Requirements & Follow-Up Questions:</strong>
                             <ul id="questionsList" class="mb-0 mt-1 ps-3"></ul>
                         </div>
 
                         <!-- Action Bar -->
-                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary border-opacity-25">
                             <button class="btn btn-outline-secondary btn-sm" onclick="exportProposal()">
                                 <i class="bi bi-download me-1"></i> Export SOW (Markdown)
                             </button>
@@ -258,6 +387,21 @@ John: And we dropped the fast search requirement for now.`
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Ambiguity & Open Questions
+            const qBox = document.getElementById('questionsContainer');
+            const qList = document.getElementById('questionsList');
+            if (data.analysis && data.analysis.open_questions && data.analysis.open_questions.length > 0) {
+                qBox.classList.remove('d-none');
+                qList.innerHTML = '';
+                data.analysis.open_questions.forEach(q => {
+                    const li = document.createElement('li');
+                    li.textContent = q;
+                    qList.appendChild(li);
+                });
+            } else {
+                qBox.classList.add('d-none');
+            }
 
             // Approval status
             const badge = document.getElementById('approvalBadge');

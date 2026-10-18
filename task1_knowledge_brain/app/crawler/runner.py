@@ -49,9 +49,10 @@ class ResumableCrawler:
             "User-Agent": "BusinessLabs-KnowledgeBrain/1.0 (+https://businesslabs.ai)"
         }
         attempt = 0
-        backoff = 1.0
+        backoff = 0.5
+        max_retries = min(self.max_retries, 1)
 
-        while attempt <= self.max_retries:
+        while attempt <= max_retries:
             try:
                 response = await client.get(url, headers=headers, follow_redirects=True)
                 if response.status_code == 200:
@@ -66,45 +67,52 @@ class ResumableCrawler:
                     )
                     logger.debug("Successfully crawled: %s (%s)", url, article.title)
                     return True
-                elif response.status_code == 404:
-                    self.state_store.mark_failed(url, "HTTP 404 Not Found")
+                elif response.status_code in [404, 403, 410]:
+                    self.state_store.mark_failed(url, f"HTTP {response.status_code}")
                     return False
                 else:
                     attempt += 1
-                    if attempt > self.max_retries:
+                    if attempt > max_retries:
                         self.state_store.mark_failed(url, f"HTTP {response.status_code}")
                         return False
             except Exception as exc:
                 attempt += 1
-                if attempt > self.max_retries:
+                if attempt > max_retries:
                     self.state_store.mark_failed(url, f"Exception: {str(exc)}")
                     return False
 
             await asyncio.sleep(backoff)
-            backoff *= 2.0
+            backoff *= 1.5
 
         return False
 
     async def crawl_batch(self, batch_size: int = 10) -> Dict[str, Any]:
-        """Crawl next pending batch of URLs respecting rate limits."""
+        """Crawl next pending batch of URLs concurrently respecting safe rate limits."""
         pending = self.state_store.get_pending_urls(limit=batch_size)
         if not pending:
-            return {"processed": 0, "successful": 0, "remaining_pending": 0}
+            return {"processed": 0, "successful": 0, "crawled_urls": [], "remaining_pending": 0}
 
         successful = 0
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            for item in pending:
-                url = item["url"]
+        crawled_urls: List[str] = []
+        sem = asyncio.Semaphore(3)
+
+        async def fetch_task(item: Dict[str, Any], client: httpx.AsyncClient):
+            nonlocal successful
+            url = item["url"]
+            async with sem:
                 ok = await self.crawl_single_url(client, url)
                 if ok:
                     successful += 1
-                if self.delay_seconds > 0:
-                    await asyncio.sleep(self.delay_seconds)
+                    crawled_urls.append(url)
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await asyncio.gather(*(fetch_task(item, client) for item in pending))
 
         stats = self.state_store.get_stats()
         return {
             "processed": len(pending),
             "successful": successful,
+            "crawled_urls": crawled_urls,
             "remaining_pending": stats.get("pending", 0),
         }
 

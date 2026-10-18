@@ -78,7 +78,11 @@ async def crawl_batch(request: CrawlBatchRequest):
     try:
         batch_size = min(max(1, request.batch_size), 10)
         crawl_result = await _crawler.crawl_batch(batch_size=batch_size)
-        index_stats = _synchronizer.sync()
+        crawled_urls = crawl_result.get("crawled_urls", [])
+        if crawled_urls:
+            index_stats = _synchronizer.sync_specific_urls(crawled_urls)
+        else:
+            index_stats = {"indexed_articles": 0, "total_chunks_in_index": _vector_store.count()}
         return {
             "status": "success",
             "crawl_result": crawl_result,

@@ -519,11 +519,20 @@
         async function triggerSitemapSync() {
             const logBox = document.getElementById('crawlActionLog');
             logBox.className = 'alert alert-info mt-3 bg-dark text-info border-info';
-            logBox.textContent = 'Syncing sitemap from support.brilliantdirectories.com...';
+            logBox.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Syncing sitemap from support.brilliantdirectories.com...';
             logBox.classList.remove('d-none');
 
             try {
                 const res = await fetch('/api/v1/crawl/sync', { method: 'POST' });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    try {
+                        const parsed = JSON.parse(errText);
+                        throw new Error(parsed.detail || `Server error: HTTP ${res.status}`);
+                    } catch (_) {
+                        throw new Error(`Server returned HTTP ${res.status}`);
+                    }
+                }
                 const data = await res.json();
                 logBox.className = 'alert alert-success mt-3 bg-dark text-success border-success';
                 logBox.innerHTML = `
@@ -543,15 +552,35 @@
         async function triggerCrawlBatch() {
             const logBox = document.getElementById('crawlActionLog');
             logBox.className = 'alert alert-info mt-3 bg-dark text-info border-info';
-            logBox.textContent = 'Crawling batch of 10 articles...';
+            logBox.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Crawling batch of articles and indexing into vector store...';
             logBox.classList.remove('d-none');
 
             try {
-                const res = await fetch('/api/v1/crawl/batch', {
+                let res = await fetch('/api/v1/crawl/batch', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ batch_size: 10 })
                 });
+
+                if (res.status === 502 || res.status === 503 || res.status === 504) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    res = await fetch('/api/v1/crawl/batch', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ batch_size: 10 })
+                    });
+                }
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    try {
+                        const parsed = JSON.parse(errText);
+                        throw new Error(parsed.detail || `Server error: HTTP ${res.status}`);
+                    } catch (_) {
+                        throw new Error(`Server returned HTTP ${res.status}`);
+                    }
+                }
+
                 const data = await res.json();
                 logBox.className = 'alert alert-success mt-3 bg-dark text-success border-success';
                 logBox.innerHTML = `
@@ -559,7 +588,7 @@
                     Processed: ${data.crawl_result?.processed || 0} &bull;
                     Successful: ${data.crawl_result?.successful || 0} &bull;
                     Remaining Pending: ${data.crawl_result?.remaining_pending || 0} &bull;
-                    Total Chunks: ${data.vector_index_sync?.total_chunks_in_index || 0}
+                    Total Chunks in Index: ${data.vector_index_sync?.total_chunks_in_index || 0}
                 `;
                 fetchStatus();
                 loadArticles();

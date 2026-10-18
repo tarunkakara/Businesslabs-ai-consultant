@@ -1,7 +1,7 @@
 """Incremental Synchronization between SQLite Crawl State and ChromaDB Vector Store."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from task1_knowledge_brain.app.crawler.state import CrawlStateStore
 from task1_knowledge_brain.app.rag.chunker import DocumentChunker
@@ -22,6 +22,35 @@ class KnowledgeBrainSynchronizer:
         self.state_store = state_store or CrawlStateStore(None)  # uses default path if None passed
         self.vector_store = vector_store or RAGVectorStore()
         self.chunker = chunker or DocumentChunker()
+
+    def sync_specific_urls(self, urls: List[str]) -> Dict[str, Any]:
+        """Index only specified URLs into vector store without re-indexing all existing articles."""
+        indexed_articles = 0
+        total_chunks = 0
+
+        for url in urls:
+            full_article = self.state_store.get_article(url)
+            if not full_article or not full_article.get("body_text"):
+                continue
+
+            chunks = self.chunker.chunk_article(
+                url=url,
+                title=full_article.get("title") or "Article",
+                breadcrumbs=full_article.get("breadcrumbs") or "",
+                body_text=full_article["body_text"],
+                images=full_article.get("images", []),
+            )
+
+            chunk_count = self.vector_store.add_article_chunks(url, chunks)
+            if chunk_count > 0:
+                indexed_articles += 1
+                total_chunks += chunk_count
+
+        return {
+            "indexed_articles": indexed_articles,
+            "new_chunks_indexed": total_chunks,
+            "total_chunks_in_index": self.vector_store.count(),
+        }
 
     def sync(self) -> Dict[str, Any]:
         """Perform full incremental synchronization."""

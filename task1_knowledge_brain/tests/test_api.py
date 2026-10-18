@@ -52,7 +52,7 @@ def test_api_ui_html_response(client):
     """Verify GET / with text/html returns the dashboard UI."""
     response = client.get("/", headers={"Accept": "text/html"})
     assert response.status_code == 200
-    assert "BusinessLabs — AI Knowledge Brain" in response.text
+    assert "AI Knowledge Brain" in response.text or "AI Tech Consultant" in response.text
     assert "Knowledge Assistant" in response.text
 
 

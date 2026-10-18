@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessLabs — Meeting-to-Scope Agent</title>
+    <title>AI Tech Consultant — Meeting-to-Scope Agent</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -33,11 +33,12 @@
             -webkit-text-fill-color: transparent;
             font-weight: 800;
             letter-spacing: -0.5px;
+            font-size: 1.25rem;
         }
         .nav-service-pill {
             color: #94a3b8;
-            font-size: 0.82rem;
-            padding: 0.35rem 0.85rem;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.95rem;
             border-radius: 9999px;
             text-decoration: none;
             transition: all 0.2s ease;
@@ -132,15 +133,15 @@
 
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark py-3 sticky-top">
-        <div class="container">
+        <div class="container-fluid px-4 px-lg-5">
             <a class="navbar-brand d-flex align-items-center gap-2" href="#">
                 <i class="bi bi-file-earmark-spreadsheet-fill text-warning fs-4"></i>
-                <span class="brand-gradient">BusinessLabs AI Tech Consultant</span>
+                <span class="brand-gradient">AI Tech Consultant</span>
                 <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 ms-1">Task 3: Scope Agent</span>
             </a>
 
             <!-- Cross-Task Quick Nav Switcher -->
-            <div class="d-none d-lg-flex align-items-center gap-1 mx-auto">
+            <div class="d-none d-lg-flex align-items-center gap-2 mx-auto">
                 <a href="http://127.0.0.1:8000" class="nav-service-pill">
                     <i class="bi bi-brain me-1"></i> Brain (:8000)
                 </a>
@@ -158,8 +159,8 @@
         </div>
     </nav>
 
-    <!-- Main Container -->
-    <div class="container my-4 flex-grow-1">
+    <!-- Main Container (Full-width responsive container-fluid) -->
+    <div class="container-fluid px-4 px-lg-5 my-4 flex-grow-1">
         <div class="row g-4">
             <!-- Left: Transcript Input & Controls -->
             <div class="col-lg-5">

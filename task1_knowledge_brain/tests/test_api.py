@@ -168,3 +168,115 @@ def test_api_health_dependencies(client):
     assert data["vector_store_healthy"] is True
     assert data["is_mock_mode"] is True
 
+
+def test_api_actionable_webhooks_query(client):
+    """Verify webhooks query returns actionable steps, deduplicated citations, and mock mode label."""
+    from task1_knowledge_brain.app.rag.chunker import DocumentChunker
+    import task1_knowledge_brain.app.api.routes as r
+
+    chunker = DocumentChunker()
+    wh_url = "https://support.brilliantdirectories.com/support/solutions/articles/12000083005-developer-hub-webhooks"
+    wh_text = (
+        "Developer Hub - Webhooks\n"
+        "Opening the Webhooks Page:\n"
+        "Go to Developer Hub. On the Manage Webhooks card, click Manage Webhooks.\n"
+        "Turning a Webhook On:\n"
+        "1. Switch the webhook on.\n"
+        "2. Paste the endpoint address into its Webhook Link (must start with https:// or http://).\n"
+        "3. Click Save in the Unsaved changes bar at the top of the page.\n"
+        "Default Webhook Events include Get Matched Lead Form Submitted, Contact Us, and Member Signups."
+    )
+    zapier_url = "https://support.brilliantdirectories.com/support/solutions/articles/12000082977-connecting-webhook-events-with-zapier"
+    zapier_text = (
+        "Connecting Webhook Events with Zapier\n"
+        "Copy the Custom Webhook URL from Zapier Catch Hook and paste into Webhook Link."
+    )
+
+    chunks1 = chunker.chunk_article(wh_url, "Developer Hub - Webhooks", "Developer Hub > Webhooks", wh_text, [])
+    chunks2 = chunker.chunk_article(zapier_url, "Connecting Webhook Events with Zapier", "Developer Hub > Webhooks", zapier_text, [])
+    r._vector_store.add_article_chunks(wh_url, chunks1)
+    r._vector_store.add_article_chunks(zapier_url, chunks2)
+
+    response = client.post(
+        "/api/v1/query",
+        json={"question": "How to set up webhooks for real-time notifications?", "top_k": 8},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    # Grounding & sufficiency
+    assert data["is_grounded"] is True
+    assert data["is_sufficient"] is True
+
+    # Mode distinction
+    assert data["is_mock"] is True
+    assert "mock" in data["model_name"].lower()
+    assert "claude" not in data["model_name"].lower()  # Must not claim to be Claude
+
+    # Latency measurement
+    assert data["latency_ms"] > 0
+    assert data["confidence_score"] >= 0.50
+
+    # Actionable procedural steps in answer
+    ans = data["answer"]
+    assert "Developer Hub" in ans
+    assert "Manage Webhooks" in ans
+    assert "Webhook Link" in ans
+    assert "Save" in ans
+    assert "Actionable Setup Steps" in ans
+
+    # Exact citations with markdown links
+    assert f"[{wh_url}]" in ans or f"[Developer Hub - Webhooks]({wh_url})" in ans
+
+    # Citation deduplication: verify no duplicate URLs in sources
+    source_urls = [s["url"] for s in data["sources"]]
+    assert len(source_urls) == len(set(source_urls)), "Sources must not contain duplicate URLs"
+
+
+def test_api_lead_distribution_query(client):
+    """Verify lead distribution query returns automatic matching details."""
+    from task1_knowledge_brain.app.rag.chunker import DocumentChunker
+    import task1_knowledge_brain.app.api.routes as r
+
+    url = "https://support.brilliantdirectories.com/support/solutions/articles/12000007994-what-is-the-automatic-lead-matching-add-on-"
+    title = "Lead Distribution - What Is The Automatic Lead Matching Add-On?"
+    text = (
+        "Lead Distribution - What Is The Automatic Lead Matching Add-On?\n"
+        "How the lead distribution system works:\n"
+        "All directory websites generate leads from visitors who contact professional members. "
+        "This add-on allows the site to instantly send leads to members without manually matching them.\n"
+        "By default, leads submitted through the 'Get Matched' form are marked as Pending and require manual review by an admin. "
+        "With the auto-matching feature enabled, the lead distribution system automatically matches leads based on request details."
+    )
+    chunker = DocumentChunker()
+    chunks = chunker.chunk_article(url, title, "Leads", text, [])
+    r._vector_store.add_article_chunks(url, chunks)
+
+    response = client.post(
+        "/api/v1/query",
+        json={"question": "How does the lead distribution system work?", "top_k": 5},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_grounded"] is True
+    assert data["is_sufficient"] is True
+    assert "Automatic Lead Matching" in data["answer"]
+    assert len(data["sources"]) > 0
+
+
+def test_api_dashboard_counts_reflection(client):
+    """Verify dashboard status endpoint reflects real SQLite records and ChromaDB chunk count."""
+    import task1_knowledge_brain.app.api.routes as r
+
+    status_res = client.get("/api/v1/crawl/status")
+    assert status_res.status_code == 200
+    data = status_res.json()
+
+    assert "crawled" in data
+    assert "pending" in data
+    assert "vector_chunks_count" in data
+    assert "unanswered_count" in data
+    assert data["vector_chunks_count"] == r._vector_store.count()
+    assert data["unanswered_count"] == r._expert_store.count_pending_questions()
+
+

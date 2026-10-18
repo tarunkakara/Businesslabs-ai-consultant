@@ -1,6 +1,7 @@
 """Knowledge Brain Engine coordinating RAG search, citations, refusal, and expert feedback."""
 
 import logging
+import time
 from typing import Any, Dict, List, Optional
 
 from task1_knowledge_brain.app.config import settings
@@ -26,14 +27,16 @@ class KnowledgeBrainEngine:
         self.expert_store = expert_store or ExpertFeedbackStore(settings.sqlite_db_path)
         self.llm_provider = llm_provider or get_llm_provider()
 
-    async def answer_question(self, question: str, top_k: int = 5) -> GroundedAnswer:
+    async def answer_question(self, question: str, top_k: int = 8) -> GroundedAnswer:
         """Answer question with grounding, citation verification, and fallback refusal."""
+        start_time = time.perf_counter()
         clean_q = question.strip()
 
         # Step 1: Check if Human Expert has already provided an approved verified answer
         expert_match = self.expert_store.find_approved_answer(clean_q)
         if expert_match:
             logger.info("Found verified expert answer for question: '%s'", clean_q)
+            latency_ms = max(0.1, round((time.perf_counter() - start_time) * 1000, 2))
             return GroundedAnswer(
                 question=clean_q,
                 answer=(
@@ -47,6 +50,7 @@ class KnowledgeBrainEngine:
                 needs_human_review=False,
                 model_name="human-expert-verified",
                 is_mock=False,
+                latency_ms=latency_ms,
             )
 
         # Step 2: Query vector store for relevant documentation chunks
@@ -66,10 +70,13 @@ class KnowledgeBrainEngine:
             self.expert_store.log_unanswered_question(clean_q)
 
             # Let LLM / mock generate standard truthful refusal
-            return await self.llm_provider.answer_grounded(clean_q, [])
+            refusal = await self.llm_provider.answer_grounded(clean_q, [])
+            refusal.latency_ms = max(0.1, round((time.perf_counter() - start_time) * 1000, 2))
+            return refusal
 
         # Step 4: Generate grounded answer with citations
         grounded_answer = await self.llm_provider.answer_grounded(clean_q, retrieved_contexts)
+        grounded_answer.latency_ms = max(0.1, round((time.perf_counter() - start_time) * 1000, 2))
 
         # If LLM itself decided context was insufficient, log for expert review
         if not grounded_answer.is_sufficient:

@@ -386,20 +386,20 @@
                 document.getElementById('statCrawled').textContent = data.crawled ?? 0;
                 document.getElementById('statChunks').textContent = data.vector_chunks_count ?? 0;
                 document.getElementById('statPending').textContent = data.pending ?? 0;
+                document.getElementById('statUnanswered').textContent = data.unanswered_count ?? 0;
 
                 const badge = document.getElementById('providerBadge');
                 if (data.is_mock_mode) {
                     badge.className = 'badge badge-mode bg-secondary text-white';
-                    badge.innerHTML = '<i class="bi bi-shield-check me-1"></i> Mock Mode (Offline)';
+                    badge.innerHTML = '<i class="bi bi-shield-lock me-1"></i> Mock Mode (Offline Deterministic)';
                 } else {
                     badge.className = 'badge badge-mode bg-success text-white';
-                    badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Live Claude 3.5';
+                    badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Live Claude 3.5 Sonnet';
                 }
 
-                // Fetch unanswered count
+                // Fetch unanswered list for human review queue
                 const unres = await fetch('/api/v1/feedback/unanswered');
                 const unData = await unres.json();
-                document.getElementById('statUnanswered').textContent = unData.length || 0;
                 renderUnanswered(unData);
             } catch (err) {
                 console.error("Status fetch error:", err);
@@ -425,7 +425,7 @@
                 const res = await fetch('/api/v1/query', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ question: question, top_k: 5 })
+                    body: JSON.stringify({ question: question, top_k: 8 })
                 });
                 const data = await res.json();
 
@@ -434,7 +434,13 @@
                 document.getElementById('answerConfidence').textContent = (data.confidence_score * 100).toFixed(0) + '%';
                 document.getElementById('answerLatency').textContent = (data.latency_ms || 0) + ' ms';
                 document.getElementById('answerTokens').textContent = (data.usage?.total_tokens || 0) + ' tokens';
-                document.getElementById('modelInfoBadge').textContent = 'Model: ' + data.model_name;
+
+                const modelBadge = document.getElementById('modelInfoBadge');
+                if (data.is_mock) {
+                    modelBadge.innerHTML = '<span class="badge bg-secondary"><i class="bi bi-cpu me-1"></i> Offline Mock Generator</span> <span class="text-muted ms-1 small">(' + (data.model_name || 'mock-offline-generator') + ')</span>';
+                } else {
+                    modelBadge.innerHTML = '<span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i> Live Claude API</span> <span class="text-muted ms-1 small">(' + data.model_name + ')</span>';
+                }
 
                 const badge = document.getElementById('answerStatusBadge');
                 if (data.is_sufficient) {
@@ -454,7 +460,7 @@
                         col.className = 'col-md-6';
                         col.innerHTML = `
                             <div class="card source-card p-3 h-100">
-                                <a href="${s.url}" target="_blank" class="citation-link fs-6 mb-1">
+                                <a href="${s.url}" target="_blank" class="citation-link fs-6 fw-bold mb-1">
                                     <i class="bi bi-box-arrow-up-right me-1"></i> ${s.title || 'Documentation Article'}
                                 </a>
                                 <p class="small text-muted mb-2">${s.snippet || ''}</p>
@@ -477,7 +483,10 @@
         }
 
         function formatMarkdown(text) {
-            return text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="citation-link">$1</a>');
+            if (!text) return '';
+            let html = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="citation-link">$1</a>');
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            return html;
         }
 
         async function triggerSitemapSync() {

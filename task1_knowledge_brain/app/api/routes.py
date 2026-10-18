@@ -96,7 +96,7 @@ async def get_crawl_status():
     stats["is_mock_mode"] = settings.is_mock_mode
     stats["active_model"] = getattr(_engine.llm_provider, "model_name", "unknown")
     stats["retrieval_status"] = "healthy"
-    stats["unanswered_count"] = len(_expert_store.get_pending_questions())
+    stats["unanswered_count"] = _expert_store.count_pending_questions()
     return stats
 
 

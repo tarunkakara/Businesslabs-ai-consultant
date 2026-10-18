@@ -73,6 +73,14 @@ class ExpertFeedbackStore:
             """, (limit,))
             return [dict(row) for row in cursor.fetchall()]
 
+    def count_pending_questions(self) -> int:
+        """Count total unanswered questions awaiting human review."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM unanswered_questions WHERE status = 'pending'")
+            row = cursor.fetchone()
+            return int(row[0]) if row else 0
+
     def approve_answer(
         self,
         question: str,

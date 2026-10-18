@@ -4,11 +4,11 @@
     "description": "Grounded query on indexed documentation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 279.21,
+    "latency_ms": 292.25,
     "error": null,
     "details": {
-      "answer_snippet": "According to [Configuring Stripe Payment Gateway](https://support.brilliantdirec",
-      "tokens": 206
+      "answer_snippet": "According to the official documentation in [Configuring Stripe Payment Gateway](",
+      "tokens": 509
     }
   },
   {
@@ -16,7 +16,7 @@
     "description": "Source citation with explicit URL link",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 296.0,
+    "latency_ms": 293.3,
     "error": null,
     "details": {
       "cited_url": "https://support.brilliantdirectories.com/support/solutions/articles/12000000010"
@@ -27,7 +27,7 @@
     "description": "Truthful refusal for out-of-domain questions",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 302.83,
+    "latency_ms": 296.0,
     "error": null,
     "details": {
       "refusal_text": "Based on the available Brilliant Directories documentation, "
@@ -38,7 +38,7 @@
     "description": "Hallucination prevention on non-existent feature",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 338.73,
+    "latency_ms": 286.73,
     "error": null,
     "details": {
       "confidence": 0.0
@@ -49,7 +49,7 @@
     "description": "Prompt injection defense",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 299.14,
+    "latency_ms": 285.12,
     "error": null,
     "details": {
       "grounded": true
@@ -60,7 +60,7 @@
     "description": "SQL injection resilience",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 359.77,
+    "latency_ms": 295.04,
     "error": null,
     "details": {
       "tables_intact": true
@@ -71,7 +71,7 @@
     "description": "Image screenshot association with parent article",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 289.99,
+    "latency_ms": 287.35,
     "error": null,
     "details": {
       "image_count": 1
@@ -82,7 +82,7 @@
     "description": "Stale/removed article purging from vector index",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 603.46,
+    "latency_ms": 582.89,
     "error": null,
     "details": {
       "purged_chunks": 1
@@ -93,7 +93,7 @@
     "description": "Unanswered query logged into human expert queue",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 299.33,
+    "latency_ms": 272.92,
     "error": null,
     "details": {
       "pending_count": 5
@@ -104,7 +104,7 @@
     "description": "Human expert approved answer retrieval with high confidence",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 310.78,
+    "latency_ms": 307.21,
     "error": null,
     "details": {
       "expert_verified": true
@@ -115,7 +115,7 @@
     "description": "Resumable crawl progress tracking in SQLite",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 11.19,
+    "latency_ms": 11.38,
     "error": null,
     "details": {
       "resumed_successfully": true
@@ -126,7 +126,7 @@
     "description": "Sitemap incremental change detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 23.32,
+    "latency_ms": 28.89,
     "error": null,
     "details": {
       "new": 1,
@@ -140,7 +140,7 @@
     "description": "Article extractor strips noise and extracts clean text",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 4.21,
+    "latency_ms": 4.15,
     "error": null,
     "details": {
       "clean_text_len": 23
@@ -151,7 +151,7 @@
     "description": "XML Sitemap parser namespace tolerance",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.15,
+    "latency_ms": 0.13,
     "error": null,
     "details": {
       "entries_count": 1
@@ -162,7 +162,7 @@
     "description": "Crawler failure recording and error count increment",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 9.77,
+    "latency_ms": 13.39,
     "error": null,
     "details": {
       "failure_recorded": true
@@ -173,7 +173,7 @@
     "description": "Empty / whitespace query validation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 291.02,
+    "latency_ms": 273.72,
     "error": null,
     "details": {
       "handled_empty": true
@@ -184,7 +184,7 @@
     "description": "Semantic chunking with boundary overlap",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.06,
+    "latency_ms": 0.05,
     "error": null,
     "details": {
       "chunks_generated": 3
@@ -195,7 +195,7 @@
     "description": "Grounding threshold enforcement",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 343.37,
+    "latency_ms": 296.44,
     "error": null,
     "details": {
       "score": 0.0584
@@ -206,11 +206,11 @@
     "description": "Token accounting and latency instrumentation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.07,
+    "latency_ms": 0.05,
     "error": null,
     "details": {
       "latency_ms": 0.01,
-      "tokens": 39
+      "tokens": 41
     }
   },
   {
@@ -218,7 +218,7 @@
     "description": "Model configuration comparison and credentials contract",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 2.16,
+    "latency_ms": 4.71,
     "error": null,
     "details": {
       "mock_model": "mock-claude-3-5-sonnet",

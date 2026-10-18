@@ -114,7 +114,8 @@ class AnthropicClaudeProvider(BaseLLMProvider):
             "   'Based on the available Brilliant Directories documentation, there is insufficient evidence to answer this question.'\n"
             "3. Do not speculate, extrapolate, or invent features.\n"
             "4. For every fact you mention, cite the source in markdown format: [Article Title](URL).\n"
-            "5. Keep the answer structured, concise, and professional."
+            "5. Keep the answer structured, concise, and professional.\n"
+            "6. When answering procedural or setup questions (e.g. 'How to...'), provide concrete, numbered step-by-step instructions derived directly from the documentation."
         )
 
         user_prompt = (
@@ -139,15 +140,26 @@ class AnthropicClaudeProvider(BaseLLMProvider):
 
         is_insufficient = "insufficient evidence" in answer_text.lower()
 
-        sources = [
-            {
-                "title": c.get("title", ""),
-                "url": c.get("url", ""),
-                "similarity_score": c.get("similarity_score", 1.0),
-                "snippet": c.get("text", "")[:180],
-            }
-            for c in retrieved_contexts[:3]
-        ] if not is_insufficient else []
+        # Deduplicate sources strictly by URL
+        seen_urls = set()
+        sources = []
+        if not is_insufficient:
+            for c in retrieved_contexts:
+                u = c.get("url", "").strip()
+                if not u or u in seen_urls:
+                    continue
+                seen_urls.add(u)
+                sources.append({
+                    "title": c.get("title", ""),
+                    "url": u,
+                    "similarity_score": c.get("similarity_score", 1.0),
+                    "snippet": c.get("text", "")[:180],
+                    "image_urls": c.get("image_urls", []),
+                })
+                if len(sources) >= 4:
+                    break
+
+        top_score = round(retrieved_contexts[0].get("similarity_score", 0.95), 2) if retrieved_contexts else 0.0
 
         return GroundedAnswer(
             question=question,
@@ -155,7 +167,7 @@ class AnthropicClaudeProvider(BaseLLMProvider):
             is_grounded=True,
             is_sufficient=not is_insufficient,
             sources=sources,
-            confidence_score=0.95 if not is_insufficient else 0.0,
+            confidence_score=top_score if not is_insufficient else 0.0,
             needs_human_review=is_insufficient,
             model_name=self.model_name,
             is_mock=False,

@@ -75,7 +75,10 @@ class RAGVectorStore:
 
         retrieved: List[Dict[str, Any]] = []
         for doc, meta, dist in zip(documents, metadatas, distances):
-            # Convert distance to normalized similarity score (0.0 to 1.0)
+            # ChromaDB default space is squared L2 distance between normalized embeddings:
+            # dist = ||u - v||^2 = 2 - 2*cos(theta).
+            # Therefore: similarity = 1.0 - (dist / 2.0) = cos(theta).
+            # We clamp to [0.0, 1.0] to obtain a clean normalized relevance score.
             similarity = max(0.0, min(1.0, 1.0 - (float(dist) / 2.0)))
 
             images_raw = meta.get("images_json", "[]")

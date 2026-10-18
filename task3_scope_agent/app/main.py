@@ -3,7 +3,7 @@
 from pathlib import Path
 import re
 from typing import Any, Dict, Optional
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
@@ -14,6 +14,7 @@ from task3_scope_agent.app.pdf_exporter import ProposalPdfExporter
 from task3_scope_agent.app.pipeline import MeetingToScopePipeline
 
 _pipeline = MeetingToScopePipeline()
+router = APIRouter(tags=["Task 3: Scope Agent"])
 
 app = FastAPI(
     title="BusinessLabs AI Tech Consultant — Meeting-to-Scope Agent",
@@ -70,7 +71,7 @@ async def health():
     }
 
 
-@app.post("/api/v1/scope/process", tags=["Pipeline"])
+@router.post("/api/v1/scope/process", tags=["Pipeline"])
 async def process_transcript(request: ProcessTranscriptRequest):
     """Run full 5-stage pipeline on meeting transcript."""
     try:
@@ -89,7 +90,7 @@ async def process_transcript(request: ProcessTranscriptRequest):
         raise HTTPException(status_code=500, detail=f"Pipeline processing failed: {str(exc)}")
 
 
-@app.post("/api/v1/scope/{meeting_id}/approve", response_model=ProposalDocument, tags=["Proposal"])
+@router.post("/api/v1/scope/{meeting_id}/approve", response_model=ProposalDocument, tags=["Proposal"])
 async def approve_proposal(meeting_id: str, request: ApproveProposalRequest):
     """Human approval sign-off for client proposal."""
     try:
@@ -103,7 +104,7 @@ async def approve_proposal(meeting_id: str, request: ApproveProposalRequest):
         raise HTTPException(status_code=500, detail=f"Approval failed: {str(exc)}")
 
 
-@app.get("/api/v1/scope/{meeting_id}", tags=["Proposal"])
+@router.get("/api/v1/scope/{meeting_id}", tags=["Proposal"])
 async def get_meeting_scope(meeting_id: str):
     """Retrieve meeting record, SOW, and diff."""
     record = _pipeline.get_meeting(meeting_id)
@@ -112,7 +113,7 @@ async def get_meeting_scope(meeting_id: str):
     return record
 
 
-@app.get("/api/v1/scope/{meeting_id}/export", tags=["Export"])
+@router.get("/api/v1/scope/{meeting_id}/export", tags=["Export"])
 async def export_proposal(meeting_id: str):
     """Export formatted client proposal markdown."""
     record = _pipeline.get_meeting(meeting_id)
@@ -158,7 +159,7 @@ async def export_proposal(meeting_id: str):
     return PlainTextResponse(markdown, media_type="text/markdown")
 
 
-@app.get("/api/v1/scope/{meeting_id}/export/pdf", tags=["Export"])
+@router.get("/api/v1/scope/{meeting_id}/export/pdf", tags=["Export"])
 async def export_proposal_pdf(meeting_id: str):
     """Export formatted client proposal as a professional PDF document."""
     record = _pipeline.get_meeting(meeting_id)
@@ -177,4 +178,7 @@ async def export_proposal_pdf(meeting_id: str):
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+app.include_router(router)
 

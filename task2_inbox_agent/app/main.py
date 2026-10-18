@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
@@ -28,6 +28,8 @@ _store = InboxAuditStore()
 _classifier = EmailClassifier()
 _drafter = ResponseDrafter()
 _autonomy = AutonomyEngine()
+
+router = APIRouter(tags=["Task 2: Inbox Agent"])
 
 
 @asynccontextmanager
@@ -85,7 +87,7 @@ async def health():
     }
 
 
-@app.post("/api/v1/emails/seed", tags=["Emails"])
+@router.post("/api/v1/emails/seed", tags=["Emails"])
 async def seed_emails():
     """Seed 55 synthetic customer emails."""
     emails = generate_synthetic_emails()
@@ -93,7 +95,7 @@ async def seed_emails():
     return {"status": "success", "count": count}
 
 
-@app.get("/api/v1/emails", response_model=List[CustomerEmail], tags=["Emails"])
+@router.get("/api/v1/emails", response_model=List[CustomerEmail], tags=["Emails"])
 async def list_emails(
     category: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -103,7 +105,7 @@ async def list_emails(
     return _store.list_emails(category=category, status=status, limit=limit)
 
 
-@app.get("/api/v1/emails/{email_id}", response_model=CustomerEmail, tags=["Emails"])
+@router.get("/api/v1/emails/{email_id}", response_model=CustomerEmail, tags=["Emails"])
 async def get_email(email_id: str):
     """Get single email record."""
     email = _store.get_email(email_id)
@@ -112,7 +114,7 @@ async def get_email(email_id: str):
     return email
 
 
-@app.post("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
+@router.post("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
 async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None):
     """Classify email, query Knowledge Brain if applicable, and generate structured draft."""
     email = _store.get_email(email_id)
@@ -134,7 +136,7 @@ async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None):
     return draft
 
 
-@app.post("/api/v1/emails/{email_id}/review", tags=["Review & Autonomy"])
+@router.post("/api/v1/emails/{email_id}/review", tags=["Review & Autonomy"])
 async def review_draft(email_id: str, submission: ReviewSubmission):
     """Review, edit, approve, or reject draft with transparent similarity and autonomy tracking."""
     email = _store.get_email(email_id)
@@ -197,19 +199,19 @@ async def review_draft(email_id: str, submission: ReviewSubmission):
     }
 
 
-@app.get("/api/v1/autonomy/status", tags=["Review & Autonomy"])
+@router.get("/api/v1/autonomy/status", tags=["Review & Autonomy"])
 async def get_autonomy_status():
     """Get streak counts, quality scores, and autonomous sending readiness across all categories."""
     return _autonomy.get_all_statuses()
 
 
-@app.get("/api/v1/audit/logs", tags=["Audit"])
+@router.get("/api/v1/audit/logs", tags=["Audit"])
 async def list_audit_logs(limit: int = Query(default=50, ge=1, le=100)):
     """Retrieve transparent audit records."""
     return _store.list_audit_logs(limit=limit)
 
 
-@app.get("/api/v1/emails/{email_id}/export", tags=["Export"])
+@router.get("/api/v1/emails/{email_id}/export", tags=["Export"])
 async def export_email(email_id: str):
     """Export approved email response as formatted text."""
     email = _store.get_email(email_id)
@@ -230,3 +232,6 @@ async def export_email(email_id: str):
         f"{draft.original_draft}\n"
     )
     return PlainTextResponse(export_content, media_type="text/plain")
+
+
+app.include_router(router)

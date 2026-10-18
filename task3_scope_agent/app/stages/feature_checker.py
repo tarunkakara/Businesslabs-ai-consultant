@@ -22,10 +22,18 @@ class NativeFeatureCheckerStage:
     ]
 
     CUSTOM_KEYWORDS = [
-        "native mobile app", "ios", "android", "app store", "bidirectional sync",
-        "sql server", "patient scheduling portal", "custom script", "custom integration",
-        "erp sync", "salesforce sync", "internal database"
+        "native mobile app", "ios", "android", "app store", "bidirectional", "sync",
+        "sql server", "patient scheduling", "patient booking", "booking database",
+        "scheduling database", "custom script", "custom integration", "internal database",
+        "erp sync", "salesforce", "internal patient", "patient database", "proprietary",
+        "custom bidirectional",
     ]
+
+    CUSTOM_CANONICAL_KEYS = {
+        "patient_database_integration",
+        "mobile_app",
+        "salesforce_crm",
+    }
 
     def __init__(self, kb_client: Optional[KnowledgeBrainClient] = None):
         self.kb_client = kb_client or KnowledgeBrainClient()
@@ -70,10 +78,9 @@ class NativeFeatureCheckerStage:
             kb_res = await self.kb_client.query(query_str, top_k=2)
 
             text_lower = f"{req.title} {req.description}".lower()
-            is_explicit_custom = any(ck in text_lower for ck in self.CUSTOM_KEYWORDS)
-            keyword_match = any(kw in text_lower for kw in self.NATIVE_KEYWORDS)
-
             ckey = req.canonical_key or ""
+            is_explicit_custom = (ckey in self.CUSTOM_CANONICAL_KEYS) or any(ck in text_lower for ck in self.CUSTOM_KEYWORDS)
+            keyword_match = any(kw in text_lower for kw in self.NATIVE_KEYWORDS)
 
             if not is_explicit_custom and (keyword_match or kb_res.get("is_sufficient") or ckey in self.VERIFIED_NATIVE_DOCS):
                 req.is_native_feature = True

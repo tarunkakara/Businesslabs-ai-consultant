@@ -158,6 +158,53 @@ async def task3_ui():
     return HTMLResponse("<h1>Task 3 template not found</h1>", status_code=404)
 
 
+def get_process_memory_mb() -> float:
+    """Return resident set size (RSS) memory in MB across Linux/Render and Windows."""
+    try:
+        import resource
+        # ru_maxrss is in kilobytes on Linux
+        return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 2)
+    except Exception:
+        pass
+    try:
+        with open("/proc/self/status", "r") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    parts = line.split()
+                    return round(float(parts[1]) / 1024, 2)
+    except Exception:
+        pass
+    try:
+        import ctypes
+        from ctypes import wintypes
+        class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ('cb', wintypes.DWORD),
+                ('PageFaultCount', wintypes.DWORD),
+                ('PeakWorkingSetSize', ctypes.c_size_t),
+                ('WorkingSetSize', ctypes.c_size_t),
+                ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                ('QuotaNonPagedPoolUsage', ctypes.c_size_t),
+                ('PagefileUsage', ctypes.c_size_t),
+                ('PeakPagefileUsage', ctypes.c_size_t),
+            ]
+        pmc = PROCESS_MEMORY_COUNTERS()
+        pmc.cb = ctypes.sizeof(pmc)
+        k32 = ctypes.windll.kernel32
+        psapi = ctypes.windll.psapi
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        handle = k32.GetCurrentProcess()
+        psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), wintypes.DWORD]
+        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+        if psapi.GetProcessMemoryInfo(handle, ctypes.byref(pmc), ctypes.sizeof(pmc)):
+            return round(pmc.WorkingSetSize / 1024 / 1024, 2)
+    except Exception:
+        pass
+    return 0.0
+
+
 # Unified Health Endpoint
 @app.get("/health", tags=["Health & Telemetry"])
 async def unified_health():
@@ -183,6 +230,7 @@ async def unified_health():
     except Exception:
         pass
 
+    mem_mb = get_process_memory_mb()
     overall_status = "ok" if (db_ok and vec_ok) else "degraded"
 
     return {
@@ -192,6 +240,12 @@ async def unified_health():
         "provider_mode": "mock" if t1_settings.is_mock_mode else "anthropic",
         "is_mock_mode": t1_settings.is_mock_mode,
         "active_model": getattr(llm, "model_name", "mock-claude-3-5-sonnet"),
+        "memory_telemetry": {
+            "current_rss_mb": mem_mb,
+            "render_limit_mb": 512.0,
+            "headroom_mb": round(max(0.0, 512.0 - mem_mb), 2),
+            "status": "healthy" if mem_mb < 400.0 else "warning",
+        },
         "task1_knowledge_brain": {
             "status": "ok" if (db_ok and vec_ok) else "degraded",
             "url": "/brain",

@@ -24,6 +24,10 @@ def seed_core_articles(
     """Loads foundational Brilliant Directories solution articles if database has 0 crawled articles."""
     stats = state_store.get_stats()
     if stats.get("crawled", 0) > 0:
+        if synchronizer and synchronizer.vector_store.count() == 0:
+            logger.info("Crawl state store has %d articles, but vector store is empty; syncing...", stats.get("crawled"))
+            sync_res = synchronizer.sync()
+            logger.info("Synchronized existing articles to vector store: %s", sync_res)
         return 0
 
     if not SEED_FILE_PATH.exists():

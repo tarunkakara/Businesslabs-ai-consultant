@@ -42,9 +42,14 @@ class KnowledgeBrainSynchronizer:
             )
 
             chunk_count = self.vector_store.add_article_chunks(url, chunks)
+            del chunks
+            del full_article
             if chunk_count > 0:
                 indexed_articles += 1
                 total_chunks += chunk_count
+
+        import gc
+        gc.collect()
 
         return {
             "indexed_articles": indexed_articles,
@@ -82,9 +87,14 @@ class KnowledgeBrainSynchronizer:
             )
 
             chunk_count = self.vector_store.add_article_chunks(url, chunks)
+            del chunks
+            del full_article
             if chunk_count > 0:
                 indexed_articles += 1
                 total_chunks += chunk_count
+
+        import gc
+        gc.collect()
 
         return {
             "purged_articles": purged_count,

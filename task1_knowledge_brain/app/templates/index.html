@@ -317,7 +317,7 @@
                             <i class="bi bi-arrow-repeat me-1"></i> Sync Sitemap (Detect Changes)
                         </button>
                         <button class="btn btn-primary" onclick="triggerCrawlBatch()">
-                            <i class="bi bi-play-circle me-1"></i> Crawl Next Batch (10 Articles)
+                            <i class="bi bi-play-circle me-1"></i> Crawl Next Batch (3 Articles)
                         </button>
                     </div>
 
@@ -559,7 +559,7 @@
                 let res = await fetch('/api/v1/crawl/batch', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ batch_size: 10 })
+                    body: JSON.stringify({ batch_size: 3 })
                 });
 
                 if (res.status === 502 || res.status === 503 || res.status === 504) {
@@ -567,7 +567,7 @@
                     res = await fetch('/api/v1/crawl/batch', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ batch_size: 10 })
+                        body: JSON.stringify({ batch_size: 3 })
                     });
                 }
 

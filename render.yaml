@@ -5,7 +5,7 @@ services:
     plan: free
     region: ohio
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT --workers 1 --timeout-keep-alive 65
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.0

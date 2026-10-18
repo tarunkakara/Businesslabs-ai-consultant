@@ -45,33 +45,35 @@ class ArticleExtractor:
 
     def extract(self, html_content: str, url: str) -> ExtractedArticle:
         soup = BeautifulSoup(html_content, "html.parser")
+        try:
+            # 1. Extract Title
+            title = self._extract_title(soup, url)
 
-        # 1. Extract Title
-        title = self._extract_title(soup, url)
+            # 2. Extract Breadcrumbs
+            breadcrumbs = self._extract_breadcrumbs(soup)
 
-        # 2. Extract Breadcrumbs
-        breadcrumbs = self._extract_breadcrumbs(soup)
+            # 3. Locate Main Article Container
+            main_container = self._find_article_container(soup)
 
-        # 3. Locate Main Article Container
-        main_container = self._find_article_container(soup)
+            # 4. Extract Images & Screenshots associated with this article
+            images = self._extract_images(main_container, url)
 
-        # 4. Extract Images & Screenshots associated with this article
-        images = self._extract_images(main_container, url)
+            # 5. Extract Clean Text
+            body_text = self._extract_clean_text(main_container)
 
-        # 5. Extract Clean Text
-        body_text = self._extract_clean_text(main_container)
+            # 6. Compute SHA-256 Content Hash
+            content_hash = hashlib.sha256(body_text.encode("utf-8")).hexdigest()
 
-        # 6. Compute SHA-256 Content Hash
-        content_hash = hashlib.sha256(body_text.encode("utf-8")).hexdigest()
-
-        return ExtractedArticle(
-            url=url,
-            title=title,
-            breadcrumbs=breadcrumbs,
-            body_text=body_text,
-            images=images,
-            content_hash=content_hash,
-        )
+            return ExtractedArticle(
+                url=url,
+                title=title,
+                breadcrumbs=breadcrumbs,
+                body_text=body_text,
+                images=images,
+                content_hash=content_hash,
+            )
+        finally:
+            soup.decompose()
 
     def _extract_title(self, soup: BeautifulSoup, url: str) -> str:
         h1 = soup.find("h1")

@@ -24,7 +24,7 @@ An enterprise-grade, interconnected multi-agent consulting suite built for **Bus
 | **Task 2: Client Inbox Agent** | `/inbox` | [Open Inbox](https://businesslabs-ai-consultant.onrender.com/inbox) | Email classification, voice drafting & 20-streak autonomy gate |
 | **Task 3: Meeting-to-Scope Agent** | `/scope` | [Open Scope](https://businesslabs-ai-consultant.onrender.com/scope) | 5-stage scoping, native BD check, diffs & professional PDF export |
 | **Unified Swagger API Docs** | `/docs` | [Open Docs](https://businesslabs-ai-consultant.onrender.com/docs) | Interactive OpenAPI documentation for all endpoints |
-| **Aggregated Health Telemetry** | `/health` | [View Health](https://businesslabs-ai-consultant.onrender.com/health) | Real-time JSON telemetry for databases, vector stores, and models |
+| **Aggregated Health Telemetry** | `/health` | [View Health](https://businesslabs-ai-consultant.onrender.com/health) | Real-time JSON telemetry with live RSS memory tracking and 512MB headroom monitoring |
 
 ---
 

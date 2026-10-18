@@ -37,7 +37,7 @@ class QueryRequest(BaseModel):
 
 
 class CrawlBatchRequest(BaseModel):
-    batch_size: int = Field(default=10, ge=1, le=10, description="Number of URLs to crawl in this batch (max 10 per batch)")
+    batch_size: int = Field(default=3, ge=1, le=10, description="Number of URLs to crawl in this batch (max 10 per batch)")
 
 
 class ExpertApprovalRequest(BaseModel):
@@ -61,8 +61,10 @@ async def ask_question(request: QueryRequest):
 async def sync_sitemap():
     """Fetch sitemap, update SQLite state store, and purge removed articles from vector store."""
     try:
+        import gc
         sync_stats = await _crawler.sync_sitemap()
         index_stats = _synchronizer.sync()
+        gc.collect()
         return {
             "status": "success",
             "sitemap_changes": sync_stats,
@@ -76,13 +78,15 @@ async def sync_sitemap():
 async def crawl_batch(request: CrawlBatchRequest):
     """Crawl next batch of pending articles, extract content & screenshots, and index into vector store."""
     try:
-        batch_size = min(max(1, request.batch_size), 10)
+        import gc
+        batch_size = min(max(1, request.batch_size), 5)
         crawl_result = await _crawler.crawl_batch(batch_size=batch_size)
         crawled_urls = crawl_result.get("crawled_urls", [])
         if crawled_urls:
             index_stats = _synchronizer.sync_specific_urls(crawled_urls)
         else:
             index_stats = {"indexed_articles": 0, "total_chunks_in_index": _vector_store.count()}
+        gc.collect()
         return {
             "status": "success",
             "crawl_result": crawl_result,

@@ -36,9 +36,11 @@ class KnowledgeBrainClient:
     async def _in_process_fallback(self, question: str, top_k: int) -> Dict[str, Any]:
         """Direct in-process query to avoid hard external server dependency during isolated tests."""
         try:
-            from task1_knowledge_brain.app.rag.engine import KnowledgeBrainEngine
-            engine = KnowledgeBrainEngine()
-            ans = await engine.answer_question(question=question, top_k=top_k)
+            global _cached_fallback_engine
+            if "_cached_fallback_engine" not in globals() or _cached_fallback_engine is None:
+                from task1_knowledge_brain.app.rag.engine import KnowledgeBrainEngine
+                _cached_fallback_engine = KnowledgeBrainEngine()
+            ans = await _cached_fallback_engine.answer_question(question=question, top_k=top_k)
             return ans.model_dump()
         except Exception as exc:
             logger.error("In-process fallback failed: %s", exc)

@@ -56,7 +56,10 @@ class ResumableCrawler:
             try:
                 response = await client.get(url, headers=headers, follow_redirects=True)
                 if response.status_code == 200:
-                    article = self.extractor.extract(response.text, url)
+                    html_content = response.text
+                    del response
+                    article = self.extractor.extract(html_content, url)
+                    del html_content
                     self.state_store.mark_crawled(
                         url=article.url,
                         title=article.title,
@@ -65,7 +68,8 @@ class ResumableCrawler:
                         images=article.images,
                         content_hash=article.content_hash,
                     )
-                    logger.debug("Successfully crawled: %s (%s)", url, article.title)
+                    del article
+                    logger.debug("Successfully crawled: %s", url)
                     return True
                 elif response.status_code in [404, 403, 410]:
                     self.state_store.mark_failed(url, f"HTTP {response.status_code}")
@@ -86,15 +90,16 @@ class ResumableCrawler:
 
         return False
 
-    async def crawl_batch(self, batch_size: int = 10) -> Dict[str, Any]:
+    async def crawl_batch(self, batch_size: int = 3) -> Dict[str, Any]:
         """Crawl next pending batch of URLs concurrently respecting safe rate limits."""
-        pending = self.state_store.get_pending_urls(limit=batch_size)
+        safe_batch = min(max(1, batch_size), 5)
+        pending = self.state_store.get_pending_urls(limit=safe_batch)
         if not pending:
             return {"processed": 0, "successful": 0, "crawled_urls": [], "remaining_pending": 0}
 
         successful = 0
         crawled_urls: List[str] = []
-        sem = asyncio.Semaphore(3)
+        sem = asyncio.Semaphore(2)
 
         async def fetch_task(item: Dict[str, Any], client: httpx.AsyncClient):
             nonlocal successful
@@ -107,6 +112,9 @@ class ResumableCrawler:
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             await asyncio.gather(*(fetch_task(item, client) for item in pending))
+
+        import gc
+        gc.collect()
 
         stats = self.state_store.get_stats()
         return {

@@ -425,11 +425,35 @@
             container.classList.add('d-none');
 
             try {
-                const res = await fetch('/api/v1/query', {
+                let res = await fetch('/api/v1/query', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ question: question, top_k: 8 })
                 });
+
+                if (res.status === 502 || res.status === 503 || res.status === 504) {
+                    // Retry once after brief pause for cold start
+                    await new Promise(r => setTimeout(r, 2000));
+                    res = await fetch('/api/v1/query', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ question: question, top_k: 8 })
+                    });
+                }
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    try {
+                        const errJson = JSON.parse(errText);
+                        throw new Error(errJson.detail || `Server returned HTTP ${res.status}`);
+                    } catch (_) {
+                        if (res.status === 502 || res.status === 503) {
+                            throw new Error('Cloud container is waking up from sleep. Please wait a few seconds and try again.');
+                        }
+                        throw new Error(`Server returned HTTP ${res.status}`);
+                    }
+                }
+
                 const data = await res.json();
 
                 // Display Answer

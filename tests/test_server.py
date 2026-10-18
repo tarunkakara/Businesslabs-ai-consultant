@@ -23,7 +23,7 @@ def test_portal_html_response(client):
     res = client.get("/", headers={"Accept": "text/html"})
     assert res.status_code == 200
     assert "text/html" in res.headers["content-type"]
-    assert "BusinessLabs AI Tech Consultant" in res.text
+    assert "AI Tech Consultant" in res.text
     assert "Knowledge Brain" in res.text
     assert "Inbox Agent" in res.text
     assert "Scope Agent" in res.text

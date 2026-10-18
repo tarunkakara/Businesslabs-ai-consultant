@@ -28,6 +28,7 @@ class SitemapParser:
         """Parse raw XML content into structured URL records."""
         root = ET.fromstring(xml_content)
         entries: List[Dict[str, Optional[str]]] = []
+        seen_urls = set()
 
         # Find all <url> tags (supporting both namespaced and bare XML)
         url_elements = root.findall("sm:url", self.SITEMAP_NS)
@@ -45,6 +46,9 @@ class SitemapParser:
 
             if loc_elem is not None and loc_elem.text:
                 url = loc_elem.text.strip()
+                if not url or url in seen_urls:
+                    continue
+                seen_urls.add(url)
                 lastmod = lastmod_elem.text.strip() if (lastmod_elem is not None and lastmod_elem.text) else None
                 entries.append({"url": url, "lastmod": lastmod})
 

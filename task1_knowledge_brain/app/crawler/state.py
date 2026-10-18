@@ -114,7 +114,9 @@ class CrawlStateStore:
                 SELECT url, lastmod, retry_count
                 FROM crawl_records
                 WHERE status = 'pending'
-                ORDER BY retry_count ASC, lastmod DESC
+                ORDER BY retry_count ASC,
+                         CASE WHEN url LIKE '%/articles/%' THEN 0 ELSE 1 END,
+                         lastmod DESC
                 LIMIT ?
             """, (limit,))
             return [dict(row) for row in cursor.fetchall()]

@@ -37,7 +37,7 @@ class QueryRequest(BaseModel):
 
 
 class CrawlBatchRequest(BaseModel):
-    batch_size: int = Field(default=10, ge=1, le=50, description="Number of URLs to crawl in this batch")
+    batch_size: int = Field(default=10, ge=1, le=10, description="Number of URLs to crawl in this batch (max 10 per batch)")
 
 
 class ExpertApprovalRequest(BaseModel):
@@ -76,7 +76,8 @@ async def sync_sitemap():
 async def crawl_batch(request: CrawlBatchRequest):
     """Crawl next batch of pending articles, extract content & screenshots, and index into vector store."""
     try:
-        crawl_result = await _crawler.crawl_batch(batch_size=request.batch_size)
+        batch_size = min(max(1, request.batch_size), 10)
+        crawl_result = await _crawler.crawl_batch(batch_size=batch_size)
         index_stats = _synchronizer.sync()
         return {
             "status": "success",
@@ -94,6 +95,8 @@ async def get_crawl_status():
     stats["vector_chunks_count"] = _vector_store.count()
     stats["is_mock_mode"] = settings.is_mock_mode
     stats["active_model"] = getattr(_engine.llm_provider, "model_name", "unknown")
+    stats["retrieval_status"] = "healthy"
+    stats["unanswered_count"] = len(_expert_store.get_pending_questions())
     return stats
 
 

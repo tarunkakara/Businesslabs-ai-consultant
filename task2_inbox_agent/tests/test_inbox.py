@@ -259,3 +259,55 @@ def test_inbox_api_endpoints(test_client):
     res_exp = test_client.get(f"/api/v1/emails/{first_id}/export")
     assert res_exp.status_code == 200
     assert "BusinessLabs Support" in res_exp.text
+
+
+def test_inbox_edited_draft_resets_streak(test_client):
+    """Requirement: Approving unchanged increments category streak (+1); editing resets streak to 0."""
+    res_e = test_client.get("/api/v1/emails")
+    emails = res_e.json()
+    assert len(emails) >= 2
+    email1 = emails[0]["id"]
+    email2 = emails[1]["id"]
+
+    # Draft and approve unchanged for email 1
+    d1 = test_client.post(f"/api/v1/emails/{email1}/draft?voice=professional").json()
+    r1 = test_client.post(
+        f"/api/v1/emails/{email1}/review",
+        json={"email_id": email1, "action": "approve", "edited_draft": d1["original_draft"]},
+    ).json()
+    assert r1["is_unchanged"] is True
+    assert r1["consecutive_streak"] == 1
+
+    # Draft and edit substantially for email 2
+    d2 = test_client.post(f"/api/v1/emails/{email2}/draft?voice=professional").json()
+    substantially_edited = "Completely rewritten reply by customer support agent."
+    r2 = test_client.post(
+        f"/api/v1/emails/{email2}/review",
+        json={"email_id": email2, "action": "approve", "edited_draft": substantially_edited},
+    ).json()
+    assert r2["is_unchanged"] is False
+    assert r2["similarity_score"] < 0.85
+    assert r2["consecutive_streak"] == 0  # Streak must be reset to 0!
+
+
+def test_draft_schema_fields(test_client):
+    """Requirement: DraftResponse must contain original_draft string and never be undefined or null."""
+    res_e = test_client.get("/api/v1/emails")
+    first_id = res_e.json()[0]["id"]
+    res_d = test_client.post(f"/api/v1/emails/{first_id}/draft?voice=concise")
+    assert res_d.status_code == 200
+    data = res_d.json()
+    assert "original_draft" in data
+    assert isinstance(data["original_draft"], str)
+    assert len(data["original_draft"]) > 10
+    assert data["original_draft"] != "undefined"
+    assert data["original_draft"] != "null"
+
+
+def test_email_priority_values():
+    """Requirement: Priority must conform to standard conventions (low, medium, high, urgent)."""
+    valid_priorities = {"low", "medium", "high", "urgent"}
+    emails = generate_synthetic_emails()
+    for e in emails:
+        assert e.priority.value in valid_priorities
+

@@ -104,7 +104,12 @@ class MockClaudeProvider(BaseLLMProvider):
         top_context = valid_contexts[0]
         title = top_context.get("title", "Brilliant Directories Documentation")
         url = top_context.get("url", "https://support.brilliantdirectories.com")
-        summary_snippet = top_context.get("text", "")[:350].strip()
+        raw_text = top_context.get("text", "")
+        if "\n\n" in raw_text:
+            body_part = raw_text.split("\n\n", 1)[1].strip()
+            summary_snippet = body_part[:350].strip()
+        else:
+            summary_snippet = raw_text[:350].strip()
 
         grounded_text = (
             f"According to [{title}]({url}):\n\n"
@@ -112,16 +117,17 @@ class MockClaudeProvider(BaseLLMProvider):
             f"Refer to the official documentation at [{title}]({url}) for detailed step-by-step guidance."
         )
 
-        sources = [
-            {
+        sources = []
+        for c in valid_contexts[:3]:
+            c_raw = c.get("text", "")
+            c_snippet = c_raw.split("\n\n", 1)[1].strip()[:180] if "\n\n" in c_raw else c_raw[:180]
+            sources.append({
                 "title": c.get("title", "Article"),
                 "url": c.get("url", ""),
                 "similarity_score": c.get("similarity_score", 1.0),
-                "snippet": c.get("text", "")[:180],
+                "snippet": c_snippet,
                 "image_urls": c.get("image_urls", []),
-            }
-            for c in valid_contexts[:3]
-        ]
+            })
 
         latency_ms = (time.perf_counter() - start_time) * 1000
         completion_tokens = self._estimate_tokens(grounded_text)

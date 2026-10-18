@@ -21,6 +21,13 @@ async def lifespan(app: FastAPI):
     """Lifecycle startup and teardown handler."""
     Path(settings.chroma_persist_directory).mkdir(parents=True, exist_ok=True)
     Path(settings.sqlite_db_path).parent.mkdir(parents=True, exist_ok=True)
+    try:
+        from task1_knowledge_brain.app.api.routes import _state_store, _synchronizer
+        from task1_knowledge_brain.app.crawler.seed import seed_core_articles
+        seed_core_articles(state_store=_state_store, synchronizer=_synchronizer)
+    except Exception as exc:
+        import logging
+        logging.getLogger("main").warning("Startup seed check warning: %s", exc)
     yield
 
 
@@ -54,6 +61,8 @@ class HealthResponse(BaseModel):
     provider_mode: str
     is_mock_mode: bool
     active_model: str
+    database_connected: bool = True
+    vector_store_healthy: bool = True
 
 
 TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "index.html"
@@ -81,13 +90,28 @@ async def root(request: Request):
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
-    """Health check endpoint required for service orchestration and tests."""
+    """Health check endpoint verifying model, database, and retrieval vector store."""
+    from task1_knowledge_brain.app.api.routes import _state_store, _vector_store
     llm = get_llm_provider()
+    db_ok = True
+    vec_ok = True
+    try:
+        _state_store.get_stats()
+    except Exception:
+        db_ok = False
+    try:
+        _vector_store.count()
+    except Exception:
+        vec_ok = False
+
+    status_str = "ok" if (db_ok and vec_ok) else "degraded"
     return HealthResponse(
-        status="ok",
+        status=status_str,
         service="task1_knowledge_brain",
         version="1.0.0",
         provider_mode="mock" if settings.is_mock_mode else "anthropic",
         is_mock_mode=settings.is_mock_mode,
         active_model=getattr(llm, "model_name", "mock-claude"),
+        database_connected=db_ok,
+        vector_store_healthy=vec_ok,
     )

@@ -4,7 +4,7 @@
     "description": "Classification accuracy: Product Question",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.16,
+    "latency_ms": 0.11,
     "error": null,
     "details": {
       "category": "product_question",
@@ -16,7 +16,7 @@
     "description": "Classification accuracy: Project Request",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.07,
+    "latency_ms": 0.04,
     "error": null,
     "details": {
       "category": "project_request",
@@ -28,7 +28,7 @@
     "description": "Classification accuracy: Refund",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.08,
+    "latency_ms": 0.05,
     "error": null,
     "details": {
       "category": "refund",
@@ -40,7 +40,7 @@
     "description": "Classification accuracy: Complaint",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.05,
+    "latency_ms": 0.03,
     "error": null,
     "details": {
       "category": "complaint",
@@ -52,7 +52,7 @@
     "description": "Classification accuracy: Quote",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.05,
+    "latency_ms": 0.03,
     "error": null,
     "details": {
       "category": "quote",
@@ -64,7 +64,7 @@
     "description": "Classification accuracy: Follow-up",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.06,
+    "latency_ms": 0.04,
     "error": null,
     "details": {
       "category": "follow_up",
@@ -76,7 +76,7 @@
     "description": "Urgent priority detection on outage keywords",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.04,
+    "latency_ms": 0.03,
     "error": null,
     "details": {
       "priority": "urgent"
@@ -87,7 +87,7 @@
     "description": "High priority assignment for financial disputes",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.04,
+    "latency_ms": 0.02,
     "error": null,
     "details": {
       "priority": "urgent"
@@ -98,7 +98,7 @@
     "description": "Named technical entity extraction",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.04,
+    "latency_ms": 0.03,
     "error": null,
     "details": {
       "entities": [
@@ -113,7 +113,7 @@
     "description": "Knowledge Brain fact retrieval integration in draft",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 6343.59,
+    "latency_ms": 700.35,
     "error": null,
     "details": {
       "draft_snippet": "Hello Lisa,\n\nThank you for reaching out to the BusinessLabs Support Team.\n\nRegar"
@@ -124,7 +124,7 @@
     "description": "Empathetic voice styling contains sincere apology",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.15,
+    "latency_ms": 0.11,
     "error": null,
     "details": {
       "voice": "empathetic"
@@ -135,7 +135,7 @@
     "description": "Concise voice styling ensures direct brevity",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.08,
+    "latency_ms": 0.06,
     "error": null,
     "details": {
       "length": 388
@@ -146,7 +146,7 @@
     "description": "Executive voice styling uses advisory consultation tone",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.08,
+    "latency_ms": 0.06,
     "error": null,
     "details": {
       "voice": "executive"
@@ -157,7 +157,7 @@
     "description": "Levenshtein exact match verification (Score: 1.0)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.01,
+    "latency_ms": 0.0,
     "error": null,
     "details": {
       "similarity_score": 1.0,
@@ -173,7 +173,7 @@
     "description": "Levenshtein substantive human edit detection (<0.60)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 1.07,
+    "latency_ms": 0.99,
     "error": null,
     "details": {
       "similarity_score": 0.1525,
@@ -189,7 +189,7 @@
     "description": "Enforcement of exactly 20 consecutive approvals before autonomy",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.21,
+    "latency_ms": 0.18,
     "error": null,
     "details": {
       "can_at_19": false,
@@ -202,7 +202,7 @@
     "description": "Immediate automatic revocation on human edit",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.4,
+    "latency_ms": 0.31,
     "error": null,
     "details": {
       "revocation_confirmed": true,
@@ -214,7 +214,7 @@
     "description": "Default-to-human-approval safety boundary enforcement",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.12,
+    "latency_ms": 0.1,
     "error": null,
     "details": {
       "policy_enforced": true
@@ -225,7 +225,7 @@
     "description": "Transparent audit trail storage with edit distance & reviewer",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 8.82,
+    "latency_ms": 7.64,
     "error": null,
     "details": {
       "row_id": 1,
@@ -237,7 +237,7 @@
     "description": "RFC 822 customer email export format compliance",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 3049.8,
+    "latency_ms": 619.21,
     "error": null,
     "details": {
       "rfc822_compliant": true

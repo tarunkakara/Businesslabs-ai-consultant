@@ -116,3 +116,55 @@ def test_api_list_articles(client):
     assert "articles" in data
     assert "limit" in data
     assert data["limit"] == 5
+
+
+def test_api_batch_crawl_limit_capped(client):
+    """Verify that batch crawl enforces <= 10 articles per batch."""
+    # Attempting batch_size > 10 should either be capped or validated
+    response = client.post("/api/v1/crawl/batch", json={"batch_size": 25})
+    # Since le=10 is defined on the Pydantic schema, it should reject or cap
+    assert response.status_code in (200, 422)
+    if response.status_code == 200:
+        data = response.json()
+        assert data["crawl_result"]["processed"] <= 10
+
+
+def test_api_grounded_payment_gateways_query(client):
+    """Priority 1: Verify payment gateways query returns grounded answer with citations."""
+    from task1_knowledge_brain.app.rag.chunker import DocumentChunker
+    import task1_knowledge_brain.app.api.routes as r
+
+    url = "https://support.brilliantdirectories.com/support/solutions/articles/12000006843-supported-payment-gateways"
+    chunker = DocumentChunker()
+    chunks = chunker.chunk_article(
+        url=url,
+        title="Supported Payment Gateways",
+        breadcrumbs="Finance > Payment Settings",
+        body_text="Brilliant Directories supports Stripe, PayPal Standard, PayPal Payflow Pro, Authorize.net, and eWAY for member signups.",
+        images=[],
+    )
+    r._vector_store.add_article_chunks(url, chunks)
+
+    response = client.post(
+        "/api/v1/query",
+        json={"question": "How to configure payment gateways for member signups?", "top_k": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_grounded"] is True
+    assert data["is_sufficient"] is True
+    assert len(data["sources"]) > 0
+    assert any("Payment Gateway" in s["title"] for s in data["sources"])
+    assert "Payment Gateway" in data["answer"]
+
+
+def test_api_health_dependencies(client):
+    """Priority 2: Verify health check reports database and vector store connectivity."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["database_connected"] is True
+    assert data["vector_store_healthy"] is True
+    assert data["is_mock_mode"] is True
+

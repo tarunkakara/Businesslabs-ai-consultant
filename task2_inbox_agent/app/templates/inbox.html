@@ -160,6 +160,10 @@
             color: #ffffff !important;
         }
         .text-muted { color: #94a3b8 !important; }
+        #feedbackNotes::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -370,6 +374,14 @@
             }
         }
 
+        function getPriorityBadgeInfo(priority) {
+            const p = (priority || 'medium').toString().toLowerCase();
+            if (p === 'urgent') return { text: 'URGENT', cls: 'badge bg-danger' };
+            if (p === 'high') return { text: 'HIGH', cls: 'badge bg-danger bg-opacity-75' };
+            if (p === 'medium') return { text: 'MEDIUM', cls: 'badge bg-warning text-dark' };
+            return { text: 'LOW', cls: 'badge bg-secondary' };
+        }
+
         async function loadEmails() {
             const cat = document.getElementById('categoryFilter').value;
             const url = cat ? `/api/v1/emails?category=${cat}` : '/api/v1/emails';
@@ -392,22 +404,22 @@
                     item.className = `list-group-item sidebar-email-item p-3 ${currentEmail && currentEmail.id === e.id ? 'active' : ''}`;
                     item.onclick = (event) => selectEmail(e, event);
 
-                    let priorityColor = 'bg-secondary';
-                    if (e.priority >= 8) priorityColor = 'bg-danger';
-                    else if (e.priority >= 5) priorityColor = 'bg-warning text-dark';
-
+                    const pInfo = getPriorityBadgeInfo(e.priority);
                     let statusBadge = '';
-                    if (e.status === 'sent') statusBadge = '<span class="badge bg-success small ms-1">Sent</span>';
-                    else if (e.status === 'rejected') statusBadge = '<span class="badge bg-danger small ms-1">Rejected</span>';
+                    if (e.status === 'sent' || e.status === 'sent_autonomously' || e.status === 'approved' || e.status === 'edited_and_approved') {
+                        statusBadge = '<span class="badge bg-success small ms-1">Sent</span>';
+                    } else if (e.status === 'rejected') {
+                        statusBadge = '<span class="badge bg-danger small ms-1">Rejected</span>';
+                    }
 
                     item.innerHTML = `
                         <div class="d-flex justify-content-between align-items-start mb-1">
-                            <strong class="text-truncate" style="max-width: 70%;">${e.subject}</strong>
-                            <span class="badge ${priorityColor} small">P${e.priority}</span>
+                            <strong class="text-truncate" style="max-width: 70%;">${e.subject || 'Untitled'}</strong>
+                            <span class="${pInfo.cls} small">${pInfo.text}</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center small text-muted">
-                            <span class="text-truncate">${e.sender_name}</span>
-                            <span>${e.category.replace('_', ' ')} ${statusBadge}</span>
+                            <span class="text-truncate">${e.sender_name || 'Customer'}</span>
+                            <span>${(e.category || '').replace('_', ' ')} ${statusBadge}</span>
                         </div>
                     `;
                     list.appendChild(item);
@@ -430,13 +442,12 @@
             document.getElementById('activeDate').textContent = e.received_at ? new Date(e.received_at).toLocaleTimeString() : 'Recent';
             document.getElementById('activeBody').textContent = e.body;
 
+            const pInfo = getPriorityBadgeInfo(e.priority);
             const priBadge = document.getElementById('activePriorityBadge');
-            priBadge.textContent = `PRIORITY: ${e.priority}/10`;
-            if (e.priority >= 8) priBadge.className = 'badge bg-danger';
-            else if (e.priority >= 5) priBadge.className = 'badge bg-warning text-dark';
-            else priBadge.className = 'badge bg-secondary';
+            priBadge.textContent = pInfo.text;
+            priBadge.className = pInfo.cls;
 
-            document.getElementById('activeCategoryBadge').textContent = e.category.toUpperCase().replace('_', ' ');
+            document.getElementById('activeCategoryBadge').textContent = (e.category || '').toUpperCase().replace('_', ' ');
 
             // Generate or load draft
             await generateDraft();
@@ -452,13 +463,18 @@
             try {
                 const res = await fetch(`/api/v1/emails/${currentEmail.id}/draft?voice=${voice}`, { method: 'POST' });
                 const draft = await res.json();
-                textarea.value = draft.reply_body;
-                currentOriginalDraft = draft.reply_body;
-                document.getElementById('activeVoiceBadge').textContent = `Voice: ${draft.voice.toUpperCase()}`;
+                const draftText = (draft && typeof draft.original_draft === 'string')
+                    ? draft.original_draft
+                    : (draft && draft.detail ? draft.detail : 'No draft content returned.');
+
+                textarea.value = draftText;
+                currentOriginalDraft = draftText;
+                const voiceName = (draft && draft.voice ? draft.voice : voice).toUpperCase();
+                document.getElementById('activeVoiceBadge').textContent = `Voice: ${voiceName}`;
 
                 onDraftEdited();
             } catch (err) {
-                textarea.value = 'Draft generation failed: ' + err.message;
+                textarea.value = 'Draft generation failed: ' + (err.message || 'Unknown error');
             } finally {
                 textarea.disabled = false;
             }
@@ -520,12 +536,14 @@
                     body: JSON.stringify({
                         email_id: currentEmail.id,
                         action: action,
-                        edited_reply_body: editedBody,
+                        edited_draft: editedBody,
                         feedback_notes: notes
                     })
                 });
                 const result = await res.json();
-                alert(`Draft ${action.toUpperCase()} recorded!\nSimilarity: ${(result.similarity_ratio * 100).toFixed(1)}%\nConsecutive Streak: ${result.consecutive_streak}`);
+                const score = (result.similarity_score !== undefined) ? result.similarity_score : (result.similarity_ratio !== undefined ? result.similarity_ratio : 1.0);
+                const streak = result.consecutive_streak !== undefined ? result.consecutive_streak : 0;
+                alert(`Draft ${action.toUpperCase()} recorded!\nSimilarity: ${(score * 100).toFixed(1)}%\nConsecutive Streak: ${streak}`);
                 loadAutonomyStatus();
                 loadEmails();
             } catch (err) {

@@ -71,6 +71,44 @@ def test_sitemap_parser():
     assert all("/support/solutions" in e["url"] for e in filtered)
 
 
+def test_sitemap_parser_deduplication():
+    """Verify that duplicate URLs in XML sitemaps are deduplicated."""
+    xml_with_duplicates = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://support.brilliantdirectories.com/support/solutions/articles/123</loc></url>
+      <url><loc>https://support.brilliantdirectories.com/support/solutions/articles/123</loc></url>
+      <url><loc>https://support.brilliantdirectories.com/support/solutions/articles/456</loc></url>
+    </urlset>
+    """
+    parser = SitemapParser("https://mock-domain.com/sitemap.xml")
+    entries = parser.parse_xml(xml_with_duplicates)
+    assert len(entries) == 2
+    assert [e["url"] for e in entries] == [
+        "https://support.brilliantdirectories.com/support/solutions/articles/123",
+        "https://support.brilliantdirectories.com/support/solutions/articles/456",
+    ]
+
+
+def test_crawler_state_store_prioritizes_articles(tmp_path):
+    """Verify that get_pending_urls prioritizes /articles/ over section directory listings."""
+    db_file = str(tmp_path / "test_crawl_priority.db")
+    store = CrawlStateStore(db_file)
+
+    # Sync directory section URLs first, then solution article URLs
+    items = [
+        {"url": "https://support.brilliantdirectories.com/support/solutions/12000001", "lastmod": "2026-10-01"},
+        {"url": "https://support.brilliantdirectories.com/support/solutions/12000002", "lastmod": "2026-10-01"},
+        {"url": "https://support.brilliantdirectories.com/support/solutions/articles/12000006843-supported-payment-gateways", "lastmod": "2026-10-01"},
+    ]
+    store.sync_sitemap_urls(items)
+
+    pending = store.get_pending_urls(limit=10)
+    assert len(pending) == 3
+    # The article URL must come FIRST
+    assert "/articles/" in pending[0]["url"]
+    assert "12000006843-supported-payment-gateways" in pending[0]["url"]
+
+
 def test_crawler_state_store_sync_and_change_detection(tmp_path):
     """Verify new, modified, and removed page detection in SQLite."""
     db_file = str(tmp_path / "test_crawl_state.db")

@@ -4,7 +4,7 @@
     "description": "Functional requirement extraction",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.71,
+    "latency_ms": 1.14,
     "error": null,
     "details": {
       "title": "Medical License Number Directory Search Filter"
@@ -15,7 +15,7 @@
     "description": "Integration requirement classification",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.06,
+    "latency_ms": 0.12,
     "error": null,
     "details": {
       "type": "integration"
@@ -26,7 +26,7 @@
     "description": "Project constraint extraction (budget and timeline)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.04,
+    "latency_ms": 0.07,
     "error": null,
     "details": {
       "constraints": [
@@ -39,7 +39,7 @@
     "description": "External dependency extraction",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.05,
+    "latency_ms": 0.1,
     "error": null,
     "details": {
       "dependencies": [
@@ -52,7 +52,7 @@
     "description": "Implementation assumption extraction",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.52,
+    "latency_ms": 1.13,
     "error": null,
     "details": {
       "assumptions": [
@@ -65,7 +65,7 @@
     "description": "Ambiguous vague phrase detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.06,
+    "latency_ms": 0.17,
     "error": null,
     "details": {
       "vague_count": 1
@@ -76,7 +76,7 @@
     "description": "Follow-up clarification question formulation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.04,
+    "latency_ms": 0.11,
     "error": null,
     "details": {
       "question": "What specific reference websites, typography, or UI component criteria define your preferred modern aesthetic? Do you have Figma mockups or style guides?"
@@ -87,7 +87,7 @@
     "description": "Native feature recognition: Stripe payments (~3h config)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 723.39,
+    "latency_ms": 3900.79,
     "error": null,
     "details": {
       "is_native": true,
@@ -99,7 +99,7 @@
     "description": "Native feature recognition: Webhooks (~3h config)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 556.49,
+    "latency_ms": 1014.55,
     "error": null,
     "details": {
       "is_native": true
@@ -110,7 +110,7 @@
     "description": "Native feature recognition: Lead distribution (~3h config)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 556.3,
+    "latency_ms": 728.25,
     "error": null,
     "details": {
       "is_native": true
@@ -121,7 +121,7 @@
     "description": "Custom development requirement: Native Mobile App (~24h)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 578.88,
+    "latency_ms": 734.92,
     "error": null,
     "details": {
       "is_native": false,
@@ -133,7 +133,7 @@
     "description": "Custom development requirement: Database Sync Bridge (~24h)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 555.46,
+    "latency_ms": 758.49,
     "error": null,
     "details": {
       "is_native": false
@@ -144,7 +144,7 @@
     "description": "Work package breakdown with dedicated QA allocation",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 1329.09,
+    "latency_ms": 1527.29,
     "error": null,
     "details": {
       "tasks_count": 3,
@@ -156,7 +156,7 @@
     "description": "Budget arithmetic verification at $120/hr",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 649.96,
+    "latency_ms": 756.09,
     "error": null,
     "details": {
       "hours": 3.4,
@@ -168,7 +168,7 @@
     "description": "Long transcript resilience (>100 conversation turns)",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 4.8,
+    "latency_ms": 7.27,
     "error": null,
     "details": {
       "requirements_extracted": 122
@@ -179,7 +179,7 @@
     "description": "Revision comparison: Added requirements detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.28,
+    "latency_ms": 0.34,
     "error": null,
     "details": {
       "added": [
@@ -192,7 +192,7 @@
     "description": "Revision comparison: Removed requirements detection",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.26,
+    "latency_ms": 0.27,
     "error": null,
     "details": {
       "removed": [
@@ -205,7 +205,7 @@
     "description": "Scope creep warning triggered on budget surge & multi-feature add",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.33,
+    "latency_ms": 0.4,
     "error": null,
     "details": {
       "warnings": [
@@ -220,7 +220,7 @@
     "description": "Client proposal human approval boundary enforced",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.15,
+    "latency_ms": 0.19,
     "error": null,
     "details": {
       "is_approved": false
@@ -231,11 +231,11 @@
     "description": "Proposal sign-off finalization with consultant name & timestamp",
     "status": "PASSED",
     "score": 1.0,
-    "latency_ms": 0.12,
+    "latency_ms": 0.17,
     "error": null,
     "details": {
       "approved_by": "Lead Consultant",
-      "approved_at": "2026-10-18T11:43:43.335887+00:00"
+      "approved_at": "2026-10-18T12:21:55.009271+00:00"
     }
   }
 ]

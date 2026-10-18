@@ -364,3 +364,101 @@ async def test_human_signoff_boundary_and_export_persistence():
         assert "APPROVED (Signed off by Lead Solutions Architect" in res_exp_post.text
         assert "Verified Source Documentation" in res_exp_post.text
 
+
+def test_pdf_export_endpoint_and_validity():
+    """Verify PDF export endpoint generates downloadable, valid, publication-grade PDF matching SOW totals."""
+    with TestClient(app) as client:
+        # Process HealthHub Sample 1
+        res = client.post(
+            "/api/v1/scope/process",
+            json={"transcript_text": HEALTHHUB_SAMPLE_1, "client_name": "HealthHub Directories"},
+        )
+        assert res.status_code == 200
+        meeting_id = res.json()["proposal"]["meeting_id"]
+
+        # 1. Download PDF export (Draft state)
+        pdf_res = client.get(f"/api/v1/scope/{meeting_id}/export/pdf")
+        assert pdf_res.status_code == 200
+        assert pdf_res.headers["content-type"] == "application/pdf"
+        assert f"SOW_HealthHub_Directories_{meeting_id}_v1.pdf" in pdf_res.headers.get("content-disposition", "")
+
+        pdf_bytes = pdf_res.content
+        assert len(pdf_bytes) > 2000
+        assert pdf_bytes.startswith(b"%PDF-"), "Invalid PDF signature"
+
+        text_content = pdf_bytes.decode("latin1", errors="ignore")
+        # Assert required fields in draft state
+        assert "HealthHub Directories" in text_content
+        assert "DRAFT" in text_content
+        assert "AWAITING HUMAN SIGN-OFF" in text_content
+        assert "5,376.00" in text_content  # Exact matching cost
+        assert "44.8h" in text_content or "44.8" in text_content  # Exact matching hours
+        assert "support.brilliantdirectories.com" in text_content  # Clickable documentation URL
+
+
+def test_pdf_export_approved_status():
+    """Verify PDF export updates to reflect approval status, consultant name, and timestamp."""
+    with TestClient(app) as client:
+        res = client.post(
+            "/api/v1/scope/process",
+            json={"transcript_text": HEALTHHUB_SAMPLE_1, "client_name": "HealthHub Directories"},
+        )
+        assert res.status_code == 200
+        meeting_id = res.json()["proposal"]["meeting_id"]
+
+        # Human consultant approves
+        appr_res = client.post(
+            f"/api/v1/scope/{meeting_id}/approve",
+            json={"approver_name": "Lead Solutions Architect"},
+        )
+        assert appr_res.status_code == 200
+
+        # Download PDF export (Approved state)
+        pdf_res = client.get(f"/api/v1/scope/{meeting_id}/export/pdf")
+        assert pdf_res.status_code == 200
+        pdf_bytes = pdf_res.content
+        text_content = pdf_bytes.decode("latin1", errors="ignore")
+
+        assert "OFFICIALLY APPROVED" in text_content
+        assert "Lead Solutions Architect" in text_content
+
+
+def test_pdf_export_revision_diff():
+    """Verify PDF export includes revision comparison table, deltas, and scope creep warnings."""
+    with TestClient(app) as client:
+        # V1
+        res1 = client.post(
+            "/api/v1/scope/process",
+            json={"transcript_text": HEALTHHUB_SAMPLE_1, "client_name": "HealthHub Directories"},
+        )
+        meeting_id = res1.json()["proposal"]["meeting_id"]
+
+        # V2 Revision
+        res2 = client.post(
+            "/api/v1/scope/process",
+            json={
+                "transcript_text": HEALTHHUB_SAMPLE_2,
+                "client_name": "HealthHub Directories",
+                "previous_meeting_id": meeting_id,
+            },
+        )
+        assert res2.status_code == 200
+
+        # Download V2 PDF
+        pdf_res = client.get(f"/api/v1/scope/{meeting_id}/export/pdf")
+        assert pdf_res.status_code == 200
+        pdf_bytes = pdf_res.content
+        text_content = pdf_bytes.decode("latin1", errors="ignore")
+
+        assert "Revision Comparison" in text_content
+        assert "Mobile App" in text_content or "mobile app" in text_content.lower()
+        assert "Scope Creep Warnings" in text_content or "Budget surge" in text_content
+
+
+def test_pdf_export_404_not_found():
+    """Verify PDF export returns 404 for unknown meeting ID."""
+    with TestClient(app) as client:
+        res = client.get("/api/v1/scope/MTG-NONEXISTENT/export/pdf")
+        assert res.status_code == 404
+
+

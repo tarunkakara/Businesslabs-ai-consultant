@@ -1,14 +1,16 @@
 """Task 3: Meeting-to-Scope Agent - FastAPI Service & UI."""
 
 from pathlib import Path
+import re
 from typing import Any, Dict, Optional
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from task3_scope_agent.app.config import settings
 from task3_scope_agent.app.models import ProposalDocument
+from task3_scope_agent.app.pdf_exporter import ProposalPdfExporter
 from task3_scope_agent.app.pipeline import MeetingToScopePipeline
 
 _pipeline = MeetingToScopePipeline()
@@ -154,3 +156,25 @@ async def export_proposal(meeting_id: str):
     )
 
     return PlainTextResponse(markdown, media_type="text/markdown")
+
+
+@app.get("/api/v1/scope/{meeting_id}/export/pdf", tags=["Export"])
+async def export_proposal_pdf(meeting_id: str):
+    """Export formatted client proposal as a professional PDF document."""
+    record = _pipeline.get_meeting(meeting_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Meeting record not found")
+
+    p: ProposalDocument = record["proposal"]
+    pdf_bytes = ProposalPdfExporter.generate_pdf(record)
+    safe_client = re.sub(r"[^a-zA-Z0-9_-]+", "_", p.client_name).strip("_")
+    filename = f"SOW_{safe_client}_{p.meeting_id}_v{p.version}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+

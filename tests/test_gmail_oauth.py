@@ -247,3 +247,77 @@ async def test_simulated_email_reply_dispatch():
         disco_res = await client.post("/api/v1/gmail/oauth/disconnect")
         assert disco_res.status_code == 200
         assert disco_res.json().get("status") == "success"
+
+
+@pytest.mark.asyncio
+async def test_app_google_login_redirect_url(monkeypatch):
+    """Verify application Google Sign-In generates correct Google OAuth URL, scopes, and redirect URI."""
+    import server
+    monkeypatch.setattr(server, "GOOGLE_CLIENT_ID", "test-client-id-app.apps.googleusercontent.com")
+    monkeypatch.setattr(server, "GOOGLE_CLIENT_SECRET", "test-client-secret-app")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://businesslabs-ai-consultant.onrender.com", follow_redirects=False) as client:
+        res = await client.get("/api/v1/auth/google/login")
+        assert res.status_code == 303
+        loc = res.headers["location"]
+        assert "https://accounts.google.com/o/oauth2/v2/auth" in loc
+        assert "client_id=test-client-id-app.apps.googleusercontent.com" in loc
+        assert "redirect_uri=https://businesslabs-ai-consultant.onrender.com/api/v1/auth/google/callback" in loc
+        assert "scope=openid%20email%20profile" in loc
+        assert "oauth_state" in res.headers.get("set-cookie", "")
+
+
+@pytest.mark.asyncio
+async def test_inbox_gmail_oauth_connect_redirect_url(monkeypatch):
+    """Verify Inbox Agent Gmail connection generates correct Google OAuth URL, Gmail scopes, and redirect URI."""
+    import server
+    monkeypatch.setattr(server, "GOOGLE_GMAIL_CLIENT_ID", "test-client-id-gmail.apps.googleusercontent.com")
+    monkeypatch.setattr(server, "GOOGLE_GMAIL_CLIENT_SECRET", "test-client-secret-gmail")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://businesslabs-ai-consultant.onrender.com", follow_redirects=False) as client:
+        # Authenticate first
+        reg_email = f"gmail_conn_{uuid.uuid4().hex[:6]}@example.com"
+        reg_res = await client.post("/api/v1/auth/register", json={
+            "email": reg_email,
+            "password": "Password123!",
+            "full_name": "Gmail Connector"
+        })
+        assert reg_res.status_code == 200
+
+        # Connect Gmail
+        conn_res = await client.get("/api/v1/gmail/oauth/connect")
+        assert conn_res.status_code == 303
+        loc = conn_res.headers["location"]
+        assert "https://accounts.google.com/o/oauth2/v2/auth" in loc
+        assert "client_id=test-client-id-gmail.apps.googleusercontent.com" in loc
+        assert "redirect_uri=https://businesslabs-ai-consultant.onrender.com/api/v1/gmail/oauth/callback" in loc
+        # Verify requested scopes
+        assert "https://www.googleapis.com/auth/gmail.modify" in loc
+        assert "https://www.googleapis.com/auth/gmail.send" in loc
+        assert "https://www.googleapis.com/auth/userinfo.email" in loc
+        assert "gmail_oauth_state" in conn_res.headers.get("set-cookie", "")
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_security_validation():
+    """Verify state validation and CSRF defenses in both Google callbacks."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://businesslabs-ai-consultant.onrender.com", follow_redirects=False) as client:
+        # 1. Google App Sign-In with invalid/tampered state
+        tampered_res = await client.get("/api/v1/auth/google/callback?code=fake_code&state=forged_state")
+        assert tampered_res.status_code == 303
+        assert "/login?error=invalid_state" in tampered_res.headers["location"]
+
+        # 2. Gmail OAuth callback with invalid state
+        # First authenticate
+        reg_email = f"cb_user_{uuid.uuid4().hex[:6]}@example.com"
+        await client.post("/api/v1/auth/register", json={
+            "email": reg_email,
+            "password": "Password123!",
+            "full_name": "Callback Tester"
+        })
+        gmail_cb_res = await client.get("/api/v1/gmail/oauth/callback?code=fake_code&state=fake_state")
+        assert gmail_cb_res.status_code == 303
+        assert "/inbox?error=invalid_state" in gmail_cb_res.headers["location"]

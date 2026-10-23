@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 import logging
 import os
 from pathlib import Path
+import secrets
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import FastAPI, Request
@@ -127,6 +128,19 @@ NO_CACHE_HEADERS = {
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
+# Dedicated Gmail OAuth client credentials if provided, otherwise default to GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+GOOGLE_GMAIL_CLIENT_ID = os.getenv("GOOGLE_GMAIL_CLIENT_ID") or GOOGLE_CLIENT_ID
+GOOGLE_GMAIL_CLIENT_SECRET = os.getenv("GOOGLE_GMAIL_CLIENT_SECRET") or GOOGLE_CLIENT_SECRET
+
+
+def get_request_base_url(request: Request) -> str:
+    """Return protocol + host taking into account reverse-proxy headers (e.g. on Render)."""
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.url.netloc
+    if "onrender.com" in host.lower():
+        proto = "https"
+    return f"{proto}://{host}".rstrip("/")
 
 
 def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
@@ -323,7 +337,7 @@ async def api_auth_logout(request: Request):
 async def api_google_status(request: Request):
     """Check whether Google OAuth is configured and return client setup guidance."""
     configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-    base_url = str(request.base_url).rstrip("/")
+    base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or f"{base_url}/api/v1/auth/google/callback"
     return {
         "configured": configured,
@@ -345,7 +359,7 @@ async def api_google_login(request: Request, redirect: Optional[str] = "/"):
         return RedirectResponse(url="/login?error=google_not_configured", status_code=303)
 
     state = secrets.token_urlsafe(24)
-    base_url = str(request.base_url).rstrip("/")
+    base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or f"{base_url}/api/v1/auth/google/callback"
 
     google_auth_url = (
@@ -380,7 +394,7 @@ async def api_google_callback(
     if not cookie_state or not state or not secrets.compare_digest(state, cookie_state):
         return RedirectResponse(url="/login?error=invalid_state", status_code=303)
 
-    base_url = str(request.base_url).rstrip("/")
+    base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or f"{base_url}/api/v1/auth/google/callback"
 
     try:
@@ -445,8 +459,8 @@ async def api_gmail_oauth_status(request: Request):
         return JSONResponse({"status": "unauthenticated", "detail": "Sign in required."}, status_code=401)
 
     conn = _auth_store.get_gmail_token(user["id"])
-    configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-    base_url = str(request.base_url).rstrip("/")
+    configured = bool(GOOGLE_GMAIL_CLIENT_ID and GOOGLE_GMAIL_CLIENT_SECRET)
+    base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
 
     return {
@@ -455,7 +469,7 @@ async def api_gmail_oauth_status(request: Request):
         "is_expired": conn.get("is_expired", False) if conn else False,
         "configured": configured,
         "oauth_configured": configured,
-        "client_id": GOOGLE_CLIENT_ID if configured else None,
+        "client_id": GOOGLE_GMAIL_CLIENT_ID if configured else None,
         "redirect_uri": redirect_uri,
         "required_scopes": [
             "https://www.googleapis.com/auth/gmail.modify",
@@ -478,12 +492,12 @@ async def api_gmail_oauth_connect(request: Request):
     if not user:
         return RedirectResponse(url="/login?redirect=/inbox", status_code=303)
 
-    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
+    if not (GOOGLE_GMAIL_CLIENT_ID and GOOGLE_GMAIL_CLIENT_SECRET):
         return RedirectResponse(url="/inbox?error=gmail_oauth_not_configured", status_code=303)
 
     nonce = secrets.token_urlsafe(16)
     state = f"{user['id']}:{nonce}"
-    base_url = str(request.base_url).rstrip("/")
+    base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
 
     scopes = " ".join([
@@ -494,7 +508,7 @@ async def api_gmail_oauth_connect(request: Request):
 
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"client_id={GOOGLE_GMAIL_CLIENT_ID}&"
         f"redirect_uri={redirect_uri}&"
         "response_type=code&"
         f"scope={scopes}&"
@@ -530,7 +544,7 @@ async def api_gmail_oauth_callback(
     if state_user_id != user["id"]:
         return RedirectResponse(url="/inbox?error=user_mismatch", status_code=303)
 
-    base_url = str(request.base_url).rstrip("/")
+    base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
 
     try:
@@ -539,8 +553,8 @@ async def api_gmail_oauth_callback(
                 "https://oauth2.googleapis.com/token",
                 data={
                     "code": code,
-                    "client_id": GOOGLE_CLIENT_ID,
-                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "client_id": GOOGLE_GMAIL_CLIENT_ID,
+                    "client_secret": GOOGLE_GMAIL_CLIENT_SECRET,
                     "redirect_uri": redirect_uri,
                     "grant_type": "authorization_code",
                 },

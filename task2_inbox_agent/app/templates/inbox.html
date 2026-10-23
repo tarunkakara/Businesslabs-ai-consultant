@@ -1278,11 +1278,14 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('gmail_connected') === '1') {
-                alert("Gmail account authorized and connected successfully via OAuth 2.0!");
+            const isConnected = urlParams.get('gmail_connected') === '1' || urlParams.get('gmail_connected') === 'true';
+            const authErr = urlParams.get('error') || urlParams.get('gmail_error');
+
+            if (isConnected) {
+                alert("Gmail account authorized and connected successfully via Google OAuth 2.0!");
                 window.history.replaceState({}, document.title, window.location.pathname);
-            } else if (urlParams.get('gmail_error')) {
-                alert("Gmail connection notice: " + urlParams.get('gmail_error'));
+            } else if (authErr) {
+                alert("Gmail connection notice: " + authErr);
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
 

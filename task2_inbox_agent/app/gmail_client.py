@@ -38,8 +38,8 @@ GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_GMAIL_CLIENT_ID") or os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_GMAIL_CLIENT_SECRET") or os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 
 class GmailOAuthClient:

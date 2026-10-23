@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+import secrets
 
 # Ensure project root is in sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -21,13 +22,15 @@ def unauth_client():
 
 @pytest.fixture(scope="module")
 def auth_client():
-    """Authenticated client with valid session cookies."""
+    """Authenticated client with valid session cookies from explicit registration."""
     with TestClient(app, follow_redirects=False) as client:
-        login_res = client.post("/api/v1/auth/login", json={
-            "email": "consultant@businesslabs.ai",
-            "password": "Consultant@123",
+        test_email = f"portal_{secrets.token_hex(4)}@businesslabs.ai"
+        reg_res = client.post("/api/v1/auth/register", json={
+            "full_name": "Test Consultant",
+            "email": test_email,
+            "password": "ConsultantPass@2026",
         })
-        assert login_res.status_code == 200, f"Login failed: {login_res.text}"
+        assert reg_res.status_code == 200, f"Registration failed: {reg_res.text}"
         yield client
 
 

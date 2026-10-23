@@ -154,57 +154,120 @@ async def test_self_healing_agent(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_user_authentication_api():
-    """Verify login page, session authentication, email normalization, password rules, and profile endpoints."""
+async def test_full_authentication_flow_12_cases():
+    """Verify all 12 authentication lifecycle requirements explicitly."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # 1. Login page HTML serves successfully
-        login_res = await client.get("/login")
+        # Case 1: Register a new account with valid credentials & name
+        user_email = f"consultant_{secrets.token_hex(4)}@businesslabs.ai"
+        user_pwd = "StrongSecurePassword@2026"
+        user_name = "Alex Mercer"
+
+        reg_res = await client.post("/api/v1/auth/register", json={
+            "full_name": user_name,
+            "email": user_email.upper(),  # Test email case normalization to lowercase
+            "password": user_pwd,
+        })
+        assert reg_res.status_code == 200
+        reg_data = reg_res.json()
+        assert reg_data["status"] == "success"
+        assert reg_data["user"]["email"] == user_email.lower()
+        assert reg_data["user"]["name"] == user_name
+
+        # Case 2: Register with an invalid email format
+        inv_email_res = await client.post("/api/v1/auth/register", json={
+            "full_name": "Test User",
+            "email": "not-an-email",
+            "password": user_pwd,
+        })
+        assert inv_email_res.status_code == 400
+        assert "invalid email format" in inv_email_res.json()["detail"].lower()
+
+        # Case 3: Register with a weak password (missing special char and uppercase)
+        weak_pwd_res = await client.post("/api/v1/auth/register", json={
+            "full_name": "Test User",
+            "email": f"weak_{secrets.token_hex(4)}@test.com",
+            "password": "lowercaseandnumbers123",
+        })
+        assert weak_pwd_res.status_code == 400
+        assert "uppercase" in weak_pwd_res.json()["detail"].lower() or "special character" in weak_pwd_res.json()["detail"].lower()
+
+        # Case 4: Try registering the same email twice
+        dup_res = await client.post("/api/v1/auth/register", json={
+            "full_name": "Duplicate User",
+            "email": user_email,
+            "password": user_pwd,
+        })
+        assert dup_res.status_code == 400
+        assert "already exists" in dup_res.json()["detail"].lower()
+
+        # Case 5: Sign in with the correct credentials
+        # Clear cookies first to simulate clean login
+        client.cookies.clear()
+        login_res = await client.post("/api/v1/auth/login", json={
+            "email": user_email,
+            "password": user_pwd,
+        })
         assert login_res.status_code == 200
-        assert "Sign In" in login_res.text
-        assert "Create Account" in login_res.text
+        login_data = login_res.json()
+        assert login_data["status"] == "success"
+        assert login_data["user"]["email"] == user_email
+        assert "session_token" in client.cookies
 
-        # 2. Reject invalid login credentials
-        bad_res = await client.post("/api/v1/auth/login", json={"email": "lead@businesslabs.ai", "password": "WrongPassword!1"})
-        assert bad_res.status_code == 401
+        # Case 6: Sign in with an incorrect password and confirm the exact secure error message
+        bad_login = await client.post("/api/v1/auth/login", json={
+            "email": user_email,
+            "password": "WrongPassword@999",
+        })
+        assert bad_login.status_code == 401
+        assert bad_login.json()["detail"] == "Incorrect email or password. Please try again."
 
-        # 3. Successful login with lowercase email normalization and valid password
-        auth_res = await client.post("/api/v1/auth/login", json={"email": "LEAD@BUSINESSLABS.AI", "password": "Consultant@123"})
-        assert auth_res.status_code == 200
-        data = auth_res.json()
-        assert data["status"] == "success"
-        assert data["user"]["email"] == "lead@businesslabs.ai"
-        assert "session_token" in auth_res.cookies or "session_user" in auth_res.cookies
-
-        # 4. Auth me endpoint returns user profile
-        me_res = await client.get("/api/v1/auth/me", cookies=auth_res.cookies)
+        # Case 7: Refresh the page / re-request and confirm the session behaves correctly
+        me_res = await client.get("/api/v1/auth/me")
         assert me_res.status_code == 200
         me_data = me_res.json()
-        assert me_data["user"]["email"] == "lead@businesslabs.ai"
+        assert me_data["status"] == "authenticated"
+        assert me_data["user"]["email"] == user_email
+        assert me_data["user"]["name"] == user_name
 
-        # 5. Registration with password complexity enforcement
-        # Fails without special char or uppercase or length
-        weak_reg = await client.post("/api/v1/auth/register", json={
-            "email": "newuser@businesslabs.ai",
-            "password": "simplepassword",
-            "full_name": "Test User"
-        })
-        assert weak_reg.status_code == 400
-        assert "special character" in weak_reg.json()["detail"].lower() or "uppercase" in weak_reg.json()["detail"].lower()
-
-        # Succeeds with compliant password
-        unique_email = f"user_{secrets.token_hex(4)}@businesslabs.ai"
-        good_reg = await client.post("/api/v1/auth/register", json={
-            "email": unique_email.upper(),  # Verify case normalization during registration
-            "password": "SecurePassword@2026",
-            "full_name": "Test User"
-        })
-        assert good_reg.status_code == 200
-        assert good_reg.json()["user"]["email"] == unique_email.lower()
-
-        # 6. Logout clears session
+        # Case 8: Sign out and confirm the session is invalidated
         logout_res = await client.post("/api/v1/auth/logout")
         assert logout_res.status_code == 200
+        assert logout_res.json()["status"] == "logged_out"
+
+        # Case 9: Try opening a protected URL after logout
+        post_logout_me = await client.get("/api/v1/auth/me")
+        assert post_logout_me.status_code == 401
+
+        # Case 10: Sign in using a different email account
+        user2_email = f"partner_{secrets.token_hex(4)}@businesslabs.ai"
+        user2_name = "Dana Scully"
+        await client.post("/api/v1/auth/register", json={
+            "full_name": user2_name,
+            "email": user2_email,
+            "password": "PartnerPassword@2026",
+        })
+        login2_res = await client.post("/api/v1/auth/login", json={
+            "email": user2_email,
+            "password": "PartnerPassword@2026",
+        })
+        assert login2_res.status_code == 200
+        me2_res = await client.get("/api/v1/auth/me")
+        assert me2_res.status_code == 200
+        assert me2_res.json()["user"]["email"] == user2_email
+        assert me2_res.json()["user"]["name"] == user2_name
+
+        # Case 11: Test Google OAuth endpoint & guidance
+        google_status = await client.get("/api/v1/auth/google/status")
+        assert google_status.status_code == 200
+        gs_data = google_status.json()
+        assert "configured" in gs_data
+        assert "instructions" in gs_data
+        assert "redirect_uri" in gs_data
+        assert "api/v1/auth/google/callback" in gs_data["redirect_uri"]
+
+        # Case 12: Confirm the correct account name appears in the top-right profile
+        assert me2_res.json()["user"]["display_name"] == user2_name
 
 
 # ==============================================================================

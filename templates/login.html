@@ -29,6 +29,11 @@
         .req-item.valid {
             color: #34d399;
         }
+        .field-error {
+            font-size: 0.75rem;
+            color: #f87171;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-slate-100">
@@ -40,17 +45,17 @@
                 <i class="fa-solid fa-brain text-2xl text-white"></i>
             </div>
             <h1 class="text-2xl font-bold tracking-tight text-white">AI Tech Consultant Suite</h1>
-            <p class="text-xs text-slate-400 mt-1">Unified Enterprise Consulting Monorepo</p>
+            <p class="text-xs text-slate-400 mt-1">Autonomous Enterprise Consulting Monorepo</p>
         </div>
 
         <!-- Tab Switcher (Sign In vs Register) -->
         <div class="flex rounded-lg bg-slate-900/90 p-1 mb-5 border border-slate-800">
             <button id="tab-login" onclick="switchTab('login')"
-                class="flex-1 py-1.5 text-xs font-semibold rounded-md transition text-white bg-indigo-600 shadow-sm">
+                class="flex-1 py-2 text-xs font-semibold rounded-md transition text-white bg-indigo-600 shadow-sm">
                 <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> Sign In
             </button>
             <button id="tab-register" onclick="switchTab('register')"
-                class="flex-1 py-1.5 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white">
+                class="flex-1 py-2 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white">
                 <i class="fa-solid fa-user-plus mr-1.5"></i> Create Account
             </button>
         </div>
@@ -66,12 +71,18 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                         <i class="fa-regular fa-envelope"></i>
                     </span>
-                    <input type="email" id="login-email" required value="consultant@businesslabs.ai"
-                        oninput="this.value = this.value.toLowerCase().trim()"
+                    <input type="email" id="login-email" required
+                        oninput="this.value = this.value.toLowerCase().trim(); clearFieldError('login-email-err')"
                         class="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
-                        placeholder="consultant@businesslabs.ai">
+                        placeholder="name@company.com">
                 </div>
-                <p class="text-[11px] text-slate-500 mt-1">Normalized to lowercase automatically.</p>
+                <div id="login-email-err" class="field-error hidden"></div>
+                <div class="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                    <span>Normalized to lowercase</span>
+                    <button type="button" onclick="useAnotherEmail()" class="text-cyan-400 hover:text-cyan-300 underline">
+                        Use another email
+                    </button>
+                </div>
             </div>
 
             <div>
@@ -82,19 +93,21 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
                         <i class="fa-solid fa-lock"></i>
                     </span>
-                    <input type="password" id="login-password" required value="Consultant@123"
+                    <input type="password" id="login-password" required
+                        oninput="clearFieldError('login-pwd-err')"
                         class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
-                        placeholder="••••••••">
+                        placeholder="Enter your password">
                     <button type="button" onclick="togglePasswordVisibility('login-password', 'eye-login')"
                         class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200">
                         <i id="eye-login" class="fa-regular fa-eye"></i>
                     </button>
                 </div>
+                <div id="login-pwd-err" class="field-error hidden"></div>
             </div>
 
             <button type="submit" id="login-btn"
                 class="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-medium text-sm rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
-                <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Consultant Suite
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
             </button>
         </form>
 
@@ -108,8 +121,9 @@
                     </span>
                     <input type="text" id="reg-name" required minlength="2"
                         class="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
-                        placeholder="Sarah Connor">
+                        placeholder="Your full name">
                 </div>
+                <div id="reg-name-err" class="field-error hidden"></div>
             </div>
 
             <div>
@@ -119,10 +133,11 @@
                         <i class="fa-regular fa-envelope"></i>
                     </span>
                     <input type="email" id="reg-email" required
-                        oninput="this.value = this.value.toLowerCase().trim()"
+                        oninput="this.value = this.value.toLowerCase().trim(); clearFieldError('reg-email-err')"
                         class="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
                         placeholder="you@company.com">
                 </div>
+                <div id="reg-email-err" class="field-error hidden"></div>
             </div>
 
             <div>
@@ -132,14 +147,15 @@
                         <i class="fa-solid fa-lock"></i>
                     </span>
                     <input type="password" id="reg-password" required
-                        oninput="checkPasswordRequirements(this.value)"
+                        oninput="checkPasswordRequirements(this.value); clearFieldError('reg-pwd-err')"
                         class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
-                        placeholder="Min 8 chars, A-Z, a-z, 0-9, special char">
+                        placeholder="Create strong password">
                     <button type="button" onclick="togglePasswordVisibility('reg-password', 'eye-reg')"
                         class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200">
                         <i id="eye-reg" class="fa-regular fa-eye"></i>
                     </button>
                 </div>
+                <div id="reg-pwd-err" class="field-error hidden"></div>
 
                 <!-- Password Complexity Checklist -->
                 <div class="mt-2.5 p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1.5">
@@ -154,56 +170,108 @@
 
             <button type="submit" id="reg-btn"
                 class="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium text-sm rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                <i class="fa-solid fa-user-check"></i> Complete Registration
+                <i class="fa-solid fa-user-check"></i> Create Account
             </button>
         </form>
 
-        <!-- Clearly Documented Demo Account Box -->
-        <div class="relative my-6">
+        <!-- OAuth / Alternative Methods Divider -->
+        <div class="relative my-5">
             <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
-            <div class="relative flex justify-center text-xs uppercase"><span class="bg-slate-800/80 px-2 text-slate-400 rounded">Evaluator Demo Account</span></div>
+            <div class="relative flex justify-center text-xs uppercase"><span class="bg-slate-800/80 px-2 text-slate-400 rounded">Or continue with</span></div>
         </div>
 
-        <div class="p-3 bg-slate-900/90 rounded-lg border border-slate-700/80 text-xs">
-            <div class="flex items-center justify-between mb-1">
-                <span class="font-semibold text-slate-300"><i class="fa-solid fa-shield-halved text-cyan-400 mr-1"></i> Pre-Configured Demo Login:</span>
-                <span class="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">Verified</span>
+        <!-- Google OAuth Button -->
+        <button type="button" onclick="handleGoogleSignIn()"
+            class="w-full py-2.5 px-4 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-lg text-sm font-medium text-slate-200 transition flex items-center justify-center gap-3 shadow-sm">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Continue with Google</span>
+        </button>
+
+        <!-- Google OAuth Guidance Modal / Banner -->
+        <div id="google-config-modal" class="hidden mt-4 p-4 rounded-xl bg-slate-900 border border-amber-500/30 text-xs space-y-2">
+            <div class="flex items-center gap-2 text-amber-400 font-semibold">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Google OAuth Configuration Required</span>
             </div>
-            <div class="text-slate-400 font-mono text-[11px] space-y-0.5">
-                <div>Email: <span class="text-cyan-300">consultant@businesslabs.ai</span></div>
-                <div>Password: <span class="text-cyan-300">Consultant@123</span></div>
+            <p class="text-slate-300 leading-relaxed" id="google-instructions">
+                To enable Google Sign-In, please configure your Google Cloud credentials.
+            </p>
+            <div class="bg-slate-950 p-2.5 rounded border border-slate-800 font-mono text-[11px] text-cyan-300 break-all" id="google-redirect-url">
+                Redirect URI: loading...
             </div>
-            <button onclick="fillDemoAndLogin()"
-                class="mt-2.5 w-full py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600/70 rounded-md text-xs font-medium text-slate-200 transition flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-bolt text-amber-400"></i> One-Click Demo Sign In
+            <p class="text-[11px] text-slate-400">
+                Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your Render dashboard Environment settings.
+            </p>
+            <button onclick="document.getElementById('google-config-modal').classList.add('hidden')"
+                class="mt-1 w-full py-1 text-slate-400 hover:text-white border border-slate-700 rounded text-center">
+                Close
             </button>
         </div>
 
-        <div class="mt-5 text-center text-xs text-slate-500">
-            <span>Powered by AI Tech Consultant Suite &bull; SHA-256 PBKDF2 Secure</span>
+        <!-- Switch Account Option (if already in cookie) -->
+        <div class="mt-5 text-center text-xs text-slate-400 border-t border-slate-800 pt-4 flex items-center justify-between">
+            <span id="account-status-label">Need an account?</span>
+            <button type="button" onclick="switchTab(currentTab === 'login' ? 'register' : 'login')"
+                id="switch-tab-btn" class="text-indigo-400 hover:text-indigo-300 font-medium underline">
+                Create Account
+            </button>
         </div>
     </div>
 
     <script>
+        let currentTab = "login";
+
+        // Check URL params on load (e.g. ?error=... or ?mode=register)
+        window.addEventListener("DOMContentLoaded", async () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("mode") === "register" || window.location.pathname === "/register") {
+                switchTab("register");
+            }
+            if (params.get("error") === "google_not_configured") {
+                showGoogleConfig();
+            } else if (params.get("error")) {
+                showAlert("Google authentication was not completed: " + params.get("error"), "error");
+            }
+        });
+
         function switchTab(tab) {
+            currentTab = tab;
             const loginForm = document.getElementById("login-form");
             const regForm = document.getElementById("register-form");
             const tabLogin = document.getElementById("tab-login");
             const tabReg = document.getElementById("tab-register");
+            const switchBtn = document.getElementById("switch-tab-btn");
+            const statusLabel = document.getElementById("account-status-label");
             const alertBox = document.getElementById("auth-alert");
             alertBox.classList.add("hidden");
 
             if (tab === "login") {
                 loginForm.classList.remove("hidden");
                 regForm.classList.add("hidden");
-                tabLogin.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition text-white bg-indigo-600 shadow-sm";
-                tabReg.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white";
+                tabLogin.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-white bg-indigo-600 shadow-sm";
+                tabReg.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white";
+                switchBtn.textContent = "Create Account";
+                statusLabel.textContent = "Need an account?";
             } else {
                 loginForm.classList.add("hidden");
                 regForm.classList.remove("hidden");
-                tabReg.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition text-white bg-emerald-600 shadow-sm";
-                tabLogin.className = "flex-1 py-1.5 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white";
+                tabReg.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-white bg-emerald-600 shadow-sm";
+                tabLogin.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white";
+                switchBtn.textContent = "Sign In";
+                statusLabel.textContent = "Already have an account?";
             }
+        }
+
+        function useAnotherEmail() {
+            document.getElementById("login-email").value = "";
+            document.getElementById("login-password").value = "";
+            document.getElementById("login-email").focus();
+            showAlert("Form cleared. Please enter the email address for your account.", "info");
         }
 
         function togglePasswordVisibility(inputId, eyeIconId) {
@@ -216,6 +284,35 @@
                 input.type = "password";
                 icon.className = "fa-regular fa-eye";
             }
+        }
+
+        function clearFieldError(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add("hidden");
+                el.textContent = "";
+            }
+        }
+
+        function setFieldError(id, msg) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = msg;
+                el.classList.remove("hidden");
+            }
+        }
+
+        function showAlert(msg, type = "error") {
+            const alertBox = document.getElementById("auth-alert");
+            alertBox.classList.remove("hidden");
+            if (type === "success") {
+                alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400";
+            } else if (type === "info") {
+                alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-cyan-500/10 border border-cyan-500/30 text-cyan-300";
+            } else {
+                alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-rose-500/10 border border-rose-500/30 text-rose-400";
+            }
+            alertBox.textContent = msg;
         }
 
         function checkPasswordRequirements(pwd) {
@@ -244,10 +341,21 @@
 
         async function handleLogin(e) {
             e.preventDefault();
+            clearFieldError("login-email-err");
+            clearFieldError("login-pwd-err");
+
             const email = document.getElementById("login-email").value.trim().toLowerCase();
             const password = document.getElementById("login-password").value;
             const btn = document.getElementById("login-btn");
-            const alertBox = document.getElementById("auth-alert");
+
+            if (!email) {
+                setFieldError("login-email-err", "Please enter a valid email address.");
+                return;
+            }
+            if (!password) {
+                setFieldError("login-pwd-err", "Password is required.");
+                return;
+            }
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...';
@@ -260,36 +368,42 @@
                 });
                 const data = await res.json();
                 if (res.ok && data.status === "success") {
-                    alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400";
-                    alertBox.textContent = "Login verified. Redirecting to workspace...";
-                    alertBox.classList.remove("hidden");
+                    showAlert("Authentication successful. Redirecting to workspace...", "success");
                     setTimeout(() => {
                         const params = new URLSearchParams(window.location.search);
                         const redirect = params.get("redirect") || "/";
                         window.location.href = redirect;
-                    }, 400);
+                    }, 350);
                 } else {
-                    throw new Error(data.detail || "Authentication failed.");
+                    showAlert(data.detail || "Incorrect email or password. Please try again.", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In';
                 }
             } catch (err) {
-                alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-rose-500/10 border border-rose-500/30 text-rose-400";
-                alertBox.textContent = err.message || "Invalid credentials. Please verify your password.";
-                alertBox.classList.remove("hidden");
+                showAlert("Network connection error. Please try again.", "error");
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Consultant Suite';
+                btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In';
             }
         }
 
         async function handleRegister(e) {
             e.preventDefault();
+            clearFieldError("reg-name-err");
+            clearFieldError("reg-email-err");
+            clearFieldError("reg-pwd-err");
+
             const full_name = document.getElementById("reg-name").value.trim();
             const email = document.getElementById("reg-email").value.trim().toLowerCase();
             const password = document.getElementById("reg-password").value;
             const btn = document.getElementById("reg-btn");
-            const alertBox = document.getElementById("auth-alert");
+
+            if (full_name.length < 2) {
+                setFieldError("reg-name-err", "Full name must be at least 2 characters.");
+                return;
+            }
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Registering Account...';
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Creating Account...';
 
             try {
                 const res = await fetch("/api/v1/auth/register", {
@@ -299,31 +413,54 @@
                 });
                 const data = await res.json();
                 if (res.ok && data.status === "success") {
-                    alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-400";
-                    alertBox.textContent = "Account successfully registered! Redirecting to workspace...";
-                    alertBox.classList.remove("hidden");
+                    showAlert("Account created successfully! Redirecting to workspace...", "success");
                     setTimeout(() => {
                         const params = new URLSearchParams(window.location.search);
                         const redirect = params.get("redirect") || "/";
                         window.location.href = redirect;
-                    }, 500);
+                    }, 400);
                 } else {
-                    throw new Error(data.detail || "Registration failed.");
+                    showAlert(data.detail || "Could not complete registration.", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-user-check"></i> Create Account';
                 }
             } catch (err) {
-                alertBox.className = "mb-4 p-3 rounded-lg text-xs font-medium bg-rose-500/10 border border-rose-500/30 text-rose-400";
-                alertBox.textContent = err.message || "Could not complete registration.";
-                alertBox.classList.remove("hidden");
+                showAlert("Network error during registration.", "error");
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-user-check"></i> Complete Registration';
+                btn.innerHTML = '<i class="fa-solid fa-user-check"></i> Create Account';
             }
         }
 
-        function fillDemoAndLogin() {
-            switchTab("login");
-            document.getElementById("login-email").value = "consultant@businesslabs.ai";
-            document.getElementById("login-password").value = "Consultant@123";
-            document.getElementById("login-form").dispatchEvent(new Event("submit"));
+        async function handleGoogleSignIn() {
+            try {
+                const res = await fetch("/api/v1/auth/google/status");
+                const data = await res.json();
+                if (data.configured) {
+                    const params = new URLSearchParams(window.location.search);
+                    const redirect = params.get("redirect") || "/";
+                    window.location.href = `/api/v1/auth/google/login?redirect=${encodeURIComponent(redirect)}`;
+                } else {
+                    showGoogleConfig(data);
+                }
+            } catch (e) {
+                showGoogleConfig();
+            }
+        }
+
+        function showGoogleConfig(data) {
+            const modal = document.getElementById("google-config-modal");
+            const redirectUrlEl = document.getElementById("google-redirect-url");
+            const instructionsEl = document.getElementById("google-instructions");
+
+            const currentOrigin = window.location.origin;
+            const callbackUrl = `${currentOrigin}/api/v1/auth/google/callback`;
+
+            redirectUrlEl.textContent = `Authorized Redirect URI: ${callbackUrl}`;
+            if (data && data.instructions) {
+                instructionsEl.textContent = data.instructions;
+            }
+            modal.classList.remove("hidden");
+            modal.scrollIntoView({ behavior: "smooth" });
         }
     </script>
 </body>

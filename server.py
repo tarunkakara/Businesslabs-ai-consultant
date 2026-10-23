@@ -19,12 +19,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+import httpx
 
 from auth import (
     AuthStore,
     SESSION_EXPIRY_SECONDS,
-    create_session_token,
-    verify_session_token,
     normalize_email,
 )
 
@@ -120,16 +119,25 @@ app.include_router(task3_router)
 # Authentication Store & Helpers
 _auth_store = AuthStore()
 
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
 
 def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
-    """Extract and verify user from session cookie or Bearer token header."""
+    """Extract and verify user from session cookie or Bearer token header against active database sessions."""
     token = request.cookies.get("session_token")
     if not token:
         auth_hdr = request.headers.get("authorization", "")
         if auth_hdr.lower().startswith("bearer "):
             token = auth_hdr.split(" ", 1)[1].strip()
     if token:
-        return verify_session_token(token)
+        return _auth_store.validate_session(token)
     return None
 
 
@@ -174,32 +182,38 @@ async def login_ui(request: Request):
     """Serves the user authentication login & registration page."""
     user = get_current_user(request)
     if user:
-        return RedirectResponse(url="/", status_code=303)
+        return RedirectResponse(url="/", status_code=303, headers=NO_CACHE_HEADERS)
     if LOGIN_TEMPLATE.exists():
-        return HTMLResponse(content=LOGIN_TEMPLATE.read_text(encoding="utf-8"))
+        return HTMLResponse(content=LOGIN_TEMPLATE.read_text(encoding="utf-8"), headers=NO_CACHE_HEADERS)
     return HTMLResponse("<h1>Login template not found</h1>", status_code=404)
 
 
 @app.post("/api/v1/auth/login", tags=["Auth"])
 async def api_auth_login(request: Request):
-    """Authenticates user session using secure PBKDF2 hash verification."""
+    """Authenticates user session using bcrypt verification and rate-limiting."""
     try:
         body = await request.json()
         email = body.get("email", "")
         password = body.get("password", "")
-        ok, user, msg = _auth_store.authenticate_user(email, password)
-        if not ok:
-            return JSONResponse({"status": "error", "detail": msg}, status_code=401)
+        client_ip = request.client.host if request.client else "unknown"
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            client_ip = forwarded.split(",")[0].strip()
 
-        token = create_session_token(user)
+        ok, user, msg, code = _auth_store.authenticate_user(email, password, client_ip)
+        if not ok:
+            return JSONResponse({"status": "error", "detail": msg}, status_code=code)
+
+        token = _auth_store.create_session(user)
         response = JSONResponse({
             "status": "success",
             "token": token,
             "user": {
+                "id": user["id"],
                 "name": user["full_name"],
                 "email": user["email"],
                 "role": user["role"],
-                "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+                "avatar": user.get("avatar_url"),
             },
         })
         response.set_cookie(
@@ -235,15 +249,16 @@ async def api_auth_register(request: Request):
         if not ok:
             return JSONResponse({"status": "error", "detail": msg}, status_code=400)
 
-        token = create_session_token(user)
+        token = _auth_store.create_session(user)
         response = JSONResponse({
             "status": "success",
             "token": token,
             "user": {
+                "id": user["id"],
                 "name": user["full_name"],
                 "email": user["email"],
                 "role": user["role"],
-                "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+                "avatar": user.get("avatar_url"),
             },
         })
         response.set_cookie(
@@ -276,21 +291,146 @@ async def api_auth_me(request: Request):
     return {
         "status": "authenticated",
         "user": {
-            "name": user.get("full_name", "Sarah Connor"),
-            "email": user.get("email", "consultant@businesslabs.ai"),
-            "role": user.get("role", "Lead AI Tech Consultant"),
-            "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+            "id": user["id"],
+            "name": user["full_name"],
+            "display_name": user["full_name"] or user["email"],
+            "email": user["email"],
+            "role": user.get("role", "Technical Consultant"),
+            "avatar": user.get("avatar_url") or f"https://api.dicebear.com/7.x/initials/svg?seed={user['full_name']}&backgroundColor=4f46e5,7c3aed",
+            "auth_provider": user.get("auth_provider", "local"),
         },
     }
 
 
 @app.post("/api/v1/auth/logout", tags=["Auth"])
-async def api_auth_logout():
-    """Clear session cookie and log out."""
-    response = JSONResponse({"status": "logged_out"})
+async def api_auth_logout(request: Request):
+    """Clear session cookie and invalidate server-side session in database."""
+    token = request.cookies.get("session_token")
+    if not token:
+        auth_hdr = request.headers.get("authorization", "")
+        if auth_hdr.lower().startswith("bearer "):
+            token = auth_hdr.split(" ", 1)[1].strip()
+    if token:
+        _auth_store.revoke_session(token)
+
+    response = JSONResponse({"status": "logged_out", "message": "Session invalidated successfully."})
     response.delete_cookie("session_token", path="/")
     response.delete_cookie("session_user", path="/")
     return response
+
+
+@app.get("/api/v1/auth/google/status", tags=["Auth"])
+async def api_google_status(request: Request):
+    """Check whether Google OAuth is configured and return client setup guidance."""
+    configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or f"{base_url}/api/v1/auth/google/callback"
+    return {
+        "configured": configured,
+        "client_id": GOOGLE_CLIENT_ID if configured else None,
+        "redirect_uri": redirect_uri,
+        "instructions": (
+            "To enable Google Sign-In: 1) Go to Google Cloud Console (https://console.cloud.google.com/apis/credentials), "
+            "2) Create OAuth 2.0 Client ID for Web Application, "
+            f"3) Add Authorized Redirect URI: {redirect_uri}, "
+            "4) Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to environment variables or Render dashboard."
+        ) if not configured else "Google OAuth is ready."
+    }
+
+
+@app.get("/api/v1/auth/google/login", tags=["Auth"])
+async def api_google_login(request: Request, redirect: Optional[str] = "/"):
+    """Initiates authentic Google OAuth 2.0 flow or returns configuration guidance."""
+    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
+        return RedirectResponse(url="/login?error=google_not_configured", status_code=303)
+
+    state = secrets.token_urlsafe(24)
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or f"{base_url}/api/v1/auth/google/callback"
+
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={redirect_uri}&"
+        "response_type=code&"
+        "scope=openid%20email%20profile&"
+        f"state={state}&"
+        "access_type=offline&"
+        "prompt=select_account"
+    )
+    resp = RedirectResponse(url=google_auth_url, status_code=303)
+    resp.set_cookie(key="oauth_state", value=state, max_age=600, httponly=True, samesite="lax")
+    if redirect:
+        resp.set_cookie(key="oauth_redirect", value=redirect, max_age=600, httponly=True, samesite="lax")
+    return resp
+
+
+@app.get("/api/v1/auth/google/callback", tags=["Auth"])
+async def api_google_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
+    """Handles Google OAuth authorization code callback and establishes verified user session."""
+    if error or not code:
+        return RedirectResponse(url=f"/login?error={error or 'cancelled'}", status_code=303)
+
+    cookie_state = request.cookies.get("oauth_state")
+    if not cookie_state or not state or not secrets.compare_digest(state, cookie_state):
+        return RedirectResponse(url="/login?error=invalid_state", status_code=303)
+
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI") or f"{base_url}/api/v1/auth/google/callback"
+
+    try:
+        async with httpx.AsyncClient() as http_client:
+            token_resp = await http_client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Accept": "application/json"},
+                timeout=15.0,
+            )
+            if token_resp.status_code != 200:
+                logger.error("Google token exchange failed: %s", token_resp.text)
+                return RedirectResponse(url="/login?error=token_exchange_failed", status_code=303)
+
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+
+            userinfo_resp = await http_client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=15.0,
+            )
+            if userinfo_resp.status_code != 200:
+                return RedirectResponse(url="/login?error=userinfo_failed", status_code=303)
+
+            userinfo = userinfo_resp.json()
+            email = userinfo.get("email")
+            name = userinfo.get("name") or (email.split("@")[0] if email else "Consultant")
+            google_id = userinfo.get("sub")
+            avatar = userinfo.get("picture")
+
+            user = _auth_store.upsert_oauth_user(email=email, full_name=name, google_id=google_id, avatar_url=avatar)
+            token = _auth_store.create_session(user)
+
+            dest = request.cookies.get("oauth_redirect") or "/"
+            resp = RedirectResponse(url=dest, status_code=303)
+            resp.set_cookie(key="session_token", value=token, max_age=SESSION_EXPIRY_SECONDS, httponly=True, samesite="lax", path="/")
+            resp.set_cookie(key="session_user", value=user["email"], max_age=SESSION_EXPIRY_SECONDS, httponly=False, samesite="lax", path="/")
+            resp.delete_cookie("oauth_state")
+            resp.delete_cookie("oauth_redirect")
+            return resp
+    except Exception as exc:
+        logger.error("OAuth callback error: %s", exc)
+        return RedirectResponse(url="/login?error=oauth_error", status_code=303)
 
 
 @app.get("/", tags=["Portal"])
@@ -300,9 +440,9 @@ async def portal_root(request: Request):
     if "text/html" in accept:
         user = get_current_user(request)
         if not user:
-            return RedirectResponse(url="/login?redirect=/", status_code=303)
+            return RedirectResponse(url="/login?redirect=/", status_code=303, headers=NO_CACHE_HEADERS)
         if PORTAL_TEMPLATE.exists():
-            return HTMLResponse(content=PORTAL_TEMPLATE.read_text(encoding="utf-8"))
+            return HTMLResponse(content=PORTAL_TEMPLATE.read_text(encoding="utf-8"), headers=NO_CACHE_HEADERS)
 
     return JSONResponse({
         "service": "BusinessLabs AI Tech Consultant Monorepo",
@@ -324,9 +464,9 @@ async def task1_ui(request: Request):
     """Serves the Knowledge Brain Interactive Dashboard (Protected)."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login?redirect=/brain", status_code=303)
+        return RedirectResponse(url="/login?redirect=/brain", status_code=303, headers=NO_CACHE_HEADERS)
     if TASK1_TEMPLATE.exists():
-        return HTMLResponse(content=TASK1_TEMPLATE.read_text(encoding="utf-8"))
+        return HTMLResponse(content=TASK1_TEMPLATE.read_text(encoding="utf-8"), headers=NO_CACHE_HEADERS)
     return HTMLResponse("<h1>Task 1 template not found</h1>", status_code=404)
 
 
@@ -336,9 +476,9 @@ async def task2_ui(request: Request):
     """Serves the Client Inbox Agent Review Dashboard (Protected)."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login?redirect=/inbox", status_code=303)
+        return RedirectResponse(url="/login?redirect=/inbox", status_code=303, headers=NO_CACHE_HEADERS)
     if TASK2_TEMPLATE.exists():
-        return HTMLResponse(content=TASK2_TEMPLATE.read_text(encoding="utf-8"))
+        return HTMLResponse(content=TASK2_TEMPLATE.read_text(encoding="utf-8"), headers=NO_CACHE_HEADERS)
     return HTMLResponse("<h1>Task 2 template not found</h1>", status_code=404)
 
 
@@ -348,9 +488,9 @@ async def task3_ui(request: Request):
     """Serves the Meeting-to-Scope Proposal Generator Dashboard (Protected)."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login?redirect=/scope", status_code=303)
+        return RedirectResponse(url="/login?redirect=/scope", status_code=303, headers=NO_CACHE_HEADERS)
     if TASK3_TEMPLATE.exists():
-        return HTMLResponse(content=TASK3_TEMPLATE.read_text(encoding="utf-8"))
+        return HTMLResponse(content=TASK3_TEMPLATE.read_text(encoding="utf-8"), headers=NO_CACHE_HEADERS)
     return HTMLResponse("<h1>Task 3 template not found</h1>", status_code=404)
 
 

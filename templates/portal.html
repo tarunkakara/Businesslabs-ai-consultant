@@ -213,18 +213,24 @@
                     <span id="gatewayStatusText">Checking Gateway...</span>
                 </span>
 
-                <div class="dropdown">
+                <div class="dropdown" id="userProfileDropdown">
                     <button class="btn btn-sm btn-dark d-flex align-items-center gap-2 border border-secondary border-opacity-25 rounded-pill px-3 py-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80" alt="Avatar" class="rounded-circle" width="24" height="24">
-                        <span class="small fw-semibold text-light">Sarah Connor</span>
+                        <img id="userProfileAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80" alt="Avatar" class="rounded-circle" width="24" height="24">
+                        <span id="userProfileName" class="small fw-semibold text-light">Consultant</span>
                         <i class="bi bi-chevron-down small text-muted"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
-                        <li><h6 class="dropdown-header text-info"><i class="bi bi-shield-check me-1"></i>Lead Tech Consultant</h6></li>
+                        <li>
+                            <div class="px-3 py-2 border-bottom border-secondary border-opacity-25">
+                                <div class="fw-semibold text-light small" id="userProfileEmail">Authenticated User</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">Technical Consultant</div>
+                            </div>
+                        </li>
                         <li><a class="dropdown-item small" href="/inbox"><i class="bi bi-envelope me-2"></i>Gmail Inbox Agent</a></li>
                         <li><a class="dropdown-item small" href="/docs" target="_blank"><i class="bi bi-book me-2"></i>OpenAPI Specs</a></li>
                         <li><hr class="dropdown-divider border-secondary border-opacity-50"></li>
-                        <li><a class="dropdown-item small text-danger" href="/login"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                        <li><a class="dropdown-item small" href="javascript:void(0)" onclick="handleLogout()"><i class="bi bi-arrow-left-right me-2"></i>Switch Account</a></li>
+                        <li><a class="dropdown-item small text-danger" href="javascript:void(0)" onclick="handleLogout()"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
                     </ul>
                 </div>
             </div>
@@ -603,7 +609,39 @@
             }
         }
 
+        async function loadUserProfile() {
+            try {
+                const res = await fetch("/api/v1/auth/me");
+                if (!res.ok) {
+                    window.location.replace("/login?redirect=/");
+                    return;
+                }
+                const data = await res.json();
+                const user = data.user;
+                const displayName = user.name || user.email;
+                document.getElementById("userProfileName").textContent = displayName;
+                document.getElementById("userProfileEmail").textContent = user.email;
+                if (user.avatar) {
+                    document.getElementById("userProfileAvatar").src = user.avatar;
+                }
+            } catch (e) {
+                console.warn("Could not load user profile:", e);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch("/api/v1/auth/logout", { method: "POST" });
+            } catch (e) {}
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+            } catch (e) {}
+            window.location.replace("/login");
+        }
+
         window.addEventListener("DOMContentLoaded", () => {
+            loadUserProfile();
             checkGatewayHealth();
             setInterval(checkGatewayHealth, 20000);
         });

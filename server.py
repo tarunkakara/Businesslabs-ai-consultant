@@ -433,6 +433,181 @@ async def api_google_callback(
         return RedirectResponse(url="/login?error=oauth_error", status_code=303)
 
 
+# ==============================================================================
+# Per-User Gmail OAuth 2.0 Integration Endpoints
+# ==============================================================================
+
+@app.get("/api/v1/gmail/oauth/status", tags=["Gmail OAuth"])
+async def api_gmail_oauth_status(request: Request):
+    """Return Gmail connection status for the authenticated user and Google OAuth setup instructions."""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"status": "unauthenticated", "detail": "Sign in required."}, status_code=401)
+
+    conn = _auth_store.get_gmail_token(user["id"])
+    configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
+
+    return {
+        "connected": bool(conn and conn.get("gmail_address")),
+        "gmail_address": conn.get("gmail_address") if conn else None,
+        "is_expired": conn.get("is_expired", False) if conn else False,
+        "configured": configured,
+        "oauth_configured": configured,
+        "client_id": GOOGLE_CLIENT_ID if configured else None,
+        "redirect_uri": redirect_uri,
+        "required_scopes": [
+            "https://www.googleapis.com/auth/gmail.modify",
+            "https://www.googleapis.com/auth/gmail.send",
+            "https://www.googleapis.com/auth/userinfo.email",
+        ],
+        "instructions": (
+            "To connect real Gmail accounts: 1) Go to Google Cloud Console (https://console.cloud.google.com/apis/credentials), "
+            "2) Enable the Gmail API (APIs & Services -> Enabled APIs & Services -> Enable 'Gmail API'), "
+            f"3) Add Authorized Redirect URI: {redirect_uri}, "
+            "4) Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to environment variables or Render dashboard."
+        ) if not configured else "Google Cloud OAuth is configured."
+    }
+
+
+@app.get("/api/v1/gmail/oauth/connect", tags=["Gmail OAuth"])
+async def api_gmail_oauth_connect(request: Request):
+    """Initiates OAuth 2.0 flow to authorize user's own Gmail mailbox with minimal permissions."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?redirect=/inbox", status_code=303)
+
+    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
+        return RedirectResponse(url="/inbox?error=gmail_oauth_not_configured", status_code=303)
+
+    nonce = secrets.token_urlsafe(16)
+    state = f"{user['id']}:{nonce}"
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
+
+    scopes = " ".join([
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/userinfo.email",
+    ])
+
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={redirect_uri}&"
+        "response_type=code&"
+        f"scope={scopes}&"
+        f"state={state}&"
+        "access_type=offline&"
+        "prompt=consent"
+    )
+    resp = RedirectResponse(url=google_auth_url, status_code=303)
+    resp.set_cookie(key="gmail_oauth_state", value=state, max_age=600, httponly=True, samesite="lax")
+    return resp
+
+
+@app.get("/api/v1/gmail/oauth/callback", tags=["Gmail OAuth"])
+async def api_gmail_oauth_callback(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
+    """Handle Gmail OAuth 2.0 callback, exchange code, fetch Gmail address, and store encrypted tokens."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?redirect=/inbox", status_code=303)
+
+    if error or not code:
+        return RedirectResponse(url=f"/inbox?error={error or 'cancelled'}", status_code=303)
+
+    cookie_state = request.cookies.get("gmail_oauth_state")
+    if not cookie_state or not state or not secrets.compare_digest(state, cookie_state):
+        return RedirectResponse(url="/inbox?error=invalid_state", status_code=303)
+
+    state_user_id = state.split(":")[0] if ":" in state else ""
+    if state_user_id != user["id"]:
+        return RedirectResponse(url="/inbox?error=user_mismatch", status_code=303)
+
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
+
+    try:
+        async with httpx.AsyncClient() as http_client:
+            token_resp = await http_client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "code": code,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Accept": "application/json"},
+                timeout=15.0,
+            )
+            if token_resp.status_code != 200:
+                logger.error("Gmail token exchange failed: %s", token_resp.text)
+                return RedirectResponse(url="/inbox?error=token_exchange_failed", status_code=303)
+
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+            expires_in = token_data.get("expires_in", 3600)
+            scope = token_data.get("scope", "")
+
+            # Get authorized Gmail profile address
+            profile_resp = await http_client.get(
+                "https://gmail.googleapis.com/gmail/v1/users/me/profile",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=15.0,
+            )
+            gmail_address = ""
+            if profile_resp.status_code == 200:
+                gmail_address = profile_resp.json().get("emailAddress", "")
+            if not gmail_address:
+                ui_resp = await http_client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=15.0,
+                )
+                if ui_resp.status_code == 200:
+                    gmail_address = ui_resp.json().get("email", "")
+
+            if not gmail_address:
+                gmail_address = user["email"]
+
+            # Store encrypted tokens in database
+            _auth_store.save_gmail_token(
+                user_id=user["id"],
+                gmail_address=gmail_address,
+                access_token=access_token,
+                refresh_token=refresh_token,
+                expires_in=expires_in,
+                scope=scope,
+            )
+
+            resp = RedirectResponse(url="/inbox?gmail_connected=true", status_code=303)
+            resp.delete_cookie("gmail_oauth_state")
+            return resp
+    except Exception as exc:
+        logger.error("Error in Gmail OAuth callback: %s", exc)
+        return RedirectResponse(url="/inbox?error=oauth_error", status_code=303)
+
+
+@app.post("/api/v1/gmail/oauth/disconnect", tags=["Gmail OAuth"])
+async def api_gmail_oauth_disconnect(request: Request):
+    """Disconnect user's Gmail account and revoke access token with Google."""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"status": "unauthenticated", "detail": "Sign in required."}, status_code=401)
+
+    from task2_inbox_agent.app.gmail_client import GmailOAuthClient
+    ok, msg = await GmailOAuthClient.disconnect(user["id"], _auth_store)
+    return {"status": "success" if ok else "error", "message": msg}
+
+
 @app.get("/", tags=["Portal"])
 async def portal_root(request: Request):
     """Serves the Unified AI Tech Consultant Suite Portal (Protected for HTML)."""

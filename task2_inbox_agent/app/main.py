@@ -13,8 +13,23 @@ from task2_inbox_agent.app.classifier import EmailClassifier
 from task2_inbox_agent.app.config import settings
 from task2_inbox_agent.app.drafter import ResponseDrafter
 from task2_inbox_agent.app.generator import generate_synthetic_emails
-from task2_inbox_agent.app.gmail_client import GmailClient
+from task2_inbox_agent.app.gmail_client import GmailClient, GmailOAuthClient
 from task2_inbox_agent.app.learning import ContinuousLearningEngine
+from auth import AuthStore
+
+_auth_store = AuthStore()
+
+
+def get_session_user(request: Request) -> Optional[Dict[str, Any]]:
+    """Extract authenticated session user from cookie or authorization header."""
+    token = request.cookies.get("session_token")
+    if not token:
+        auth_hdr = request.headers.get("authorization", "")
+        if auth_hdr.lower().startswith("bearer "):
+            token = auth_hdr.split(" ", 1)[1].strip()
+    if token:
+        return _auth_store.validate_session(token)
+    return None
 from task2_inbox_agent.app.models import (
     AuditRecord,
     CompanyVoice,
@@ -102,12 +117,26 @@ async def seed_emails():
 
 @router.get("/api/v1/emails", response_model=List[CustomerEmail], tags=["Emails"])
 async def list_emails(
+    request: Request,
     category: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
+    folder: Optional[str] = Query(default=None),
+    source: Optional[str] = Query(default="all"),
+    search: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=200),
 ):
-    """List customer emails with optional filters."""
-    return _store.list_emails(category=category, status=status, limit=limit)
+    """List customer emails with multi-tenant user isolation, folder selection, and search."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+    return _store.list_emails(
+        category=category,
+        status=status,
+        user_id=user_id,
+        folder=folder,
+        source=source,
+        search=search,
+        limit=limit,
+    )
 
 
 @router.get("/api/v1/emails/{email_id}", response_model=CustomerEmail, tags=["Emails"])
@@ -263,7 +292,9 @@ class GmailTestRequest(BaseModel):
 class GmailSyncRequest(BaseModel):
     email: Optional[str] = None
     app_password: Optional[str] = None
-    limit: int = 10
+    folder: Optional[str] = "inbox"
+    query: Optional[str] = None
+    limit: int = 15
 
 
 class GmailSendRequest(BaseModel):
@@ -295,47 +326,132 @@ async def test_gmail_connection(req: GmailTestRequest):
 
 
 @router.post("/api/v1/gmail/sync", tags=["Gmail Integration"])
-async def sync_gmail_inbox(req: GmailSyncRequest):
-    """Fetch new incoming emails from user's real Gmail INBOX and ingest into inbox database."""
-    fetched = _gmail_client.fetch_inbox_emails(
-        limit=req.limit,
-        user_email=req.email,
-        app_password=req.app_password,
-    )
-    if not fetched:
-        return {"status": "success", "count": 0, "message": "No new emails found or credentials not provided."}
+async def sync_gmail_inbox(request: Request, req: Optional[GmailSyncRequest] = None):
+    """Fetch new incoming emails from user's authorized Gmail account via OAuth 2.0 REST API."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
 
-    # Automatically classify ingested emails
-    for e in fetched:
-        cl = _classifier.classify(e)
-        e.category = cl.category
-        e.priority = cl.priority
+    limit = req.limit if req else 15
+    folder = req.folder if req and req.folder else "inbox"
+    query = req.query if req and req.query else None
 
-    count = _store.save_emails(fetched)
-    return {"status": "success", "count": count, "message": f"Successfully synced {count} emails from Gmail."}
+    # 1. If user is authenticated, attempt real Gmail OAuth REST API fetch
+    if user_id:
+        fetched, err = await GmailOAuthClient.fetch_user_emails(
+            user_id=user_id,
+            auth_store=_auth_store,
+            folder=folder,
+            search_query=query,
+            limit=limit,
+        )
+        if fetched:
+            for e in fetched:
+                cl = _classifier.classify(e)
+                e.category = cl.category
+                e.priority = cl.priority
+
+            count = _store.save_emails(fetched)
+            conn_info = _auth_store.get_gmail_token(user_id)
+            gmail_addr = conn_info.get("gmail_address") if conn_info else "Gmail"
+            return {
+                "status": "success",
+                "count": count,
+                "connected_email": gmail_addr,
+                "message": f"Successfully synced {count} emails from {gmail_addr}.",
+            }
+        elif err and "No Gmail account connected" not in err:
+            return {"status": "error", "count": 0, "message": err}
+
+    # 2. Check if legacy IMAP credentials were provided in request body
+    if req and req.email and req.app_password:
+        legacy_fetched = _gmail_client.fetch_inbox_emails(
+            limit=limit,
+            user_email=req.email,
+            app_password=req.app_password,
+        )
+        if legacy_fetched:
+            for e in legacy_fetched:
+                if user_id:
+                    e.user_id = user_id
+                cl = _classifier.classify(e)
+                e.category = cl.category
+                e.priority = cl.priority
+            count = _store.save_emails(legacy_fetched)
+            return {"status": "success", "count": count, "message": f"Successfully synced {count} emails via IMAP."}
+
+    # 3. If not connected, return clear guidance
+    return {
+        "status": "not_connected",
+        "count": 0,
+        "message": "Gmail account not connected. Please click 'Connect Gmail' to authorize your real inbox.",
+    }
 
 
 @router.post("/api/v1/gmail/send", tags=["Gmail Integration"])
-async def send_email_via_gmail(req: GmailSendRequest):
-    """Send approved email response or custom message via user's real Gmail SMTP account."""
-    result = _gmail_client.send_email(
-        to_email=req.to_email,
-        subject=req.subject,
-        body_text=req.body_text,
-        from_email=req.from_email,
-        app_password=req.app_password,
-    )
-    if result.get("success") and req.email_id:
-        email = _store.get_email(req.email_id)
-        if email:
-            email.status = DraftStatus.APPROVED
-            _store.save_emails([email])
-    return result
+async def send_email_via_gmail(request: Request, req: GmailSendRequest):
+    """Send approved email response from user's connected Gmail account via OAuth REST API."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+
+    email_rec = _store.get_email(req.email_id) if req.email_id else None
+    thread_id = email_rec.thread_id if email_rec else None
+    is_sim = email_rec.is_simulated if email_rec else False
+
+    # Simulated email response handling
+    if is_sim:
+        if email_rec:
+            email_rec.status = DraftStatus.APPROVED
+            _store.save_emails([email_rec])
+        return {
+            "success": True,
+            "simulated": True,
+            "message": f"[Simulator] Reply approved and simulated dispatch to {req.to_email} recorded.",
+        }
+
+    # Real Gmail OAuth dispatch
+    if user_id:
+        res = await GmailOAuthClient.send_user_reply(
+            user_id=user_id,
+            auth_store=_auth_store,
+            to_email=req.to_email,
+            subject=req.subject,
+            body_text=req.body_text,
+            thread_id=thread_id,
+        )
+        if res.get("success"):
+            if email_rec:
+                email_rec.status = DraftStatus.APPROVED
+                _store.save_emails([email_rec])
+            return res
+        elif not req.app_password:
+            return res
+
+    # Legacy SMTP fallback
+    if req.app_password:
+        smtp_res = _gmail_client.send_email(
+            to_email=req.to_email,
+            subject=req.subject,
+            body_text=req.body_text,
+            from_email=req.from_email,
+            app_password=req.app_password,
+        )
+        if smtp_res.get("success") and email_rec:
+            email_rec.status = DraftStatus.APPROVED
+            _store.save_emails([email_rec])
+        return smtp_res
+
+    return {
+        "success": False,
+        "message": "Cannot send email: user not authenticated or Gmail account not connected via OAuth.",
+    }
 
 
 @router.post("/api/v1/emails/simulate", tags=["Simulation & Testing"])
-async def simulate_incoming_email(req: SimulateEmailRequest):
+async def simulate_incoming_email(request: Request, req: SimulateEmailRequest):
     """Simulate an incoming customer email for evaluators to test classification & drafting without credentials."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+
     category_enum = None
     if req.category:
         try:
@@ -349,6 +465,7 @@ async def simulate_incoming_email(req: SimulateEmailRequest):
         sender_name=req.sender_name,
         sender_email=req.sender_email,
         category=category_enum,
+        user_id=user_id,
     )
     cl = _classifier.classify(email)
     email.category = cl.category

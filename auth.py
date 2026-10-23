@@ -26,6 +26,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import bcrypt
+from cryptography.fernet import Fernet
 
 logger = logging.getLogger("monorepo.auth")
 
@@ -94,6 +95,32 @@ def verify_password(password: str, stored_hash: str) -> bool:
     except Exception as exc:
         logger.error("Bcrypt verification error: %s", exc)
         return False
+
+
+class TokenCrypt:
+    """Fernet authenticated symmetric encryption for OAuth credentials at rest."""
+
+    @classmethod
+    def _get_fernet(cls) -> Fernet:
+        secret = os.getenv("TOKEN_ENCRYPTION_KEY") or SESSION_SECRET
+        key_32 = hashlib.sha256(secret.encode("utf-8")).digest()
+        return Fernet(base64.urlsafe_b64encode(key_32))
+
+    @classmethod
+    def encrypt(cls, plain_text: Optional[str]) -> Optional[str]:
+        if not plain_text:
+            return None
+        return cls._get_fernet().encrypt(plain_text.encode("utf-8")).decode("utf-8")
+
+    @classmethod
+    def decrypt(cls, cipher_text: Optional[str]) -> Optional[str]:
+        if not cipher_text:
+            return None
+        try:
+            return cls._get_fernet().decrypt(cipher_text.encode("utf-8")).decode("utf-8")
+        except Exception as exc:
+            logger.error("Token decryption failure: %s", exc)
+            return None
 
 
 class RateLimiter:
@@ -179,6 +206,21 @@ class AuthStore:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_session_token ON active_sessions(session_token)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_session_user ON active_sessions(user_id)")
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_gmail_tokens (
+                    user_id TEXT PRIMARY KEY,
+                    gmail_address TEXT NOT NULL,
+                    access_token_enc TEXT NOT NULL,
+                    refresh_token_enc TEXT,
+                    token_expiry REAL NOT NULL,
+                    scope TEXT NOT NULL,
+                    connected_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_gmail_user ON user_gmail_tokens(user_id)")
             conn.commit()
 
     def register_user(self, email: str, password: str, full_name: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:
@@ -369,6 +411,80 @@ class AuthStore:
             "avatar_url": user.get("avatar_url") or f"https://api.dicebear.com/7.x/initials/svg?seed={user['full_name']}&backgroundColor=4f46e5,7c3aed",
             "auth_provider": user.get("auth_provider", "local"),
         }
+
+    # User Gmail OAuth Token Management (Encrypted at Rest)
+    def save_gmail_token(
+        self,
+        user_id: str,
+        gmail_address: str,
+        access_token: str,
+        refresh_token: Optional[str],
+        expires_in: int,
+        scope: str = "",
+    ) -> None:
+        """Store encrypted Gmail OAuth credentials associated with a user."""
+        now = time.time()
+        expiry = now + int(expires_in)
+        enc_access = TokenCrypt.encrypt(access_token)
+        enc_refresh = TokenCrypt.encrypt(refresh_token) if refresh_token else None
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # If refresh_token is omitted on re-auth, preserve existing encrypted refresh token
+            if not refresh_token:
+                cursor.execute("SELECT refresh_token_enc FROM user_gmail_tokens WHERE user_id = ?", (user_id,))
+                existing = cursor.fetchone()
+                if existing and existing["refresh_token_enc"]:
+                    enc_refresh = existing["refresh_token_enc"]
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO user_gmail_tokens
+                (user_id, gmail_address, access_token_enc, refresh_token_enc, token_expiry, scope, connected_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, gmail_address.lower().strip(), enc_access, enc_refresh, expiry, scope, now, now))
+            conn.commit()
+
+    def get_gmail_token(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve decrypted Gmail OAuth credentials for a specific user."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user_gmail_tokens WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            return {
+                "user_id": row["user_id"],
+                "gmail_address": row["gmail_address"],
+                "access_token": TokenCrypt.decrypt(row["access_token_enc"]),
+                "refresh_token": TokenCrypt.decrypt(row["refresh_token_enc"]),
+                "token_expiry": row["token_expiry"],
+                "scope": row["scope"],
+                "connected_at": row["connected_at"],
+                "is_expired": time.time() >= (row["token_expiry"] - 60),
+            }
+
+    def update_gmail_access_token(self, user_id: str, new_access_token: str, expires_in: int) -> None:
+        """Update access token and expiry after a token refresh."""
+        now = time.time()
+        expiry = now + int(expires_in)
+        enc_access = TokenCrypt.encrypt(new_access_token)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE user_gmail_tokens
+                SET access_token_enc = ?, token_expiry = ?, updated_at = ?
+                WHERE user_id = ?
+            """, (enc_access, expiry, now, user_id))
+            conn.commit()
+
+    def delete_gmail_token(self, user_id: str) -> bool:
+        """Remove Gmail connection for a user."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_gmail_tokens WHERE user_id = ?", (user_id,))
+            conn.commit()
+            return cursor.rowcount > 0
 
 
 # Cryptographic Token Management

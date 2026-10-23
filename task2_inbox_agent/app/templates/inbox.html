@@ -259,11 +259,25 @@
                 <a href="/scope" class="nav-service-pill">Scope</a>
             </div>
 
+            <!-- Connect Gmail & Active Account Badge -->
+            <div id="gmailOAuthContainer" class="d-flex align-items-center gap-2">
+                <button id="btnConnectGmail" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="connectGmail()">
+                    <i class="bi bi-google me-1"></i> Connect Gmail
+                </button>
+                <div id="gmailConnectedBadge" class="d-none align-items-center gap-2 px-3 py-1 rounded-pill bg-success bg-opacity-20 border border-success border-opacity-40 text-success small">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span id="connectedGmailAddress" class="fw-semibold">user@gmail.com</span>
+                    <button class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="disconnectGmail()" title="Disconnect Gmail">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Sync & Test Email Buttons -->
             <button class="btn btn-sm btn-outline-info rounded-pill px-3" onclick="openSimulateModal()">
                 <i class="bi bi-plus-circle me-1"></i> Simulator
             </button>
-            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="syncGmail()">
+            <button id="btnSyncGmail" class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="syncGmail()">
                 <i class="bi bi-arrow-repeat me-1"></i> Sync Gmail
             </button>
 
@@ -330,6 +344,30 @@
                     <span>Sent</span>
                 </div>
                 <span id="badgeSentCount" class="badge bg-success bg-opacity-25 text-success rounded-pill">0</span>
+            </div>
+
+            <!-- Mailbox Source Filter (All / Real Gmail / Simulated) -->
+            <div class="mt-4 mb-2 px-3 small fw-bold text-slate-400 text-uppercase tracking-wider">
+                Mailbox Source
+            </div>
+
+            <div class="sidebar-folder active" id="sourceAll" onclick="selectSource('all')">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-collection text-info"></i>
+                    <span>All Sources</span>
+                </div>
+            </div>
+            <div class="sidebar-folder" id="sourceReal" onclick="selectSource('real')">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-google text-danger"></i>
+                    <span>Gmail Live</span>
+                </div>
+            </div>
+            <div class="sidebar-folder" id="sourceSimulated" onclick="selectSource('simulated')">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cpu text-secondary"></i>
+                    <span>Simulated Inbox</span>
+                </div>
             </div>
 
             <!-- Categories Section (Gmail Labels) -->
@@ -525,6 +563,52 @@
         </div>
     </div>
 
+    <!-- 7. Gmail OAuth Guidance Modal -->
+    <div class="modal fade" id="gmailOAuthGuideModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-slate-900 text-light border border-secondary border-opacity-50 shadow-2xl">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-google me-2"></i>Connect Your Real Gmail Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body space-y-3">
+                    <p class="small text-slate-300">
+                        Authorize your personal or business Gmail inbox to fetch incoming emails, classify them, generate context-aware AI drafts, and dispatch approved replies directly through Google OAuth 2.0.
+                    </p>
+                    <div class="p-3 bg-dark bg-opacity-70 rounded border border-secondary border-opacity-40 small space-y-2">
+                        <div class="fw-bold text-warning mb-1"><i class="bi bi-gear-wide-connected me-1"></i>Google Cloud Console Setup Checklist:</div>
+                        <div>1. In Google Cloud Console, enable <strong>Gmail API</strong>.</div>
+                        <div>2. In <strong>OAuth Consent Screen</strong>, add permissions:
+                            <ul class="mb-1 mt-1 text-slate-400">
+                                <li><code>https://www.googleapis.com/auth/gmail.modify</code> (read & manage emails)</li>
+                                <li><code>https://www.googleapis.com/auth/gmail.send</code> (send approved replies)</li>
+                                <li><code>https://www.googleapis.com/auth/userinfo.email</code> (verify email address)</li>
+                            </ul>
+                        </div>
+                        <div>3. Create an <strong>OAuth 2.0 Client ID</strong> (Web Application) and configure the Authorized Redirect URI:</div>
+                        <div class="p-2 bg-slate-950 rounded border border-secondary font-monospace text-indigo user-select-all" id="guideRedirectUri">
+                            https://businesslabs-ai-consultant.onrender.com/api/v1/gmail/oauth/callback
+                        </div>
+                        <div>4. Set environment variables in your deployment environment (e.g. Render Dashboard):</div>
+                        <div class="p-2 bg-slate-950 rounded border border-secondary font-monospace text-slate-300">
+                            GOOGLE_CLIENT_ID = &lt;your-client-id.apps.googleusercontent.com&gt;<br>
+                            GOOGLE_CLIENT_SECRET = &lt;your-client-secret&gt;
+                        </div>
+                    </div>
+                    <div id="gmailOAuthGuideStatus" class="alert alert-secondary small mb-0">
+                        Checking server OAuth credentials...
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <a id="btnProceedOAuth" href="/api/v1/gmail/oauth/connect" class="btn btn-danger btn-sm fw-bold">
+                        <i class="bi bi-google me-1"></i> Authorize Gmail via Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -534,7 +618,10 @@
         let currentEmail = null;
         let currentDraft = null;
         let currentFolder = 'inbox';
+        let currentSource = 'all';
         let activeCategoryFilter = null;
+        let gmailOAuthConfigured = false;
+        let isGmailConnected = false;
 
         // Search Filter
         function handleSearch(term) {
@@ -560,7 +647,7 @@
         function selectFolder(folder) {
             currentFolder = folder;
             activeCategoryFilter = null;
-            document.querySelectorAll('.sidebar-folder').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#folderInbox, #folderDrafts, #folderSent').forEach(el => el.classList.remove('active'));
             if (folder === 'inbox') document.getElementById('folderInbox').classList.add('active');
             if (folder === 'drafts') document.getElementById('folderDrafts').classList.add('active');
             if (folder === 'sent') document.getElementById('folderSent').classList.add('active');
@@ -568,6 +655,15 @@
             document.getElementById('currentFolderTitle').textContent = 
                 folder === 'inbox' ? 'Primary Inbox' : folder === 'drafts' ? 'Drafts Queue' : 'Sent Messages';
 
+            loadEmails();
+        }
+
+        function selectSource(source) {
+            currentSource = source;
+            document.querySelectorAll('#sourceAll, #sourceReal, #sourceSimulated').forEach(el => el.classList.remove('active'));
+            if (source === 'all') document.getElementById('sourceAll').classList.add('active');
+            if (source === 'real') document.getElementById('sourceReal').classList.add('active');
+            if (source === 'simulated') document.getElementById('sourceSimulated').classList.add('active');
             loadEmails();
         }
 
@@ -579,7 +675,7 @@
 
         async function loadEmails() {
             try {
-                let url = '/api/v1/emails?limit=100';
+                let url = `/api/v1/emails?limit=100&folder=${currentFolder}&source=${currentSource}`;
                 if (activeCategoryFilter) url += `&category=${activeCategoryFilter}`;
                 if (currentFolder === 'drafts') url += `&status=pending_review`;
                 if (currentFolder === 'sent') url += `&status=approved`;
@@ -597,17 +693,29 @@
         function renderEmailList(emails) {
             const container = document.getElementById('emailListContainer');
             if (!emails.length) {
-                container.innerHTML = '<div class="text-center py-5 text-muted small">No messages in this folder.</div>';
+                container.innerHTML = '<div class="text-center py-5 text-muted small">No messages in this folder view.</div>';
                 return;
             }
             container.innerHTML = emails.map(e => {
                 const catClass = getCategoryClass(e.category);
                 const isActive = currentEmail && currentEmail.id === e.id;
+                const sourceBadge = e.is_simulated
+                    ? '<span class="badge bg-secondary bg-opacity-30 text-slate-300 border border-secondary border-opacity-30" style="font-size:0.62rem; padding: 2px 5px;">SIMULATED</span>'
+                    : '<span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-40" style="font-size:0.62rem; padding: 2px 5px;"><i class="bi bi-google me-1"></i>GMAIL LIVE</span>';
+                const unreadIndicator = e.is_unread
+                    ? '<span class="d-inline-block rounded-circle bg-primary me-1" style="width: 7px; height: 7px;" title="Unread"></span>'
+                    : '';
+
                 return `
                     <div class="email-item ${isActive ? 'active' : ''}" onclick="selectEmail('${e.id}')">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small fw-bold text-light text-truncate" style="max-width: 190px;">${e.sender_name || 'Customer'}</span>
-                            <span class="badge-cat ${catClass}">${e.category || 'INQUIRY'}</span>
+                            <span class="small fw-bold text-light text-truncate" style="max-width: 155px;">
+                                ${unreadIndicator}${e.sender_name || 'Customer'}
+                            </span>
+                            <div class="d-flex gap-1 align-items-center">
+                                ${sourceBadge}
+                                <span class="badge-cat ${catClass}">${e.category || 'INQUIRY'}</span>
+                            </div>
                         </div>
                         <div class="small fw-semibold text-slate-200 text-truncate mb-1">${e.subject}</div>
                         <div class="small text-slate-400 text-truncate">${(e.body || '').substring(0, 70)}...</div>
@@ -665,7 +773,28 @@
             const container = document.getElementById('emailViewContainer');
             const catBadge = getCategoryClass(email.category);
 
+            const sourceBanner = email.is_simulated ? `
+                <div class="alert alert-secondary py-2 px-3 mb-3 border-secondary border-opacity-40 d-flex align-items-center justify-content-between small">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-cpu-fill text-info"></i>
+                        <span><strong>Simulated Message:</strong> Generated in simulator for rapid testing and 5-minute continuous learning.</span>
+                    </div>
+                    <span class="badge bg-secondary bg-opacity-50">Local Simulator</span>
+                </div>
+            ` : `
+                <div class="alert alert-danger py-2 px-3 mb-3 border-danger border-opacity-40 bg-danger bg-opacity-10 d-flex align-items-center justify-content-between small text-light">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-google text-danger fs-6"></i>
+                        <span><strong>Live Gmail Conversation:</strong> Reply will be dispatched via Google OAuth 2.0 to customer in thread <code>${email.thread_id || 'new'}</code>.</span>
+                    </div>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-40">OAuth Verified</span>
+                </div>
+            `;
+
             container.innerHTML = `
+                <!-- Source & Context Banner -->
+                ${sourceBanner}
+
                 <!-- Thread Header -->
                 <div class="d-flex justify-content-between align-items-start pb-3 mb-4 border-bottom border-secondary border-opacity-25">
                     <div>
@@ -872,13 +1001,92 @@
                 const res = await fetch('/api/v1/gmail/sync', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ limit: 10 })
+                    body: JSON.stringify({ limit: 15, folder: currentFolder })
                 });
                 const data = await res.json();
+                if (data.status === 'not_connected') {
+                    if (confirm("Your personal Gmail account is not connected yet.\n\nWould you like to connect your Gmail account via Google OAuth 2.0 now?")) {
+                        connectGmail();
+                    }
+                    return;
+                }
                 alert(data.message || `Synced ${data.count} emails from Gmail.`);
                 loadEmails();
             } catch (err) {
                 alert("Gmail sync error: " + err.message);
+            }
+        }
+
+        async function checkGmailStatus() {
+            try {
+                const res = await fetch('/api/v1/gmail/oauth/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    gmailOAuthConfigured = !!data.configured;
+                    isGmailConnected = !!data.connected;
+
+                    const guideStatus = document.getElementById('gmailOAuthGuideStatus');
+                    const btnProceed = document.getElementById('btnProceedOAuth');
+                    if (guideStatus) {
+                        if (data.configured) {
+                            guideStatus.className = 'alert alert-success small mb-0';
+                            guideStatus.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Google OAuth credentials detected on server. Ready to authorize.';
+                            if (btnProceed) btnProceed.classList.remove('disabled');
+                        } else {
+                            guideStatus.className = 'alert alert-warning small mb-0';
+                            guideStatus.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Configuration Required:</strong> <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> are not configured yet in your environment.';
+                        }
+                    }
+
+                    const btnConnect = document.getElementById('btnConnectGmail');
+                    const badge = document.getElementById('gmailConnectedBadge');
+                    const addrSpan = document.getElementById('connectedGmailAddress');
+
+                    if (data.connected && data.gmail_address) {
+                        if (btnConnect) btnConnect.classList.add('d-none');
+                        if (badge) {
+                            badge.classList.remove('d-none');
+                            badge.classList.add('d-flex');
+                        }
+                        if (addrSpan) addrSpan.textContent = data.gmail_address;
+                    } else {
+                        if (btnConnect) btnConnect.classList.remove('d-none');
+                        if (badge) {
+                            badge.classList.add('d-none');
+                            badge.classList.remove('d-flex');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Check Gmail OAuth status error:", err);
+            }
+        }
+
+        async function connectGmail() {
+            try {
+                const res = await fetch('/api/v1/gmail/oauth/status');
+                const data = await res.json();
+                if (!data.configured) {
+                    const m = new bootstrap.Modal(document.getElementById('gmailOAuthGuideModal'));
+                    m.show();
+                } else {
+                    window.location.href = '/api/v1/gmail/oauth/connect';
+                }
+            } catch (e) {
+                window.location.href = '/api/v1/gmail/oauth/connect';
+            }
+        }
+
+        async function disconnectGmail() {
+            if (!confirm("Are you sure you want to disconnect your Gmail account from this application?")) return;
+            try {
+                const res = await fetch('/api/v1/gmail/oauth/disconnect', { method: 'POST' });
+                const data = await res.json();
+                alert(data.message || "Gmail account disconnected.");
+                await checkGmailStatus();
+                loadEmails();
+            } catch (err) {
+                alert("Disconnect error: " + err.message);
             }
         }
 
@@ -1069,7 +1277,17 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('gmail_connected') === '1') {
+                alert("Gmail account authorized and connected successfully via OAuth 2.0!");
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (urlParams.get('gmail_error')) {
+                alert("Gmail connection notice: " + urlParams.get('gmail_error'));
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
             checkAuth();
+            checkGmailStatus();
             loadEmails();
         });
     </script>

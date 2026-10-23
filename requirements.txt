@@ -27,6 +27,7 @@ pytest-asyncio>=0.23.0
 
 # Authentication & Security
 bcrypt>=4.0.0
+cryptography>=43.0.0
 
 # Document & PDF Generation
 reportlab>=4.0.0

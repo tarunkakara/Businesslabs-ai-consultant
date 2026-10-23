@@ -51,9 +51,33 @@ class InboxAuditStore:
                     received_at TEXT,
                     category TEXT,
                     priority TEXT,
-                    status TEXT
+                    status TEXT,
+                    user_id TEXT,
+                    thread_id TEXT,
+                    is_unread INTEGER DEFAULT 0,
+                    is_simulated INTEGER DEFAULT 0,
+                    folder TEXT DEFAULT 'inbox'
                 )
             """)
+
+            # Add columns to existing schema if missing
+            existing_cols = [c[1] for c in cursor.execute("PRAGMA table_info(emails)").fetchall()]
+            for col_name, col_type in [
+                ("user_id", "TEXT"),
+                ("thread_id", "TEXT"),
+                ("is_unread", "INTEGER DEFAULT 0"),
+                ("is_simulated", "INTEGER DEFAULT 0"),
+                ("folder", "TEXT DEFAULT 'inbox'"),
+            ]:
+                if col_name not in existing_cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE emails ADD COLUMN {col_name} {col_type}")
+                    except Exception:
+                        pass
+
+            # Mark legacy seed/synthetic emails without user_id as simulated
+            cursor.execute("UPDATE emails SET is_simulated = 1 WHERE user_id IS NULL AND is_simulated = 0")
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS drafts (
                     draft_id TEXT PRIMARY KEY,
@@ -92,12 +116,17 @@ class InboxAuditStore:
             cursor = conn.cursor()
             for e in emails:
                 cursor.execute("""
-                    INSERT INTO emails (id, sender_name, sender_email, subject, body, received_at, category, priority, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO emails (id, sender_name, sender_email, subject, body, received_at, category, priority, status, user_id, thread_id, is_unread, is_simulated, folder)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         category = excluded.category,
                         priority = excluded.priority,
-                        status = excluded.status
+                        status = excluded.status,
+                        user_id = COALESCE(excluded.user_id, emails.user_id),
+                        thread_id = COALESCE(excluded.thread_id, emails.thread_id),
+                        is_unread = excluded.is_unread,
+                        is_simulated = excluded.is_simulated,
+                        folder = excluded.folder
                 """, (
                     e.id,
                     e.sender_name,
@@ -108,6 +137,11 @@ class InboxAuditStore:
                     e.category.value if e.category else None,
                     e.priority.value,
                     e.status.value,
+                    e.user_id,
+                    e.thread_id,
+                    1 if e.is_unread else 0,
+                    1 if e.is_simulated else 0,
+                    e.folder or "inbox",
                 ))
             conn.commit()
         return len(emails)
@@ -131,23 +165,62 @@ class InboxAuditStore:
                 category=EmailCategory(d["category"]) if d.get("category") else None,
                 priority=EmailPriority(d["priority"]),
                 status=DraftStatus(d["status"]),
+                user_id=d.get("user_id"),
+                thread_id=d.get("thread_id"),
+                is_unread=bool(d.get("is_unread", 0)),
+                is_simulated=bool(d.get("is_simulated", 0)),
+                folder=d.get("folder", "inbox"),
             )
 
     def list_emails(
         self,
         category: Optional[str] = None,
         status: Optional[str] = None,
+        user_id: Optional[str] = None,
+        folder: Optional[str] = None,
+        source: Optional[str] = None,
+        search: Optional[str] = None,
         limit: int = 100,
     ) -> List[CustomerEmail]:
-        """List emails with optional category and status filtering."""
+        """List emails with multi-tenant user isolation, folder, and search filtering."""
         query = "SELECT * FROM emails WHERE 1=1"
         params: List[Any] = []
+
+        # Multi-tenant mailbox isolation:
+        if user_id:
+            if source == "real":
+                query += " AND user_id = ? AND is_simulated = 0"
+                params.append(user_id)
+            elif source == "simulated":
+                query += " AND (is_simulated = 1 OR user_id IS NULL)"
+            else:
+                query += " AND (user_id = ? OR is_simulated = 1 OR user_id IS NULL)"
+                params.append(user_id)
+        elif source == "real":
+            query += " AND is_simulated = 0 AND user_id IS NOT NULL"
+        elif source == "simulated":
+            query += " AND (is_simulated = 1 OR user_id IS NULL)"
+
+        if folder and folder.lower() != "all":
+            if folder.lower() == "inbox":
+                query += " AND (folder = 'inbox' OR folder IS NULL OR folder = '')"
+            else:
+                query += " AND folder = ?"
+                params.append(folder.lower())
+
         if category:
             query += " AND category = ?"
             params.append(category)
+
         if status:
             query += " AND status = ?"
             params.append(status)
+
+        if search:
+            query += " AND (subject LIKE ? OR sender_name LIKE ? OR sender_email LIKE ? OR body LIKE ?)"
+            s_param = f"%{search}%"
+            params.extend([s_param, s_param, s_param, s_param])
+
         query += " ORDER BY received_at DESC LIMIT ?"
         params.append(limit)
 
@@ -168,6 +241,11 @@ class InboxAuditStore:
                         category=EmailCategory(d["category"]) if d.get("category") else None,
                         priority=EmailPriority(d["priority"]),
                         status=DraftStatus(d["status"]),
+                        user_id=d.get("user_id"),
+                        thread_id=d.get("thread_id"),
+                        is_unread=bool(d.get("is_unread", 0)),
+                        is_simulated=bool(d.get("is_simulated", 0)),
+                        folder=d.get("folder", "inbox"),
                     )
                 )
             return emails

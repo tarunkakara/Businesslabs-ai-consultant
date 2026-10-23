@@ -56,6 +56,11 @@ class CustomerEmail(BaseModel):
     category: Optional[EmailCategory] = None
     priority: EmailPriority = EmailPriority.MEDIUM
     status: DraftStatus = DraftStatus.UNPROCESSED
+    user_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    is_unread: bool = False
+    is_simulated: bool = False
+    folder: str = "inbox"
 
 
 class EmailClassification(BaseModel):

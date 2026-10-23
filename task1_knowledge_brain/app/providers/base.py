@@ -40,6 +40,7 @@ class GroundedAnswer(BaseModel):
     latency_ms: float = 0.0
     usage: TokenUsage = Field(default_factory=TokenUsage)
     thinking_process: Optional[str] = None
+    processing_stages: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class BaseLLMProvider(ABC):

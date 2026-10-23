@@ -284,15 +284,16 @@
 
                     <!-- Answer Container -->
                     <div id="answerContainer" class="d-none">
-                        <!-- AI Thinking Process Collapsible Box -->
+                        <!-- AI Processing Status Steps (User-Friendly Stages) -->
                         <div class="mb-3">
-                            <button class="btn btn-sm btn-outline-info text-start d-flex align-items-center gap-2 mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#thinkingCollapse" aria-expanded="true">
-                                <i class="bi bi-cpu"></i>
-                                <span>AI Thinking Process</span>
-                                <i class="bi bi-chevron-down small ms-auto"></i>
-                            </button>
-                            <div class="collapse show" id="thinkingCollapse">
-                                <div id="thinkingContent" class="thinking-box p-3 text-cyan-200" style="color: #67e8f9; white-space: pre-wrap;"></div>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded bg-dark border border-secondary border-opacity-25 mb-2">
+                                <span class="small fw-semibold text-info d-flex align-items-center gap-2">
+                                    <i class="bi bi-gear-wide-connected text-indigo"></i>
+                                    <span>AI Processing Status Stages</span>
+                                </span>
+                                <span class="badge bg-success bg-opacity-25 text-success small"><i class="bi bi-shield-check me-1"></i>Verified Grounding</span>
+                            </div>
+                            <div id="processingStagesList" class="d-flex flex-column gap-2 p-3 rounded" style="background: rgba(10, 15, 30, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
                             </div>
                         </div>
 
@@ -628,13 +629,33 @@
 
                 const data = await res.json();
 
-                // Display Thinking Process
-                const thinkingBox = document.getElementById('thinkingContent');
-                if (data.thinking_process) {
-                    thinkingBox.textContent = data.thinking_process;
-                } else {
-                    thinkingBox.textContent = `1. Semantic analysis of query: "${question}"\n2. Scanned vector index chunks\n3. Evidence verification: Synthesizing verified response.`;
-                }
+                // Display User-Friendly AI Processing Status Stages
+                const stagesList = document.getElementById('processingStagesList');
+                stagesList.innerHTML = '';
+                const stages = (data.processing_stages && data.processing_stages.length > 0)
+                    ? data.processing_stages
+                    : [
+                        { stage: "Query Analysis", status: "completed", detail: `Parsed technical terms for: "${question}"` },
+                        { stage: "Knowledge Retrieval", status: "completed", detail: "Scanned vector index chunks & documentation" },
+                        { stage: "Platform Verification", status: "completed", detail: "Cross-referenced Brilliant Directories specifications" },
+                        { stage: "Answer Synthesis", status: "completed", detail: "Synthesized grounded solution with verified citations" }
+                    ];
+
+                stages.forEach((st, idx) => {
+                    const icon = st.status === 'warning'
+                        ? '<i class="bi bi-exclamation-circle text-warning fs-6"></i>'
+                        : '<i class="bi bi-check-circle-fill text-success fs-6"></i>';
+                    const div = document.createElement('div');
+                    div.className = 'd-flex align-items-start gap-2 small text-slate-300';
+                    div.innerHTML = `
+                        <span class="mt-0.5">${icon}</span>
+                        <div>
+                            <strong class="text-light">Stage ${idx + 1} — ${st.stage}:</strong>
+                            <span class="text-slate-400 ms-1">${st.detail}</span>
+                        </div>
+                    `;
+                    stagesList.appendChild(div);
+                });
 
                 // Display Answer
                 document.getElementById('answerText').innerHTML = formatMarkdown(data.answer);

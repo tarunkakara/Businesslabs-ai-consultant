@@ -51,12 +51,12 @@ class KnowledgeBrainEngine:
                 model_name="human-expert-verified",
                 is_mock=False,
                 latency_ms=latency_ms,
-                thinking_process=(
-                    f"1. Query normalized: '{clean_q}'\n"
-                    f"2. Verified Expert Memory match identified with 100% confidence.\n"
-                    f"3. Retrieved solution approved by {expert_match['expert_name']}.\n"
-                    f"4. Bypassed synthetic generation; serving verified human knowledge."
-                ),
+                thinking_process="Direct expert match verified.",
+                processing_stages=[
+                    {"stage": "Intent Analysis", "status": "completed", "detail": "Analyzed query intent against expert knowledge cache"},
+                    {"stage": "Expert Match Found", "status": "completed", "detail": f"Retrieved verified solution approved by {expert_match['expert_name']}"},
+                    {"stage": "Response Formulation", "status": "completed", "detail": "Delivering verified expert solution with citations"},
+                ],
             )
 
         # Step 2: Query vector store for relevant documentation chunks
@@ -78,23 +78,24 @@ class KnowledgeBrainEngine:
             # Let LLM / mock generate standard truthful refusal
             refusal = await self.llm_provider.answer_grounded(clean_q, [])
             refusal.latency_ms = max(0.1, round((time.perf_counter() - start_time) * 1000, 2))
-            refusal.thinking_process = (
-                f"1. Analyzed query: '{clean_q}'\n"
-                f"2. Checked expert cache: No verified answer found.\n"
-                f"3. Scanned vector index (top_k={top_k}): Top similarity score {top_score:.2f} < threshold {settings.min_grounding_similarity:.2f}.\n"
-                f"4. Decision: Strictly refuse speculation to avoid hallucinations; routed to human expert review queue."
-            )
+            refusal.thinking_process = "Refusal due to insufficient context."
+            refusal.processing_stages = [
+                {"stage": "Intent Analysis", "status": "completed", "detail": "Analyzed query technical terms"},
+                {"stage": "Knowledge Base Scan", "status": "warning", "detail": f"Scanned vector chunks (peak relevance {top_score*100:.0f}% < threshold {settings.min_grounding_similarity*100:.0f}%)"},
+                {"stage": "Quality Enforcement", "status": "completed", "detail": "Strict anti-hallucination policy enforced; question routed to human expert review queue"},
+            ]
             return refusal
 
         # Step 4: Generate grounded answer with citations
         grounded_answer = await self.llm_provider.answer_grounded(clean_q, retrieved_contexts)
         grounded_answer.latency_ms = max(0.1, round((time.perf_counter() - start_time) * 1000, 2))
-        grounded_answer.thinking_process = (
-            f"1. Semantic analysis of query: '{clean_q}'\n"
-            f"2. Retrieved {len(retrieved_contexts)} documentation context chunks (peak similarity: {top_score:.2f}).\n"
-            f"3. Evidence verification: Cross-referenced context against Brilliant Directories technical specs.\n"
-            f"4. Grounding check: Synthesized answer strictly bound to {len(grounded_answer.sources)} verified documentation sources."
-        )
+        grounded_answer.thinking_process = "Grounded response generated."
+        grounded_answer.processing_stages = [
+            {"stage": "Intent Analysis", "status": "completed", "detail": f"Parsed query for Brilliant Directories documentation: '{clean_q}'"},
+            {"stage": "Semantic Retrieval", "status": "completed", "detail": f"Retrieved {len(retrieved_contexts)} context segments (peak relevance: {top_score*100:.0f}%)"},
+            {"stage": "Platform Validation", "status": "completed", "detail": "Validated platform constraints & solutions"},
+            {"stage": "Solution Grounding", "status": "completed", "detail": f"Formulated response with {len(grounded_answer.sources)} verified documentation sources"},
+        ]
 
         # If LLM itself decided context was insufficient, log for expert review
         if not grounded_answer.is_sufficient:

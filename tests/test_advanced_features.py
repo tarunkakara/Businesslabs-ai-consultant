@@ -13,6 +13,8 @@ Covers:
 
 import sys
 from pathlib import Path
+import secrets
+import uuid
 
 # Ensure project root is in sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -153,27 +155,56 @@ async def test_self_healing_agent(tmp_path):
 
 @pytest.mark.asyncio
 async def test_user_authentication_api():
-    """Verify login page, session authentication, and profile endpoints."""
+    """Verify login page, session authentication, email normalization, password rules, and profile endpoints."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Login page HTML serves successfully
         login_res = await client.get("/login")
         assert login_res.status_code == 200
         assert "Sign In" in login_res.text
+        assert "Create Account" in login_res.text
 
-        # 2. Login API sets session cookie
-        auth_res = await client.post("/api/v1/auth/login", json={"email": "lead@businesslabs.ai", "password": "any"})
+        # 2. Reject invalid login credentials
+        bad_res = await client.post("/api/v1/auth/login", json={"email": "lead@businesslabs.ai", "password": "WrongPassword!1"})
+        assert bad_res.status_code == 401
+
+        # 3. Successful login with lowercase email normalization and valid password
+        auth_res = await client.post("/api/v1/auth/login", json={"email": "LEAD@BUSINESSLABS.AI", "password": "Consultant@123"})
         assert auth_res.status_code == 200
         data = auth_res.json()
         assert data["status"] == "success"
         assert data["user"]["email"] == "lead@businesslabs.ai"
-        assert "session_user" in auth_res.cookies
+        assert "session_token" in auth_res.cookies or "session_user" in auth_res.cookies
 
-        # 3. Auth me endpoint returns user profile
+        # 4. Auth me endpoint returns user profile
         me_res = await client.get("/api/v1/auth/me", cookies=auth_res.cookies)
         assert me_res.status_code == 200
         me_data = me_res.json()
         assert me_data["user"]["email"] == "lead@businesslabs.ai"
+
+        # 5. Registration with password complexity enforcement
+        # Fails without special char or uppercase or length
+        weak_reg = await client.post("/api/v1/auth/register", json={
+            "email": "newuser@businesslabs.ai",
+            "password": "simplepassword",
+            "full_name": "Test User"
+        })
+        assert weak_reg.status_code == 400
+        assert "special character" in weak_reg.json()["detail"].lower() or "uppercase" in weak_reg.json()["detail"].lower()
+
+        # Succeeds with compliant password
+        unique_email = f"user_{secrets.token_hex(4)}@businesslabs.ai"
+        good_reg = await client.post("/api/v1/auth/register", json={
+            "email": unique_email.upper(),  # Verify case normalization during registration
+            "password": "SecurePassword@2026",
+            "full_name": "Test User"
+        })
+        assert good_reg.status_code == 200
+        assert good_reg.json()["user"]["email"] == unique_email.lower()
+
+        # 6. Logout clears session
+        logout_res = await client.post("/api/v1/auth/logout")
+        assert logout_res.status_code == 200
 
 
 # ==============================================================================

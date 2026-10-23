@@ -68,6 +68,21 @@ class SelfHealingAgent:
         except Exception:
             return "support solutions"
 
+    @staticmethod
+    def validate_replacement_url(candidate_url: Optional[str], original_url: str) -> bool:
+        """Safely validate that candidate replacement URL is well-formed, safe, and distinct."""
+        if not candidate_url or candidate_url.strip() == original_url.strip():
+            return False
+        try:
+            p = urlparse(candidate_url)
+            if p.scheme not in ("http", "https"):
+                return False
+            if not p.netloc:
+                return False
+            return True
+        except Exception:
+            return False
+
     async def heal_url_failure(
         self,
         url: str,
@@ -122,9 +137,10 @@ class SelfHealingAgent:
             except Exception as exc:
                 logger.warning("State store article scan failed during self-healing: %s", exc)
 
-        # 3. Formulate resolution
-        if relative_docs:
-            resolved_url = relative_docs[0]["url"]
+        # 3. Formulate resolution with safe URL validation
+        candidate_url = relative_docs[0]["url"] if relative_docs else None
+        if candidate_url and self.validate_replacement_url(candidate_url, url):
+            resolved_url = candidate_url
             best_title = relative_docs[0]["title"]
             resolution_notes = (
                 f"Autonomous Remediation: HTTP {error_code} handled. "
@@ -133,6 +149,7 @@ class SelfHealingAgent:
             )
             resolved = True
         else:
+            resolved_url = None
             resolution_notes = (
                 f"Self-Healing Warning: HTTP {error_code} detected on {url}. "
                 f"Searched for '{search_terms}', but no closely related documents were found. "

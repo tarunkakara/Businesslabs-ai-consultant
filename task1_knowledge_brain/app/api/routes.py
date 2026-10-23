@@ -47,6 +47,24 @@ class ExpertApprovalRequest(BaseModel):
     sources: Optional[List[Dict[str, Any]]] = Field(default=None)
 
 
+class SitemapInspectRequest(BaseModel):
+    sitemaps: List[str] = Field(..., description="List of single or multiple sitemap URLs")
+    pages_per_5_min: int = Field(default=3, ge=1, le=50, description="Estimated pages processed per 5-minute crawl cycle")
+
+
+class SitemapConfirmRequest(BaseModel):
+    sitemaps: List[str] = Field(..., description="Confirmed sitemap URLs")
+    frequency: str = Field(default="daily", description="Update frequency: daily, weekly, every 15 days, every 30 days")
+    missing_check_threshold: int = Field(default=15, description="Number of parallel rechecks before URL removal: 1 (immediate), 2, 15, or 30")
+    pages_per_5_min: int = Field(default=3, ge=1, le=50)
+
+
+class CrawlerSettingsUpdate(BaseModel):
+    frequency: Optional[str] = None
+    missing_check_threshold: Optional[str] = None
+    pages_per_5_min: Optional[str] = None
+
+
 # Routes
 @router.post("/query", response_model=GroundedAnswer, summary="Ask a question with grounded citations")
 async def ask_question(request: QueryRequest):
@@ -160,3 +178,103 @@ async def approve_expert_answer(request: ExpertApprovalRequest):
 async def list_approved_answers(limit: int = Query(default=50, ge=1, le=100)):
     """List approved expert solutions available in the knowledge base."""
     return _expert_store.list_approved_answers(limit=limit)
+
+
+@router.post("/sitemap/inspect", summary="Pre-crawl inspection of single, multiple, or nested sitemaps")
+async def inspect_sitemaps_endpoint(request: SitemapInspectRequest):
+    """Recursively traverses nested sitemaps, reports total sitemaps, total URLs, first/last URL, and time estimate."""
+    try:
+        summary = await _crawler.sitemap_parser.inspect_sitemaps(
+            urls=request.sitemaps,
+            pages_per_5_min=request.pages_per_5_min,
+        )
+        return {
+            "status": "success",
+            "summary": summary.to_dict(),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Sitemap inspection failed: {str(exc)}")
+
+
+@router.post("/sitemap/confirm", summary="Confirm sitemaps, update policy, and sync database")
+async def confirm_sitemaps_endpoint(request: SitemapConfirmRequest):
+    """Saves frequency and missing threshold policies, syncs all detected URLs into state store."""
+    try:
+        import json
+        import gc
+
+        # 1. Save settings
+        _state_store.set_setting("frequency", request.frequency)
+        _state_store.set_setting("missing_check_threshold", str(request.missing_check_threshold))
+        _state_store.set_setting("pages_per_5_min", str(request.pages_per_5_min))
+        _state_store.set_setting("sitemaps_list", json.dumps(request.sitemaps))
+
+        # 2. Inspect all sitemaps recursively
+        summary = await _crawler.sitemap_parser.inspect_sitemaps(
+            urls=request.sitemaps,
+            pages_per_5_min=request.pages_per_5_min,
+        )
+
+        # 3. Synchronize URLs with configurable missing check re-verifications
+        sync_stats = _state_store.sync_sitemap_urls(
+            summary.entries,
+            missing_threshold=request.missing_check_threshold,
+        )
+
+        # 4. Purge any newly removed articles from vector store
+        purged_count = _synchronizer.purge_removed_articles()
+
+        gc.collect()
+
+        return {
+            "status": "confirmed",
+            "sync_stats": sync_stats,
+            "purged_from_vector_store": purged_count,
+            "summary": summary.to_dict(),
+            "settings": {
+                "frequency": request.frequency,
+                "missing_check_threshold": request.missing_check_threshold,
+                "pages_per_5_min": request.pages_per_5_min,
+            },
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Confirmation failed: {str(exc)}")
+
+
+@router.get("/sitemap/settings", summary="Get crawler schedule and retention settings")
+async def get_crawler_settings_endpoint():
+    """Returns update frequency, missing check threshold, and configured sitemaps."""
+    return _state_store.get_all_settings()
+
+
+@router.post("/sitemap/settings", summary="Update crawler schedule and retention settings")
+async def update_crawler_settings_endpoint(settings_update: CrawlerSettingsUpdate):
+    """Update crawler schedule or missing URL verification threshold."""
+    if settings_update.frequency:
+        _state_store.set_setting("frequency", settings_update.frequency)
+    if settings_update.missing_check_threshold:
+        _state_store.set_setting("missing_check_threshold", settings_update.missing_check_threshold)
+    if settings_update.pages_per_5_min:
+        _state_store.set_setting("pages_per_5_min", settings_update.pages_per_5_min)
+    return {"status": "updated", "settings": _state_store.get_all_settings()}
+
+
+@router.get("/kb2/archive", summary="List removed pages archived in Knowledge Base #2")
+async def get_kb2_archive_endpoint(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    """Returns pages that failed missing URL recheck thresholds and were archived into Database #2."""
+    archived = _state_store.get_kb2_archive(limit=limit, offset=offset)
+    return {
+        "archived_articles": archived,
+        "count": len(archived),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/crawler/self-healing-logs", summary="List self-healing remediation logs")
+async def get_self_healing_logs_endpoint(limit: int = Query(default=50, ge=1, le=100)):
+    """Returns audit log of autonomous self-healing triggered on 300/404 crashes."""
+    return _state_store.get_self_healing_logs(limit=limit)

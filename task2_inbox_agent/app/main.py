@@ -13,6 +13,8 @@ from task2_inbox_agent.app.classifier import EmailClassifier
 from task2_inbox_agent.app.config import settings
 from task2_inbox_agent.app.drafter import ResponseDrafter
 from task2_inbox_agent.app.generator import generate_synthetic_emails
+from task2_inbox_agent.app.gmail_client import GmailClient
+from task2_inbox_agent.app.learning import ContinuousLearningEngine
 from task2_inbox_agent.app.models import (
     AuditRecord,
     CompanyVoice,
@@ -23,11 +25,14 @@ from task2_inbox_agent.app.models import (
     ReviewSubmission,
 )
 from task2_inbox_agent.app.similarity import calculate_draft_similarity
+from pydantic import BaseModel, Field
 
 _store = InboxAuditStore()
 _classifier = EmailClassifier()
-_drafter = ResponseDrafter()
+_learning_engine = ContinuousLearningEngine()
+_drafter = ResponseDrafter(learning_engine=_learning_engine)
 _autonomy = AutonomyEngine()
+_gmail_client = GmailClient()
 
 router = APIRouter(tags=["Task 2: Inbox Agent"])
 
@@ -188,6 +193,20 @@ async def review_draft(email_id: str, submission: ReviewSubmission):
     )
     _store.record_audit(audit_rec)
 
+    # Trigger continuous 5-minute learning loop if human modified the draft
+    learned_rule = None
+    if not is_unchanged:
+        learned_rule = _learning_engine.learn_from_edit(
+            category=category.value,
+            original_draft=draft.original_draft,
+            user_edited_draft=final_text,
+            reviewer_name=submission.reviewer_name,
+        )
+
+    # Update email status
+    email.status = DraftStatus.EDITED_AND_APPROVED if not is_unchanged else DraftStatus.APPROVED
+    _store.save_emails([email])
+
     return {
         "status": "approved",
         "is_unchanged": is_unchanged,
@@ -196,6 +215,7 @@ async def review_draft(email_id: str, submission: ReviewSubmission):
         "consecutive_streak": autonomy_status.consecutive_unchanged_count,
         "autonomous_authorized": can_auto,
         "autonomy_message": auto_msg,
+        "learned_rule": learned_rule,
     }
 
 
@@ -232,6 +252,127 @@ async def export_email(email_id: str):
         f"{draft.original_draft}\n"
     )
     return PlainTextResponse(export_content, media_type="text/plain")
+
+
+# Real Gmail Integration & Evaluator Simulation Endpoints
+class GmailTestRequest(BaseModel):
+    email: str
+    app_password: str
+
+
+class GmailSyncRequest(BaseModel):
+    email: Optional[str] = None
+    app_password: Optional[str] = None
+    limit: int = 10
+
+
+class GmailSendRequest(BaseModel):
+    to_email: str
+    subject: str
+    body_text: str
+    from_email: Optional[str] = None
+    app_password: Optional[str] = None
+    email_id: Optional[str] = None
+
+
+class SimulateEmailRequest(BaseModel):
+    subject: str
+    body: str
+    sender_name: str = "Marcus Vance"
+    sender_email: str = "marcus@enterprise-directory.com"
+    category: Optional[str] = None
+
+
+class AutonomyConfigRequest(BaseModel):
+    streak_threshold: int = Field(default=20, ge=1, le=100)
+
+
+@router.post("/api/v1/gmail/test", tags=["Gmail Integration"])
+async def test_gmail_connection(req: GmailTestRequest):
+    """Test connection to user's real Gmail account via IMAP."""
+    result = _gmail_client.test_connection(user_email=req.email, app_password=req.app_password)
+    return result
+
+
+@router.post("/api/v1/gmail/sync", tags=["Gmail Integration"])
+async def sync_gmail_inbox(req: GmailSyncRequest):
+    """Fetch new incoming emails from user's real Gmail INBOX and ingest into inbox database."""
+    fetched = _gmail_client.fetch_inbox_emails(
+        limit=req.limit,
+        user_email=req.email,
+        app_password=req.app_password,
+    )
+    if not fetched:
+        return {"status": "success", "count": 0, "message": "No new emails found or credentials not provided."}
+
+    # Automatically classify ingested emails
+    for e in fetched:
+        cl = _classifier.classify(e)
+        e.category = cl.category
+        e.priority = cl.priority
+
+    count = _store.save_emails(fetched)
+    return {"status": "success", "count": count, "message": f"Successfully synced {count} emails from Gmail."}
+
+
+@router.post("/api/v1/gmail/send", tags=["Gmail Integration"])
+async def send_email_via_gmail(req: GmailSendRequest):
+    """Send approved email response or custom message via user's real Gmail SMTP account."""
+    result = _gmail_client.send_email(
+        to_email=req.to_email,
+        subject=req.subject,
+        body_text=req.body_text,
+        from_email=req.from_email,
+        app_password=req.app_password,
+    )
+    if result.get("success") and req.email_id:
+        email = _store.get_email(req.email_id)
+        if email:
+            email.status = DraftStatus.APPROVED
+            _store.save_emails([email])
+    return result
+
+
+@router.post("/api/v1/emails/simulate", tags=["Simulation & Testing"])
+async def simulate_incoming_email(req: SimulateEmailRequest):
+    """Simulate an incoming customer email for evaluators to test classification & drafting without credentials."""
+    category_enum = None
+    if req.category:
+        try:
+            category_enum = EmailCategory(req.category)
+        except ValueError:
+            pass
+
+    email = _gmail_client.generate_simulated_email(
+        subject=req.subject,
+        body=req.body,
+        sender_name=req.sender_name,
+        sender_email=req.sender_email,
+        category=category_enum,
+    )
+    cl = _classifier.classify(email)
+    email.category = cl.category
+    email.priority = cl.priority
+
+    _store.save_emails([email])
+    return {"status": "success", "email": email, "classification": cl}
+
+
+@router.get("/api/v1/learning/rules", tags=["Continuous Learning"])
+async def get_learned_rules(category: Optional[str] = Query(default=None)):
+    """Retrieve style rules learned from human reviewer edits in the 5-minute loop."""
+    return _learning_engine.get_learned_rules(category=category)
+
+
+@router.post("/api/v1/autonomy/config", tags=["Review & Autonomy"])
+async def configure_autonomy(req: AutonomyConfigRequest):
+    """Set configurable consecutive approval streak required before enabling autonomous sending."""
+    _autonomy.set_threshold(req.streak_threshold)
+    return {
+        "status": "success",
+        "streak_threshold": _autonomy.streak_threshold,
+        "message": f"Streak threshold updated to {req.streak_threshold} consecutive unchanged approvals.",
+    }
 
 
 app.include_router(router)

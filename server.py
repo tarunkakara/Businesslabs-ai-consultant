@@ -45,6 +45,7 @@ logger = logging.getLogger("monorepo.server")
 
 BASE_DIR = Path(__file__).resolve().parent
 PORTAL_TEMPLATE = BASE_DIR / "templates" / "portal.html"
+LOGIN_TEMPLATE = BASE_DIR / "templates" / "login.html"
 TASK1_TEMPLATE = BASE_DIR / "task1_knowledge_brain" / "app" / "templates" / "index.html"
 TASK2_TEMPLATE = BASE_DIR / "task2_inbox_agent" / "app" / "templates" / "inbox.html"
 TASK3_TEMPLATE = BASE_DIR / "task3_scope_agent" / "app" / "templates" / "scope.html"
@@ -110,6 +111,56 @@ app.include_router(task3_router)
 
 
 # UI Dashboard Routes
+@app.get("/login", tags=["Auth"])
+async def login_ui():
+    """Serves the user authentication login page."""
+    if LOGIN_TEMPLATE.exists():
+        return HTMLResponse(content=LOGIN_TEMPLATE.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Login template not found</h1>", status_code=404)
+
+
+@app.post("/api/v1/auth/login", tags=["Auth"])
+async def api_auth_login(request: Request):
+    """Authenticates user session and returns profile information."""
+    try:
+        body = await request.json()
+        email = body.get("email", "").strip() or "consultant@businesslabs.ai"
+        user_data = {
+            "name": "Sarah Connor",
+            "email": email,
+            "role": "Lead AI Tech Consultant",
+            "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+        }
+        response = JSONResponse({"status": "success", "user": user_data})
+        response.set_cookie(key="session_user", value=email, max_age=86400, httponly=False)
+        return response
+    except Exception as exc:
+        return JSONResponse({"status": "error", "detail": str(exc)}, status_code=400)
+
+
+@app.get("/api/v1/auth/me", tags=["Auth"])
+async def api_auth_me(request: Request):
+    """Retrieve logged in user session and profile details."""
+    email = request.cookies.get("session_user") or "consultant@businesslabs.ai"
+    return {
+        "status": "authenticated",
+        "user": {
+            "name": "Sarah Connor",
+            "email": email,
+            "role": "Lead AI Tech Consultant",
+            "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+        }
+    }
+
+
+@app.post("/api/v1/auth/logout", tags=["Auth"])
+async def api_auth_logout():
+    """Clear session cookie and log out."""
+    response = JSONResponse({"status": "logged_out"})
+    response.delete_cookie("session_user")
+    return response
+
+
 @app.get("/", tags=["Portal"])
 async def portal_root(request: Request):
     """Serves the Unified AI Tech Consultant Suite Portal or JSON API registry."""

@@ -17,6 +17,11 @@ class AutonomyEngine:
             cat: CategoryAutonomyStatus(category=cat) for cat in EmailCategory
         }
 
+    def set_threshold(self, streak_threshold: int) -> None:
+        """Dynamically configure the consecutive unchanged streak required for autonomous sending."""
+        self.streak_threshold = max(1, streak_threshold)
+        logger.info("Updated autonomous sending streak threshold to: %d", self.streak_threshold)
+
     def record_approval(
         self,
         category: EmailCategory,

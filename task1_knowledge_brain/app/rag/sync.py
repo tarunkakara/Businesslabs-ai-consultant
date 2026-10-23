@@ -57,15 +57,20 @@ class KnowledgeBrainSynchronizer:
             "total_chunks_in_index": self.vector_store.count(),
         }
 
-    def sync(self) -> Dict[str, Any]:
-        """Perform full incremental synchronization."""
-        # 1. Purge removed articles from vector store
+    def purge_removed_articles(self) -> int:
+        """Purge all removed articles from vector store."""
         removed_urls = self.state_store.get_removed_urls()
         purged_count = 0
         for url in removed_urls:
             purged_chunks = self.vector_store.purge_article(url)
             if purged_chunks > 0:
                 purged_count += 1
+        return purged_count
+
+    def sync(self) -> Dict[str, Any]:
+        """Perform full incremental synchronization."""
+        # 1. Purge removed articles from vector store
+        purged_count = self.purge_removed_articles()
 
         # 2. Index all crawled articles
         crawled_articles = self.state_store.list_articles(limit=5000, offset=0)

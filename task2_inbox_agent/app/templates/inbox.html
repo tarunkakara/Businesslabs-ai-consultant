@@ -3,42 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Tech Consultant — Inbox Agent</title>
+    <title>AI Tech Consultant — Gmail Inbox Agent</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         :root {
-            --bg-base: #090d16;
-            --bg-card: rgba(22, 30, 49, 0.75);
-            --border-glass: rgba(255, 255, 255, 0.09);
-            --accent-indigo: #818cf8;
-            --accent-glow: rgba(99, 102, 241, 0.35);
+            --bg-base: #0b0f19;
+            --bg-sidebar: #0f172a;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --gmail-red: #ea4335;
+            --accent-indigo: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.25);
         }
         body {
-            background: radial-gradient(ellipse at 50% 0%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
-            background-attachment: fixed;
+            background-color: var(--bg-base);
             color: #f1f5f9;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        .navbar {
-            background: rgba(15, 23, 42, 0.85) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+        /* Top Navigation Header */
+        .gmail-navbar {
+            background: rgba(15, 23, 42, 0.95);
             border-bottom: 1px solid var(--border-glass);
+            height: 64px;
+            padding: 0 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
         }
         .brand-gradient {
             background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
-            letter-spacing: -0.5px;
-            font-size: 1.25rem;
+            font-size: 1.15rem;
         }
         .nav-service-pill {
             color: #94a3b8;
             font-size: 0.85rem;
-            padding: 0.35rem 0.95rem;
+            padding: 0.35rem 0.85rem;
             border-radius: 9999px;
             text-decoration: none;
             transition: all 0.2s ease;
@@ -47,288 +55,402 @@
         .nav-service-pill:hover {
             color: #ffffff;
             background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.12);
         }
         .nav-service-pill.active {
             color: #ffffff;
             background: rgba(99, 102, 241, 0.25);
             border-color: rgba(99, 102, 241, 0.5);
+        }
+        /* Gmail Search Bar */
+        .gmail-search-box {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 0.5rem 1.25rem;
+            width: 480px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+        }
+        .gmail-search-box:focus-within {
+            background: rgba(15, 23, 42, 0.95);
+            border-color: var(--accent-indigo);
             box-shadow: 0 0 12px var(--accent-glow);
         }
-        .card {
-            background: var(--bg-card) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-glass) !important;
-            border-radius: 16px;
-            box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.45);
-            color: #f1f5f9;
-        }
-        .card-header {
-            background: rgba(15, 23, 42, 0.6) !important;
-            border-bottom: 1px solid var(--border-glass) !important;
-            color: #f1f5f9 !important;
-        }
-        .sidebar-email-item {
-            cursor: pointer;
-            border-left: 3px solid transparent;
+        .gmail-search-input {
             background: transparent;
-            color: #f1f5f9;
-            transition: all 0.15s ease-in-out;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .sidebar-email-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
+            border: none;
             color: #ffffff;
-        }
-        .sidebar-email-item.active {
-            background-color: rgba(99, 102, 241, 0.2) !important;
-            border-left-color: #818cf8 !important;
-            color: #ffffff;
-        }
-        .badge-cat { font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
-        .streak-card {
-            border-radius: 10px;
-            border: 1px solid var(--border-glass);
-            background: rgba(15, 23, 42, 0.7) !important;
-            color: #f1f5f9;
-        }
-        .streak-card.border-success {
-            border-color: #10b981 !important;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
-        }
-        .draft-textarea {
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            outline: none;
+            width: 100%;
             font-size: 0.9rem;
-            background-color: rgba(15, 23, 42, 0.85) !important;
-            border: 1px solid rgba(255, 255, 255, 0.14) !important;
-            color: #f8fafc !important;
-            border-radius: 10px;
         }
-        .draft-textarea:focus {
-            background-color: rgba(15, 23, 42, 0.95) !important;
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
-            color: #ffffff !important;
+        .gmail-search-input::placeholder { color: #64748b; }
+
+        /* App Body Layout */
+        .app-body {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 64px);
+            overflow: hidden;
         }
-        .form-control, .form-select {
-            background-color: rgba(15, 23, 42, 0.8) !important;
-            border: 1px solid rgba(255, 255, 255, 0.14) !important;
-            color: #f8fafc !important;
-            border-radius: 8px;
+
+        /* Gmail Sidebar */
+        .gmail-sidebar {
+            width: 256px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0.75rem;
+            user-select: none;
         }
-        .form-control:focus, .form-select:focus {
-            background-color: rgba(15, 23, 42, 0.95) !important;
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
-            color: #ffffff !important;
-        }
-        .customer-msg-box {
-            background: rgba(15, 23, 42, 0.6) !important;
-            border: 1px solid var(--border-glass) !important;
-            border-radius: 10px;
-        }
-        .similarity-box {
-            background: rgba(15, 23, 42, 0.7) !important;
-            border: 1px solid var(--border-glass) !important;
-            border-radius: 10px;
-        }
-        .btn-success {
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-            border: none !important;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+        .btn-compose {
+            background: #ffffff;
+            color: #1e293b;
             font-weight: 600;
+            border-radius: 16px;
+            padding: 0.8rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            border: none;
+            transition: all 0.2s;
+            margin-bottom: 1.25rem;
         }
-        .btn-success:hover {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        .btn-compose:hover {
+            background: #f1f5f9;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
             transform: translateY(-1px);
         }
-        .btn-outline-primary {
-            border-color: rgba(99, 102, 241, 0.5) !important;
-            color: #a5b4fc !important;
+        .sidebar-folder {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.55rem 1rem;
+            border-radius: 9999px;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 2px;
+            transition: background 0.15s;
         }
-        .btn-outline-primary:hover {
-            background: rgba(99, 102, 241, 0.25) !important;
-            color: #ffffff !important;
+        .sidebar-folder:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
         }
-        .btn-outline-secondary {
-            border-color: rgba(255, 255, 255, 0.15) !important;
-            color: #cbd5e1 !important;
+        .sidebar-folder.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            font-weight: 600;
         }
-        .btn-outline-secondary:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            color: #ffffff !important;
+
+        /* Email List Pane */
+        .email-list-pane {
+            width: 380px;
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.5);
+            overflow: hidden;
         }
-        .text-muted { color: #94a3b8 !important; }
-        #feedbackNotes::placeholder {
-            color: #94a3b8 !important;
-            opacity: 1 !important;
+        .email-item {
+            padding: 0.85rem 1.15rem;
+            border-bottom: 1px solid var(--border-glass);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .email-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .email-item.active {
+            background: rgba(99, 102, 241, 0.15) !important;
+            border-left: 3px solid #818cf8;
+        }
+        .email-item.unread {
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Email View / Reading Pane */
+        .email-view-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-base);
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        /* AI Draft Box */
+        .ai-draft-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+        .learning-banner {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+            border: 1px dashed rgba(168, 85, 247, 0.4);
+            border-radius: 8px;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.8rem;
+            color: #d8b4fe;
+        }
+
+        .badge-cat {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+        .cat-billing { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+        .cat-filters { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+        .cat-design { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .cat-product { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .cat-other { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
+
+        /* Floating Compose Modal */
+        .compose-modal {
+            position: fixed;
+            bottom: 0;
+            right: 40px;
+            width: 520px;
+            background: #1e293b;
+            border: 1px solid var(--border-glass);
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            z-index: 1050;
         }
     </style>
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body>
 
-    <!-- Top Nav -->
-    <nav class="navbar navbar-expand-lg navbar-dark py-3 sticky-top">
-        <div class="container-fluid px-4 px-lg-5">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-inbox-fill text-indigo fs-4" style="color: #818cf8;"></i>
+    <!-- 1. Gmail Top Navigation Bar -->
+    <header class="gmail-navbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-link text-slate-400 p-0 fs-5"><i class="bi bi-list"></i></button>
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-envelope-paper-heart-fill text-danger fs-4"></i>
                 <span class="brand-gradient">AI Tech Consultant</span>
-                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 ms-1">Inbox Agent</span>
-            </a>
-
-            <!-- Cross-Task Quick Nav Switcher -->
-            <div class="d-none d-lg-flex align-items-center gap-2 mx-auto">
-                <a href="/" class="nav-service-pill">
-                    <i class="bi bi-grid-fill me-1"></i> Hub
-                </a>
-                <a href="/brain" class="nav-service-pill">
-                    <i class="bi bi-brain me-1"></i> Knowledge Brain
-                </a>
-                <a href="/inbox" class="nav-service-pill active">
-                    <i class="bi bi-inbox me-1"></i> Inbox Agent
-                </a>
-                <a href="/scope" class="nav-service-pill">
-                    <i class="bi bi-file-earmark-text me-1"></i> Scope Agent
-                </a>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-3 py-2">
-                    <i class="bi bi-shield-lock-fill me-1"></i> Human Approval Enforced (Default Safe)
-                </span>
-                <button class="btn btn-outline-secondary btn-sm" onclick="seedSyntheticEmails()">
-                    <i class="bi bi-database-fill-add me-1"></i> Seed 55 Emails
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Container (Full-width responsive container-fluid) -->
-    <div class="container-fluid px-4 px-lg-5 py-3 flex-grow-1">
-        <!-- Autonomy Readiness Bar -->
-        <div class="card mb-3 p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="fw-bold mb-0 text-light">
-                    <i class="bi bi-speedometer2 me-1 text-indigo" style="color: #818cf8;"></i> Autonomous Sending Readiness (20 Consecutive Unchanged Approvals Required)
-                </h6>
-                <button class="btn btn-sm btn-link text-indigo text-decoration-none p-0" style="color: #a5b4fc;" onclick="loadAutonomyStatus()">
-                    <i class="bi bi-arrow-repeat"></i> Refresh Streaks
-                </button>
-            </div>
-            <div id="autonomyStreakGrid" class="row g-2">
-                <!-- Rendered dynamically -->
+                <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-30 ms-1">Gmail Agent</span>
             </div>
         </div>
 
-        <!-- Two Column Layout: Email List (Left) and Review/Edit Workspace (Right) -->
-        <div class="row g-3">
-            <!-- Left: Email List -->
-            <div class="col-md-4">
-                <div class="card h-100">
-                    <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-                        <h6 class="fw-bold mb-0 text-light"><i class="bi bi-envelope-paper-fill me-1 text-indigo" style="color: #818cf8;"></i>Inbox Stream (<span id="emailCount">0</span>)</h6>
-                        <select id="categoryFilter" class="form-select form-select-sm w-auto" onchange="loadEmails()">
-                            <option value="">All Categories</option>
-                            <option value="product_question">Product Question</option>
-                            <option value="project_request">Project Request</option>
-                            <option value="refund">Refund</option>
-                            <option value="complaint">Complaint</option>
-                            <option value="quote">Quote</option>
-                            <option value="follow_up">Follow Up</option>
-                        </select>
-                    </div>
-                    <div id="emailList" class="list-group list-group-flush overflow-auto" style="max-height: 650px;">
-                        <div class="p-4 text-center text-muted">Loading emails...</div>
-                    </div>
+        <!-- Central Search Bar -->
+        <div class="gmail-search-box d-none d-md-flex">
+            <i class="bi bi-search text-slate-400"></i>
+            <input type="text" id="searchInput" class="gmail-search-input" placeholder="Search customer emails, billing, filters, or solutions..." oninput="handleSearch(this.value)">
+            <button class="btn btn-sm btn-link text-slate-400 p-0" title="Clear" onclick="clearSearch()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <!-- Top-Right User Profile & Settings -->
+        <div class="d-flex align-items-center gap-3">
+            <!-- Hub Link Pills -->
+            <div class="d-none d-xl-flex align-items-center gap-2">
+                <a href="/" class="nav-service-pill">Hub</a>
+                <a href="/brain" class="nav-service-pill">Brain</a>
+                <a href="/inbox" class="nav-service-pill active">Inbox</a>
+                <a href="/scope" class="nav-service-pill">Scope</a>
+            </div>
+
+            <!-- Sync & Test Email Buttons -->
+            <button class="btn btn-sm btn-outline-info rounded-pill px-3" onclick="openSimulateModal()">
+                <i class="bi bi-plus-circle me-1"></i> Simulator
+            </button>
+            <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="syncGmail()">
+                <i class="bi bi-arrow-repeat me-1"></i> Sync Gmail
+            </button>
+
+            <!-- Settings Cog -->
+            <button class="btn btn-sm btn-dark text-slate-300 rounded-circle p-2" onclick="openSettingsModal()" title="Gmail & Autonomy Settings">
+                <i class="bi bi-gear-fill"></i>
+            </button>
+
+            <!-- User Profile Avatar & Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-dark d-flex align-items-center gap-2 border border-secondary border-opacity-25 rounded-pill px-3 py-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80" alt="Avatar" class="rounded-circle" width="26" height="26">
+                    <span id="navUserName" class="small fw-semibold text-light">Sarah Connor</span>
+                    <i class="bi bi-chevron-down small text-muted"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                    <li><h6 class="dropdown-header text-info"><i class="bi bi-shield-check me-1"></i>Lead Tech Consultant</h6></li>
+                    <li><a class="dropdown-item small" href="#" onclick="openSettingsModal()"><i class="bi bi-gear me-2"></i>Account & Gmail Settings</a></li>
+                    <li><a class="dropdown-item small" href="#" onclick="openLearnedRulesModal()"><i class="bi bi-lightbulb me-2"></i>View 5-Min Learned Rules</a></li>
+                    <li><a class="dropdown-item small" href="/docs" target="_blank"><i class="bi bi-book me-2"></i>API Specs</a></li>
+                    <li><hr class="dropdown-divider border-secondary border-opacity-50"></li>
+                    <li><a class="dropdown-item small text-danger" href="/login" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Main App Body (Sidebar + Email List + Reading Pane) -->
+    <div class="app-body">
+
+        <!-- Left Sidebar strictly matching Gmail layout -->
+        <aside class="gmail-sidebar">
+            <button class="btn-compose" onclick="openComposeModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#ea4335" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                <span>Compose</span>
+            </button>
+
+            <!-- 1. Compose, 2. Inbox, 3. Drafts, 4. Sent -->
+            <div class="sidebar-folder active" id="folderInbox" onclick="selectFolder('inbox')">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-inbox-fill text-primary"></i>
+                    <span>Inbox</span>
+                </div>
+                <span id="badgeInboxCount" class="badge bg-primary bg-opacity-25 text-primary rounded-pill">0</span>
+            </div>
+
+            <div class="sidebar-folder" id="folderDrafts" onclick="selectFolder('drafts')">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-file-earmark-text text-warning"></i>
+                    <span>Drafts</span>
+                </div>
+                <span id="badgeDraftsCount" class="badge bg-warning bg-opacity-25 text-warning rounded-pill">0</span>
+            </div>
+
+            <div class="sidebar-folder" id="folderSent" onclick="selectFolder('sent')">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-send-check text-success"></i>
+                    <span>Sent</span>
+                </div>
+                <span id="badgeSentCount" class="badge bg-success bg-opacity-25 text-success rounded-pill">0</span>
+            </div>
+
+            <!-- Categories Section (Gmail Labels) -->
+            <div class="mt-4 mb-2 px-3 small fw-bold text-slate-400 text-uppercase tracking-wider">
+                Categories
+            </div>
+
+            <div class="sidebar-folder" onclick="filterByCategory('billing')">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle bg-primary" style="width: 8px; height: 8px;"></span>
+                    <span>Billing</span>
+                </div>
+            </div>
+            <div class="sidebar-folder" onclick="filterByCategory('filters')">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle bg-purple-500" style="width: 8px; height: 8px; background-color: #a855f7;"></span>
+                    <span>Filters</span>
+                </div>
+            </div>
+            <div class="sidebar-folder" onclick="filterByCategory('design_settings')">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle bg-emerald-500" style="width: 8px; height: 8px; background-color: #10b981;"></span>
+                    <span>Design Settings</span>
+                </div>
+            </div>
+            <div class="sidebar-folder" onclick="filterByCategory('product_question')">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle bg-amber-500" style="width: 8px; height: 8px; background-color: #f59e0b;"></span>
+                    <span>Product Question</span>
                 </div>
             </div>
 
-            <!-- Right: Review, Edit & Approval Workspace -->
-            <div class="col-md-8">
-                <div id="workspaceEmpty" class="card h-100 p-5 text-center text-muted d-flex align-items-center justify-content-center">
+            <!-- Learning Loop Status Pill -->
+            <div class="mt-auto p-3 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50 text-xs">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <span class="fw-bold text-light"><i class="bi bi-lightning-charge-fill text-warning me-1"></i>5-Min Learning</span>
+                    <span class="badge bg-success bg-opacity-25 text-success">Active</span>
+                </div>
+                <p class="text-slate-400 mb-2" style="font-size: 0.75rem;">AI adopts reviewer edits to improve similar replies within 5 minutes.</p>
+                <button class="btn btn-sm btn-outline-secondary w-100 py-1" style="font-size: 0.72rem;" onclick="openLearnedRulesModal()">
+                    View Active Rules
+                </button>
+            </div>
+        </aside>
+
+        <!-- Center Email List Pane -->
+        <section class="email-list-pane">
+            <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                <span id="currentFolderTitle" class="fw-bold text-light">Primary Inbox</span>
+                <button class="btn btn-sm btn-link text-slate-400 p-0" onclick="loadEmails()"><i class="bi bi-arrow-clockwise"></i></button>
+            </div>
+            <div id="emailListContainer" class="flex-grow-1 overflow-y-auto">
+                <div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Loading messages...</div>
+            </div>
+        </section>
+
+        <!-- Right Reading / Action Pane -->
+        <main class="email-view-pane" id="emailViewContainer">
+            <div class="h-100 d-flex flex-column align-items-center justify-content-center text-slate-500">
+                <i class="bi bi-envelope-open display-4 mb-3 text-slate-600"></i>
+                <p class="lead fs-6 mb-1">Select an email to view full conversation and AI response draft.</p>
+                <p class="small text-slate-500">Or click <strong class="text-slate-400">+ Compose</strong> to draft a new client message.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- 3. Floating Compose Modal -->
+    <div id="composeModal" class="compose-modal d-none">
+        <div class="p-3 bg-dark border-bottom border-secondary border-opacity-50 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-light small"><i class="bi bi-pencil-square me-2 text-primary"></i>New Message</span>
+            <button class="btn btn-sm btn-link text-slate-400 p-0" onclick="closeComposeModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <form onsubmit="handleSendCompose(event)" class="p-3 space-y-2">
+            <div class="mb-2">
+                <input type="email" id="composeTo" required placeholder="To: recipient@example.com" class="form-control form-control-sm bg-dark text-light border-secondary">
+            </div>
+            <div class="mb-2">
+                <input type="text" id="composeSubject" required placeholder="Subject" class="form-control form-control-sm bg-dark text-light border-secondary">
+            </div>
+            <div class="mb-3">
+                <textarea id="composeBody" required rows="7" placeholder="Write email..." class="form-control form-control-sm bg-dark text-light border-secondary font-sans"></textarea>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-2">
+                <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">
+                    <i class="bi bi-send-fill me-1"></i> Send Message
+                </button>
+                <span class="small text-muted">Direct Gmail Dispatch</span>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4. Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-slate-900 text-light border border-secondary border-opacity-50 shadow-2xl">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-gear-fill text-indigo me-2"></i>Gmail & Autonomy Settings</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body space-y-4">
+                    <!-- Real Gmail Credentials -->
                     <div>
-                        <i class="bi bi-envelope-open fs-1 text-secondary mb-3 d-block"></i>
-                        <h5 class="text-light">Select an email from the left to inspect, draft, or approve.</h5>
-                        <p class="small text-muted">Review drafts across 4 tones, edit freely, and monitor the Levenshtein autonomy gate.</p>
-                    </div>
-                </div>
-
-                <div id="workspaceActive" class="card h-100 d-none">
-                    <!-- Email Header -->
-                    <div class="card-header py-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h5 id="activeSubject" class="fw-bold mb-1 text-light">Subject</h5>
-                                <div class="text-muted small">
-                                    From: <span id="activeSender" class="fw-medium text-light">Name</span>
-                                    &bull; Received: <span id="activeDate">Date</span>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <span id="activePriorityBadge" class="badge bg-warning text-dark">MEDIUM</span>
-                                <span id="activeCategoryBadge" class="badge bg-primary">CATEGORY</span>
-                            </div>
+                        <h6 class="fw-bold text-info mb-1">Real Google Gmail Account</h6>
+                        <p class="small text-slate-400 mb-2">Connect your real Gmail using a standard Google App Password (imap.gmail.com:993 / smtp.gmail.com:587).</p>
+                        <div class="mb-2">
+                            <label class="form-label small text-slate-300">Gmail Address:</label>
+                            <input type="email" id="gmailUserSetting" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="yourname@gmail.com">
                         </div>
-
-                        <!-- Original Email Body -->
-                        <div class="p-3 customer-msg-box mt-2">
-                            <h6 class="small text-indigo fw-bold mb-1" style="color: #a5b4fc;"><i class="bi bi-chat-left-text-fill me-1"></i>Customer Message:</h6>
-                            <p id="activeBody" class="mb-0 small text-light" style="white-space: pre-wrap;"></p>
+                        <div class="mb-2">
+                            <label class="form-label small text-slate-300">Google App Password (16 characters):</label>
+                            <input type="password" id="gmailPwdSetting" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="•••• •••• •••• ••••">
                         </div>
+                        <button class="btn btn-sm btn-outline-info" onclick="testGmailConnection()">
+                            <i class="bi bi-check2-circle me-1"></i> Test Gmail Authentication
+                        </button>
+                        <div id="gmailTestAlert" class="small mt-2 d-none"></div>
                     </div>
 
-                    <!-- Draft & Controls Section -->
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <h6 class="fw-bold mb-0 text-light"><i class="bi bi-pencil-square text-indigo me-1" style="color: #818cf8;"></i>AI Reply Draft</h6>
-                                <span id="activeVoiceBadge" class="badge bg-secondary">Voice: Professional</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="small text-muted mb-0">Voice Style:</label>
-                                <select id="voiceSelect" class="form-select form-select-sm w-auto">
-                                    <option value="professional">Professional</option>
-                                    <option value="empathetic">Empathetic</option>
-                                    <option value="concise">Concise</option>
-                                    <option value="executive">Executive</option>
-                                </select>
-                                <button class="btn btn-sm btn-outline-primary" onclick="generateDraft()">
-                                    <i class="bi bi-magic me-1"></i> (Re)Generate
-                                </button>
-                            </div>
-                        </div>
+                    <hr class="border-secondary border-opacity-25">
 
-                        <!-- Draft Textarea -->
-                        <textarea id="draftTextarea" class="form-control draft-textarea mb-3" rows="11" oninput="onDraftEdited()"></textarea>
-
-                        <!-- Similarity & Edit Distance Tracker -->
-                        <div class="similarity-box d-flex justify-content-between align-items-center py-2 px-3 mb-3">
-                            <div class="small">
-                                <span class="fw-bold text-light">Similarity to Original AI Draft:</span>
-                                <span id="similarityDisplay" class="fw-bold text-success ms-1">100.0% (Unchanged)</span>
-                            </div>
-                            <div id="streakImpactNotice" class="small text-muted">
-                                Approving without changes advances autonomous streak (+1).
-                            </div>
-                        </div>
-
-                        <!-- Feedback Notes -->
-                        <input type="text" id="feedbackNotes" class="form-control form-control-sm mb-3" placeholder="Optional reviewer feedback notes or quality comment..." />
-
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-between align-items-center">
-                            <button class="btn btn-outline-secondary btn-sm" onclick="exportDraft()">
-                                <i class="bi bi-box-arrow-down me-1"></i> Export Reply Text
-                            </button>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-danger btn-sm" onclick="submitReview('reject')">
-                                    <i class="bi bi-x-circle me-1"></i> Reject Draft
-                                </button>
-                                <button id="approveBtn" class="btn btn-success" onclick="submitReview('approve')">
-                                    <i class="bi bi-check-circle-fill me-1"></i> Approve & Send Draft
-                                </button>
-                            </div>
+                    <!-- Autonomy Streak Configuration -->
+                    <div>
+                        <h6 class="fw-bold text-warning mb-1">Autonomous Sending Streak Threshold</h6>
+                        <p class="small text-slate-400 mb-2">Number of consecutive unchanged approvals required before enabling autonomous email dispatch.</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="number" id="streakThresholdInput" min="1" max="100" value="20" class="form-control form-control-sm bg-dark text-light border-secondary w-25">
+                            <button class="btn btn-sm btn-primary" onclick="saveStreakThreshold()">Save Streak Policy</button>
                         </div>
                     </div>
                 </div>
@@ -336,245 +458,585 @@
         </div>
     </div>
 
-    <!-- Script -->
+    <!-- 5. Simulator Modal for Evaluators -->
+    <div class="modal fade" id="simulateModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-slate-900 text-light border border-secondary border-opacity-50">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Incoming Email Simulator</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body space-y-3">
+                    <p class="small text-slate-400">Generate an incoming customer query from a client to test automatic triage, AI drafting, and the 5-minute learning loop.</p>
+                    <div class="mb-2">
+                        <label class="form-label small">Sender Name:</label>
+                        <input type="text" id="simSenderName" value="Marcus Vance" class="form-control form-control-sm bg-dark text-light border-secondary">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Sender Email:</label>
+                        <input type="email" id="simSenderEmail" value="marcus@enterprise-directory.com" class="form-control form-control-sm bg-dark text-light border-secondary">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Category Preset:</label>
+                        <select id="simCategoryPreset" class="form-select form-select-sm bg-dark text-light border-secondary" onchange="applySimPreset(this.value)">
+                            <option value="billing">Billing Inquiry (Double Charge / Refund)</option>
+                            <option value="filters">Filters & Facets Configuration</option>
+                            <option value="design_settings">Design Settings (CSS & Typography)</option>
+                            <option value="product_question">Product Question (Webhooks Setup)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Subject:</label>
+                        <input type="text" id="simSubject" value="Urgent: Double charge on my transaction statement" class="form-control form-control-sm bg-dark text-light border-secondary">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Body Text:</label>
+                        <textarea id="simBody" rows="4" class="form-control form-control-sm bg-dark text-light border-secondary">Hello, I noticed two charges on my account statement for this month. Could you please check this transaction and issue a credit?</textarea>
+                    </div>
+                    <button class="btn btn-sm btn-primary w-100 fw-bold" onclick="submitSimulateEmail()">
+                        <i class="bi bi-plus-circle me-1"></i> Ingest Simulated Email into Inbox
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Learned Rules Modal -->
+    <div class="modal fade" id="learnedRulesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-slate-900 text-light border border-secondary border-opacity-50">
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-lightbulb-fill text-warning me-2"></i>5-Minute Learned Rules Repository</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-slate-400 mb-3">When you modify an AI email draft and approve or send it, the system extracts the stylistic differences and automatically applies them to future email drafts in that category within approximately 5 minutes.</p>
+                    <div id="learnedRulesContainer" class="space-y-2">
+                        <div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Loading learned rules...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Inbox Frontend Application Controller -->
     <script>
+        let allEmails = [];
         let currentEmail = null;
-        let currentOriginalDraft = "";
+        let currentDraft = null;
+        let currentFolder = 'inbox';
+        let activeCategoryFilter = null;
 
-        async function loadAutonomyStatus() {
-            try {
-                const res = await fetch('/api/v1/autonomy/status');
-                const data = await res.json();
-                const grid = document.getElementById('autonomyStreakGrid');
-                grid.innerHTML = '';
-
-                for (const [cat, s] of Object.entries(data)) {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-2 col-sm-4';
-                    const isAuto = s.autonomous_enabled;
-                    const streak = s.consecutive_unchanged_count;
-                    const pct = Math.min(100, Math.round((streak / 20) * 100));
-
-                    col.innerHTML = `
-                        <div class="streak-card p-2 ${isAuto ? 'border-success' : ''}">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="small fw-bold text-truncate text-light" title="${cat}">${cat.replace('_', ' ')}</span>
-                                <span class="badge ${isAuto ? 'bg-success' : 'bg-secondary'} small">${streak}/20</span>
-                            </div>
-                            <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
-                                <div class="progress-bar ${isAuto ? 'bg-success' : 'bg-primary'}" role="progressbar" style="width: ${pct}%;"></div>
-                            </div>
-                            <div class="d-flex justify-content-between mt-1 text-muted" style="font-size: 0.7rem;">
-                                <span>Quality: ${(s.quality_score * 100).toFixed(0)}%</span>
-                                <span>${isAuto ? 'AUTONOMOUS' : 'MANUAL'}</span>
-                            </div>
-                        </div>
-                    `;
-                    grid.appendChild(col);
-                }
-            } catch (err) {
-                console.error("Autonomy fetch error:", err);
+        // Search Filter
+        function handleSearch(term) {
+            const q = term.toLowerCase().trim();
+            if (!q) {
+                renderEmailList(allEmails);
+                return;
             }
+            const filtered = allEmails.filter(e => 
+                (e.subject && e.subject.toLowerCase().includes(q)) ||
+                (e.sender_name && e.sender_name.toLowerCase().includes(q)) ||
+                (e.body && e.body.toLowerCase().includes(q)) ||
+                (e.category && e.category.toLowerCase().includes(q))
+            );
+            renderEmailList(filtered);
         }
 
-        function getPriorityBadgeInfo(priority) {
-            const p = (priority || 'medium').toString().toLowerCase();
-            if (p === 'urgent') return { text: 'URGENT', cls: 'badge bg-danger' };
-            if (p === 'high') return { text: 'HIGH', cls: 'badge bg-danger bg-opacity-75' };
-            if (p === 'medium') return { text: 'MEDIUM', cls: 'badge bg-warning text-dark' };
-            return { text: 'LOW', cls: 'badge bg-secondary' };
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            renderEmailList(allEmails);
+        }
+
+        function selectFolder(folder) {
+            currentFolder = folder;
+            activeCategoryFilter = null;
+            document.querySelectorAll('.sidebar-folder').forEach(el => el.classList.remove('active'));
+            if (folder === 'inbox') document.getElementById('folderInbox').classList.add('active');
+            if (folder === 'drafts') document.getElementById('folderDrafts').classList.add('active');
+            if (folder === 'sent') document.getElementById('folderSent').classList.add('active');
+
+            document.getElementById('currentFolderTitle').textContent = 
+                folder === 'inbox' ? 'Primary Inbox' : folder === 'drafts' ? 'Drafts Queue' : 'Sent Messages';
+
+            loadEmails();
+        }
+
+        function filterByCategory(cat) {
+            activeCategoryFilter = cat;
+            document.getElementById('currentFolderTitle').textContent = `Category: ${cat.toUpperCase()}`;
+            loadEmails();
         }
 
         async function loadEmails() {
-            const cat = document.getElementById('categoryFilter').value;
-            const url = cat ? `/api/v1/emails?category=${cat}` : '/api/v1/emails';
-            const list = document.getElementById('emailList');
-
             try {
+                let url = '/api/v1/emails?limit=100';
+                if (activeCategoryFilter) url += `&category=${activeCategoryFilter}`;
+                if (currentFolder === 'drafts') url += `&status=pending_review`;
+                if (currentFolder === 'sent') url += `&status=approved`;
+
                 const res = await fetch(url);
                 const data = await res.json();
-                const emails = Array.isArray(data) ? data : (data.emails || []);
-                document.getElementById('emailCount').textContent = emails.length;
-
-                if (emails.length === 0) {
-                    list.innerHTML = '<div class="p-4 text-center text-muted">No emails found. Click "Seed 55 Emails" above!</div>';
-                    return;
-                }
-
-                list.innerHTML = '';
-                emails.forEach(e => {
-                    const item = document.createElement('a');
-                    item.className = `list-group-item sidebar-email-item p-3 ${currentEmail && currentEmail.id === e.id ? 'active' : ''}`;
-                    item.onclick = (event) => selectEmail(e, event);
-
-                    const pInfo = getPriorityBadgeInfo(e.priority);
-                    let statusBadge = '';
-                    if (e.status === 'sent' || e.status === 'sent_autonomously' || e.status === 'approved' || e.status === 'edited_and_approved') {
-                        statusBadge = '<span class="badge bg-success small ms-1">Sent</span>';
-                    } else if (e.status === 'rejected') {
-                        statusBadge = '<span class="badge bg-danger small ms-1">Rejected</span>';
-                    }
-
-                    item.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <strong class="text-truncate" style="max-width: 70%;">${e.subject || 'Untitled'}</strong>
-                            <span class="${pInfo.cls} small">${pInfo.text}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center small text-muted">
-                            <span class="text-truncate">${e.sender_name || 'Customer'}</span>
-                            <span>${(e.category || '').replace('_', ' ')} ${statusBadge}</span>
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
+                allEmails = data;
+                renderEmailList(allEmails);
+                updateFolderCounts();
             } catch (err) {
-                list.innerHTML = `<div class="p-4 text-danger text-center">Failed to load emails: ${err.message}</div>`;
+                console.error("Load emails error:", err);
             }
         }
 
-        async function selectEmail(e, event) {
-            currentEmail = e;
-            document.querySelectorAll('.sidebar-email-item').forEach(el => el.classList.remove('active'));
-            if (event && event.currentTarget) event.currentTarget.classList.add('active');
-
-            document.getElementById('workspaceEmpty').classList.add('d-none');
-            document.getElementById('workspaceActive').classList.remove('d-none');
-
-            document.getElementById('activeSubject').textContent = e.subject;
-            document.getElementById('activeSender').textContent = `${e.sender_name} <${e.sender_email}>`;
-            document.getElementById('activeDate').textContent = e.received_at ? new Date(e.received_at).toLocaleTimeString() : 'Recent';
-            document.getElementById('activeBody').textContent = e.body;
-
-            const pInfo = getPriorityBadgeInfo(e.priority);
-            const priBadge = document.getElementById('activePriorityBadge');
-            priBadge.textContent = pInfo.text;
-            priBadge.className = pInfo.cls;
-
-            document.getElementById('activeCategoryBadge').textContent = (e.category || '').toUpperCase().replace('_', ' ');
-
-            // Generate or load draft
-            await generateDraft();
+        function renderEmailList(emails) {
+            const container = document.getElementById('emailListContainer');
+            if (!emails.length) {
+                container.innerHTML = '<div class="text-center py-5 text-muted small">No messages in this folder.</div>';
+                return;
+            }
+            container.innerHTML = emails.map(e => {
+                const catClass = getCategoryClass(e.category);
+                const isActive = currentEmail && currentEmail.id === e.id;
+                return `
+                    <div class="email-item ${isActive ? 'active' : ''}" onclick="selectEmail('${e.id}')">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold text-light text-truncate" style="max-width: 190px;">${e.sender_name || 'Customer'}</span>
+                            <span class="badge-cat ${catClass}">${e.category || 'INQUIRY'}</span>
+                        </div>
+                        <div class="small fw-semibold text-slate-200 text-truncate mb-1">${e.subject}</div>
+                        <div class="small text-slate-400 text-truncate">${(e.body || '').substring(0, 70)}...</div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        async function generateDraft() {
-            if (!currentEmail) return;
-            const voice = document.getElementById('voiceSelect').value;
-            const textarea = document.getElementById('draftTextarea');
-            textarea.value = 'Generating grounded reply draft from Knowledge Brain...';
-            textarea.disabled = true;
+        function getCategoryClass(cat) {
+            if (!cat) return 'cat-other';
+            const c = cat.toLowerCase();
+            if (c.includes('billing') || c.includes('refund')) return 'cat-billing';
+            if (c.includes('filter')) return 'cat-filters';
+            if (c.includes('design')) return 'cat-design';
+            if (c.includes('product')) return 'cat-product';
+            return 'cat-other';
+        }
+
+        function updateFolderCounts() {
+            const inboxCount = allEmails.filter(e => e.status === 'unprocessed' || e.status === 'pending_review').length;
+            const draftsCount = allEmails.filter(e => e.status === 'pending_review').length;
+            const sentCount = allEmails.filter(e => e.status === 'approved' || e.status === 'edited_and_approved').length;
+
+            document.getElementById('badgeInboxCount').textContent = inboxCount;
+            document.getElementById('badgeDraftsCount').textContent = draftsCount;
+            document.getElementById('badgeSentCount').textContent = sentCount;
+        }
+
+        async function selectEmail(emailId) {
+            const email = allEmails.find(e => e.id === emailId);
+            if (!email) return;
+            currentEmail = email;
+            renderEmailList(allEmails);
+
+            const container = document.getElementById('emailViewContainer');
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-primary me-2"></div>
+                    Generating AI grounded reply using full conversation...
+                </div>
+            `;
 
             try {
-                const res = await fetch(`/api/v1/emails/${currentEmail.id}/draft?voice=${voice}`, { method: 'POST' });
-                const draft = await res.json();
-                const draftText = (draft && typeof draft.original_draft === 'string')
-                    ? draft.original_draft
-                    : (draft && draft.detail ? draft.detail : 'No draft content returned.');
-
-                textarea.value = draftText;
-                currentOriginalDraft = draftText;
-                const voiceName = (draft && draft.voice ? draft.voice : voice).toUpperCase();
-                document.getElementById('activeVoiceBadge').textContent = `Voice: ${voiceName}`;
-
-                onDraftEdited();
+                // Generate draft for selected email
+                const draftRes = await fetch(`/api/v1/emails/${emailId}/draft`, { method: 'POST' });
+                const draft = await draftRes.json();
+                currentDraft = draft;
+                renderReadingPane(email, draft);
             } catch (err) {
-                textarea.value = 'Draft generation failed: ' + (err.message || 'Unknown error');
-            } finally {
-                textarea.disabled = false;
+                container.innerHTML = `<div class="alert alert-danger">Draft generation error: ${err.message}</div>`;
             }
         }
 
-        function onDraftEdited() {
-            const current = document.getElementById('draftTextarea').value;
-            const sim = computeSimilarity(currentOriginalDraft, current);
-            const pct = (sim * 100).toFixed(1);
-            const disp = document.getElementById('similarityDisplay');
-            const notice = document.getElementById('streakImpactNotice');
+        function renderReadingPane(email, draft) {
+            const container = document.getElementById('emailViewContainer');
+            const catBadge = getCategoryClass(email.category);
 
-            if (sim === 1.0) {
-                disp.className = 'fw-bold text-success ms-1';
-                disp.textContent = '100.0% (Unchanged)';
-                notice.className = 'small text-success';
-                notice.textContent = 'Approving without changes advances autonomous streak (+1).';
-            } else {
-                disp.className = 'fw-bold text-warning ms-1';
-                disp.textContent = `${pct}% (Edited by human)`;
-                notice.className = 'small text-danger';
-                notice.textContent = 'Human edit detected: Submitting will reset autonomous streak to 0.';
-            }
+            container.innerHTML = `
+                <!-- Thread Header -->
+                <div class="d-flex justify-content-between align-items-start pb-3 mb-4 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h4 class="fw-bold text-white mb-2">${email.subject}</h4>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge-cat ${catBadge}">${email.category || 'INQUIRY'}</span>
+                            <span class="badge bg-secondary bg-opacity-50 small">${email.priority || 'MEDIUM'} PRIORITY</span>
+                            <span class="small text-slate-400">ID: ${email.id}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="exportDraft('${email.id}')">
+                            <i class="bi bi-download me-1"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Customer Message Thread Box -->
+                <div class="card p-3 mb-4 border-secondary border-opacity-25 bg-dark bg-opacity-60">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-indigo-600 text-white fw-bold d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: #4f46e5;">
+                                ${(email.sender_name || 'C')[0]}
+                            </div>
+                            <div>
+                                <span class="fw-bold text-light small">${email.sender_name}</span>
+                                <span class="text-slate-400 small">&lt;${email.sender_email}&gt;</span>
+                            </div>
+                        </div>
+                        <span class="small text-slate-500">${new Date(email.received_at).toLocaleString()}</span>
+                    </div>
+                    <div class="text-slate-200 small pt-2" style="white-space: pre-wrap;">${email.body}</div>
+                </div>
+
+                <!-- AI Draft Studio Card -->
+                <div class="ai-draft-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-robot text-indigo fs-5" style="color: #818cf8;"></i>
+                            <h6 class="fw-bold text-white mb-0">AI Grounded Reply Draft</h6>
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30">Confidence: ${(draft.confidence_score * 100).toFixed(0)}%</span>
+                        </div>
+
+                        <!-- Voice Switcher -->
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="small text-slate-400">Voice:</label>
+                            <select id="voiceSelector" class="form-select form-select-sm bg-dark text-light border-secondary" onchange="regenerateVoice('${email.id}', this.value)">
+                                <option value="professional" ${draft.voice === 'professional' ? 'selected' : ''}>Professional</option>
+                                <option value="empathetic" ${draft.voice === 'empathetic' ? 'selected' : ''}>Empathetic</option>
+                                <option value="concise" ${draft.voice === 'concise' ? 'selected' : ''}>Concise</option>
+                                <option value="executive" ${draft.voice === 'executive' ? 'selected' : ''}>Executive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 5-Minute Continuous Learning Indicator -->
+                    <div class="learning-banner mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-lightning-charge-fill text-warning fs-5"></i>
+                        <div>
+                            <strong>Continuous 5-Minute Learning Active:</strong>
+                            Any revisions you make below before sending will be analyzed by AI to adapt and match your tone in future ${email.category || 'customer'} drafts.
+                        </div>
+                    </div>
+
+                    <!-- Editable Draft Textarea -->
+                    <div class="mb-3">
+                        <label class="form-label small text-slate-400">Response Text (Human Review & Edit):</label>
+                        <textarea id="draftEditor" class="form-control form-control-sm bg-dark text-light font-sans" rows="8" style="font-size: 0.92rem; line-height: 1.5;">${draft.original_draft}</textarea>
+                    </div>
+
+                    <!-- Knowledge Brain Citations if any -->
+                    ${renderCitations(draft.kb_sources_cited)}
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-25">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary fw-bold px-4" onclick="handleSendAndApprove('${email.id}')">
+                                <i class="bi bi-send-fill me-1"></i> Send & Learn from Changes
+                            </button>
+                            <button class="btn btn-outline-light" onclick="handleApproveOnly('${email.id}')">
+                                <i class="bi bi-check2 me-1"></i> Approve Draft
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="handleReject('${email.id}')">
+                                Reject
+                            </button>
+                        </div>
+
+                        <div id="autonomyStreakBadge" class="small text-slate-400">
+                            <i class="bi bi-shield-check text-info me-1"></i> Autonomy Streak Tracking
+                        </div>
+                    </div>
+
+                    <div id="actionFeedback" class="mt-3 d-none"></div>
+                </div>
+            `;
         }
 
-        function computeSimilarity(s1, s2) {
-            if (s1 === s2) return 1.0;
-            if (!s1 || !s2) return 0.0;
-            const d = levenshteinDistance(s1, s2);
-            return Math.max(0.0, (s1.length + s2.length - d) / (s1.length + s2.length));
+        function renderCitations(sources) {
+            if (!sources || !sources.length) return '';
+            return `
+                <div class="mb-3 p-2 bg-dark bg-opacity-40 rounded border border-secondary border-opacity-25 small">
+                    <span class="fw-bold text-slate-300"><i class="bi bi-book me-1"></i>Grounded KB Citations:</span>
+                    <ul class="mb-0 mt-1 ps-3 text-slate-400">
+                        ${sources.map(s => `<li><a href="${s.url}" target="_blank" class="text-indigo text-decoration-none">${s.title || s.url}</a></li>`).join('')}
+                    </ul>
+                </div>
+            `;
         }
 
-        function levenshteinDistance(a, b) {
-            const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
-            for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-            for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
-            for (let i = 1; i <= a.length; i++) {
-                for (let j = 1; j <= b.length; j++) {
-                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j] + 1,
-                        matrix[i][j - 1] + 1,
-                        matrix[i - 1][j - 1] + cost
-                    );
-                }
-            }
-            return matrix[a.length][b.length];
-        }
-
-        async function submitReview(action) {
-            if (!currentEmail) return;
-            const editedBody = document.getElementById('draftTextarea').value;
-            const notes = document.getElementById('feedbackNotes').value;
+        async function handleSendAndApprove(emailId) {
+            const edited = document.getElementById('draftEditor').value;
+            const fb = document.getElementById('actionFeedback');
+            fb.className = 'alert alert-info mt-3';
+            fb.textContent = 'Submitting review, updating 5-minute learning loop, and sending email...';
+            fb.classList.remove('d-none');
 
             try {
-                const res = await fetch(`/api/v1/emails/${currentEmail.id}/review`, {
+                // 1. Submit review & continuous learning
+                const revRes = await fetch(`/api/v1/emails/${emailId}/review`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        email_id: currentEmail.id,
-                        action: action,
-                        edited_draft: editedBody,
-                        feedback_notes: notes
+                        email_id: emailId,
+                        action: 'edit_approve',
+                        edited_draft: edited,
+                        reviewer_name: "Sarah Connor"
                     })
                 });
-                const result = await res.json();
-                const score = (result.similarity_score !== undefined) ? result.similarity_score : (result.similarity_ratio !== undefined ? result.similarity_ratio : 1.0);
-                const streak = result.consecutive_streak !== undefined ? result.consecutive_streak : 0;
-                alert(`Draft ${action.toUpperCase()} recorded!\nSimilarity: ${(score * 100).toFixed(1)}%\nConsecutive Streak: ${streak}`);
-                loadAutonomyStatus();
+                const revData = await revRes.json();
+
+                // 2. Dispatch email (via Gmail SMTP if configured, or stored as dispatched)
+                const sendRes = await fetch('/api/v1/gmail/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        to_email: currentEmail.sender_email,
+                        subject: `Re: ${currentEmail.subject}`,
+                        body_text: edited,
+                        email_id: emailId
+                    })
+                });
+
+                fb.className = 'alert alert-success mt-3';
+                let msg = `<strong>Email Dispatched & Approved!</strong> Similarity: ${(revData.similarity_score * 100).toFixed(0)}%. Autonomy Streak: ${revData.consecutive_streak}.`;
+                if (revData.learned_rule) {
+                    msg += `<div class="mt-1 small text-indigo"><strong>Learned Rule Extracted:</strong> ${revData.learned_rule.learned_instruction} (applied to next draft within 5 mins).</div>`;
+                }
+                fb.innerHTML = msg;
+
                 loadEmails();
             } catch (err) {
-                alert('Review submission failed: ' + err.message);
+                fb.className = 'alert alert-danger mt-3';
+                fb.textContent = 'Submission error: ' + err.message;
             }
         }
 
-        function exportDraft() {
-            const body = document.getElementById('draftTextarea').value;
-            navigator.clipboard.writeText(body);
-            alert('Reply draft copied to clipboard!');
-        }
-
-        async function seedSyntheticEmails() {
+        async function handleApproveOnly(emailId) {
+            const edited = document.getElementById('draftEditor').value;
             try {
-                const res = await fetch('/api/v1/emails/seed', { method: 'POST' });
-                const data = await res.json();
-                alert(data.message || `Seeded ${data.count || 55} customer emails successfully!`);
+                await fetch(`/api/v1/emails/${emailId}/review`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email_id: emailId,
+                        action: 'approve',
+                        edited_draft: edited,
+                        reviewer_name: "Sarah Connor"
+                    })
+                });
+                alert("Draft approved successfully!");
                 loadEmails();
-                loadAutonomyStatus();
             } catch (err) {
-                alert('Seeding failed: ' + err.message);
+                alert("Error: " + err.message);
             }
         }
 
-        // Initialize on page load
+        async function handleReject(emailId) {
+            if (!confirm("Are you sure you want to reject this draft?")) return;
+            try {
+                await fetch(`/api/v1/emails/${emailId}/review`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email_id: emailId, action: 'reject' })
+                });
+                loadEmails();
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        }
+
+        async function regenerateVoice(emailId, voice) {
+            try {
+                const res = await fetch(`/api/v1/emails/${emailId}/draft?voice=${voice}`, { method: 'POST' });
+                const draft = await res.json();
+                currentDraft = draft;
+                document.getElementById('draftEditor').value = draft.original_draft;
+            } catch (err) {
+                console.error("Voice regeneration error:", err);
+            }
+        }
+
+        async function syncGmail() {
+            try {
+                const res = await fetch('/api/v1/gmail/sync', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ limit: 10 })
+                });
+                const data = await res.json();
+                alert(data.message || `Synced ${data.count} emails from Gmail.`);
+                loadEmails();
+            } catch (err) {
+                alert("Gmail sync error: " + err.message);
+            }
+        }
+
+        // Modals
+        function openComposeModal() {
+            document.getElementById('composeModal').classList.remove('d-none');
+        }
+        function closeComposeModal() {
+            document.getElementById('composeModal').classList.add('d-none');
+        }
+
+        async function handleSendCompose(e) {
+            e.preventDefault();
+            const to = document.getElementById('composeTo').value;
+            const subject = document.getElementById('composeSubject').value;
+            const body = document.getElementById('composeBody').value;
+
+            try {
+                const res = await fetch('/api/v1/gmail/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ to_email: to, subject: subject, body_text: body })
+                });
+                const data = await res.json();
+                alert(data.message || "Email dispatched!");
+                closeComposeModal();
+                loadEmails();
+            } catch (err) {
+                alert("Send error: " + err.message);
+            }
+        }
+
+        function openSettingsModal() {
+            const m = new bootstrap.Modal(document.getElementById('settingsModal'));
+            m.show();
+        }
+
+        function openSimulateModal() {
+            const m = new bootstrap.Modal(document.getElementById('simulateModal'));
+            m.show();
+        }
+
+        async function testGmailConnection() {
+            const email = document.getElementById('gmailUserSetting').value.trim();
+            const pwd = document.getElementById('gmailPwdSetting').value.trim();
+            const alertBox = document.getElementById('gmailTestAlert');
+
+            alertBox.className = 'small mt-2 alert alert-info';
+            alertBox.textContent = 'Connecting to imap.gmail.com:993...';
+            alertBox.classList.remove('d-none');
+
+            try {
+                const res = await fetch('/api/v1/gmail/test', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email: email, app_password: pwd })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alertBox.className = 'small mt-2 alert alert-success';
+                    alertBox.textContent = data.message;
+                } else {
+                    alertBox.className = 'small mt-2 alert alert-danger';
+                    alertBox.textContent = data.message;
+                }
+            } catch (err) {
+                alertBox.className = 'small mt-2 alert alert-danger';
+                alertBox.textContent = 'Connection error: ' + err.message;
+            }
+        }
+
+        async function saveStreakThreshold() {
+            const t = parseInt(document.getElementById('streakThresholdInput').value, 10);
+            try {
+                const res = await fetch('/api/v1/autonomy/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ streak_threshold: t })
+                });
+                const data = await res.json();
+                alert(data.message);
+            } catch (err) {
+                alert("Error saving policy: " + err.message);
+            }
+        }
+
+        function applySimPreset(val) {
+            if (val === 'billing') {
+                document.getElementById('simSubject').value = "Urgent: Double charge on my transaction statement";
+                document.getElementById('simBody').value = "Hello, I noticed two charges on my account statement for this month. Could you please check this transaction and issue a credit?";
+            } else if (val === 'filters') {
+                document.getElementById('simSubject').value = "Question about sidebar search filters";
+                document.getElementById('simBody').value = "Hi team, how can we configure custom facet dropdown filters for our directory search results?";
+            } else if (val === 'design_settings') {
+                document.getElementById('simSubject').value = "Updating CSS typography in Design Settings";
+                document.getElementById('simBody').value = "Hello, we need help customizing the primary brand fonts and color theme under the design settings.";
+            } else {
+                document.getElementById('simSubject').value = "How to set up webhooks for real-time notifications?";
+                document.getElementById('simBody').value = "Where in the admin panel can I configure webhooks endpoints for member signups?";
+            }
+        }
+
+        async function submitSimulateEmail() {
+            const sender_name = document.getElementById('simSenderName').value;
+            const sender_email = document.getElementById('simSenderEmail').value;
+            const subject = document.getElementById('simSubject').value;
+            const body = document.getElementById('simBody').value;
+            const category = document.getElementById('simCategoryPreset').value;
+
+            try {
+                const res = await fetch('/api/v1/emails/simulate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ sender_name, sender_email, subject, body, category })
+                });
+                const data = await res.json();
+                bootstrap.Modal.getInstance(document.getElementById('simulateModal')).hide();
+                loadEmails();
+                if (data.email) selectEmail(data.email.id);
+            } catch (err) {
+                alert("Simulation error: " + err.message);
+            }
+        }
+
+        async function openLearnedRulesModal() {
+            const m = new bootstrap.Modal(document.getElementById('learnedRulesModal'));
+            m.show();
+
+            const container = document.getElementById('learnedRulesContainer');
+            try {
+                const res = await fetch('/api/v1/learning/rules');
+                const rules = await res.json();
+                if (!rules.length) {
+                    container.innerHTML = '<div class="alert alert-secondary text-muted">No custom rules learned yet. Edit an AI draft and click "Send & Learn from Changes" to create rules automatically.</div>';
+                    return;
+                }
+                container.innerHTML = rules.map(r => `
+                    <div class="card p-3 border-secondary border-opacity-50 mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary text-uppercase">${r.category}</span>
+                            <span class="small text-muted">${new Date(r.created_at).toLocaleString()}</span>
+                        </div>
+                        <div class="small fw-semibold text-light">${r.learned_instruction}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function exportDraft(emailId) {
+            window.open(`/api/v1/emails/${emailId}/export`, '_blank');
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/v1/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (_) {
+                window.location.href = '/login';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            loadAutonomyStatus();
             loadEmails();
         });
     </script>

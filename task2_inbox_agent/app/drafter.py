@@ -4,6 +4,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 from task2_inbox_agent.app.config import settings
 from task2_inbox_agent.app.kb_client import KnowledgeBrainClient
+from task2_inbox_agent.app.learning import ContinuousLearningEngine
 from task2_inbox_agent.app.models import (
     CompanyVoice,
     CustomerEmail,
@@ -15,10 +16,15 @@ from task2_inbox_agent.app.models import (
 
 
 class ResponseDrafter:
-    """Drafts customer replies in configurable company voice, incorporating Knowledge Brain facts."""
+    """Drafts customer replies in configurable company voice, incorporating Knowledge Brain facts and learned rules."""
 
-    def __init__(self, kb_client: Optional[KnowledgeBrainClient] = None):
+    def __init__(
+        self,
+        kb_client: Optional[KnowledgeBrainClient] = None,
+        learning_engine: Optional[ContinuousLearningEngine] = None,
+    ):
         self.kb_client = kb_client or KnowledgeBrainClient()
+        self.learning_engine = learning_engine or ContinuousLearningEngine()
 
     async def draft_response(
         self,
@@ -26,7 +32,7 @@ class ResponseDrafter:
         classification: EmailClassification,
         voice: Optional[CompanyVoice] = None,
     ) -> DraftResponse:
-        """Generate response draft tailored to classification, voice, and KB facts."""
+        """Generate response draft tailored to classification, voice, KB facts, and continuous user learning."""
         selected_voice = voice or settings.default_voice
         first_name = email.sender_name.split()[0] if email.sender_name else "Valued Customer"
 
@@ -34,7 +40,12 @@ class ResponseDrafter:
         kb_answer_snippet = ""
 
         # Step 1: Query Knowledge Brain if technical / product lookup is needed
-        if classification.requires_kb_lookup:
+        if classification.requires_kb_lookup or classification.category in (
+            EmailCategory.FILTERS,
+            EmailCategory.DESIGN_SETTINGS,
+            EmailCategory.BILLING,
+            EmailCategory.PRODUCT_QUESTION,
+        ):
             kb_res = await self.kb_client.query(email.subject + " " + email.body[:150])
             if kb_res.get("is_sufficient"):
                 kb_sources = kb_res.get("sources", [])
@@ -54,6 +65,24 @@ class ResponseDrafter:
 
         # Step 4: Build closing
         closing = self._build_closing(selected_voice)
+
+        # Step 5: Check continuous learning rules learned from recent human edits
+        learned_rules = self.learning_engine.get_learned_rules(
+            category=classification.category.value if classification.category else None,
+            limit=2,
+        )
+        if learned_rules:
+            # Check if user preferred a custom closing or bullet formatting
+            for rule in learned_rules:
+                instruction = rule.get("learned_instruction", "")
+                if "Sign off with:" in instruction:
+                    custom_closing = instruction.split("Sign off with:")[1].strip(" '\"")
+                    if custom_closing:
+                        closing = custom_closing
+                if "Start email with:" in instruction:
+                    custom_greeting = instruction.split("Start email with:")[1].strip(" '\"")
+                    if custom_greeting:
+                        greeting = custom_greeting
 
         full_draft = f"{greeting}\n\n{body_content}\n\n{closing}"
         draft_id = f"DFT-{uuid.uuid4().hex[:8].upper()}"
@@ -86,7 +115,44 @@ class ResponseDrafter:
         kb_snippet: str,
         sources: List[Dict[str, Any]],
     ) -> str:
-        if category == EmailCategory.REFUND:
+        if category == EmailCategory.BILLING:
+            if voice == CompanyVoice.EMPATHETIC:
+                return (
+                    "I understand you have a question regarding your billing, and I sincerely apologize for any confusion or concern this may have caused.\n\n"
+                    "I have reviewed your account and transaction history. "
+                    "You can review your recent statements or update payment details in your Admin Dashboard under Finance > Transaction History.\n\n"
+                    "If you need an updated invoice statement or direct credit adjustment, please confirm your transaction ID."
+                )
+            return (
+                "Regarding your billing inquiry: We have reviewed your account records. "
+                "You can view recent invoices, update active payment gateways, or manage recurring subscriptions "
+                "directly from your Admin Dashboard under Finance > Transaction History.\n\n"
+                "If you need an updated invoice statement or direct credit adjustment, please confirm your transaction ID."
+            )
+
+        elif category == EmailCategory.FILTERS:
+            if kb_snippet:
+                return (
+                    f"Regarding your search and sidebar filter settings:\n\n{kb_snippet}\n\n"
+                    "You can configure search filter fields by navigating to My Content > Edit Post Settings > Search Results Tab."
+                )
+            return (
+                "Regarding your search filters configuration: In Brilliant Directories, sidebar filters and facet dropdowns "
+                "can be tailored under Content > Edit Post Settings. You can enable keyword search, radius filters, and custom categories."
+            )
+
+        elif category == EmailCategory.DESIGN_SETTINGS:
+            if kb_snippet:
+                return (
+                    f"Regarding your platform design settings and styling:\n\n{kb_snippet}\n\n"
+                    "All visual styling, CSS variables, and font selections can be updated in Settings > Design Settings."
+                )
+            return (
+                "Regarding your design settings: You can customize your site's color scheme, header layout, typography, and button styles "
+                "under Settings > Design Settings in your Brilliant Directories admin portal."
+            )
+
+        elif category == EmailCategory.REFUND:
             if voice == CompanyVoice.EMPATHETIC:
                 return (
                     "I understand you are requesting a refund, and I sincerely apologize for any confusion or inconvenience with your billing.\n\n"

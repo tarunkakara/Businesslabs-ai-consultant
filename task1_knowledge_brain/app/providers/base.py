@@ -39,6 +39,7 @@ class GroundedAnswer(BaseModel):
     is_mock: bool = False
     latency_ms: float = 0.0
     usage: TokenUsage = Field(default_factory=TokenUsage)
+    thinking_process: Optional[str] = None
 
 
 class BaseLLMProvider(ABC):

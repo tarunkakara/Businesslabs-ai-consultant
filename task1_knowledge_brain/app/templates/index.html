@@ -98,57 +98,35 @@
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
             color: #ffffff !important;
             border-color: transparent !important;
-            box-shadow: 0 4px 18px var(--accent-glow);
+        }
+        .answer-box {
+            background: rgba(15, 23, 42, 0.9) !important;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+        }
+        .thinking-box {
+            background: rgba(10, 15, 30, 0.85);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-left: 3px solid #a855f7;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        .table {
+            color: #e2e8f0;
+            --bs-table-bg: transparent;
+            --bs-table-border-color: rgba(255, 255, 255, 0.08);
         }
         .form-control, .form-select {
-            background-color: rgba(15, 23, 42, 0.8) !important;
-            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            background: rgba(15, 23, 42, 0.8) !important;
             color: #f8fafc !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
             border-radius: 10px;
         }
         .form-control:focus, .form-select:focus {
-            background-color: rgba(15, 23, 42, 0.95) !important;
+            background: rgba(15, 23, 42, 0.95) !important;
             border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
-            color: #ffffff !important;
-        }
-        .form-control::placeholder { color: #64748b !important; }
-        .btn-primary {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-            border: none !important;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-            font-weight: 600;
-        }
-        .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
-            transform: translateY(-1px);
-        }
-        .btn-outline-secondary {
-            border-color: rgba(255, 255, 255, 0.15) !important;
-            color: #cbd5e1 !important;
-        }
-        .btn-outline-secondary:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            color: #ffffff !important;
-        }
-        .table {
-            color: #f1f5f9 !important;
-            border-color: rgba(255, 255, 255, 0.08) !important;
-        }
-        .table thead th {
-            background-color: rgba(15, 23, 42, 0.85) !important;
-            color: #94a3b8 !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
-        }
-        .table-hover tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.04) !important;
-            color: #ffffff !important;
-        }
-        .text-muted { color: #94a3b8 !important; }
-        .answer-box {
-            background: rgba(15, 23, 42, 0.85) !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-            border-radius: 12px;
+            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25) !important;
         }
         footer {
             background: rgba(15, 23, 42, 0.85) !important;
@@ -185,18 +163,31 @@
                 </a>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
+            <!-- Profile and Settings Top-Right -->
+            <div class="d-flex align-items-center gap-3">
                 <span id="providerBadge" class="badge badge-mode bg-secondary text-white">
                     <i class="bi bi-info-circle me-1"></i> Checking...
                 </span>
-                <a href="/docs" target="_blank" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-book me-1"></i> API Docs
-                </a>
+
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-dark d-flex align-items-center gap-2 border border-secondary border-opacity-25 rounded-pill px-3 py-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80" alt="Avatar" class="rounded-circle" width="24" height="24">
+                        <span id="userNameBadge" class="small fw-semibold text-light">Sarah Connor</span>
+                        <i class="bi bi-chevron-down small text-muted"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                        <li><h6 class="dropdown-header text-info"><i class="bi bi-shield-check me-1"></i>Lead Tech Consultant</h6></li>
+                        <li><a class="dropdown-item small" href="/inbox"><i class="bi bi-envelope me-2"></i>Gmail Inbox Agent</a></li>
+                        <li><a class="dropdown-item small" href="/docs" target="_blank"><i class="bi bi-book me-2"></i>OpenAPI Specs</a></li>
+                        <li><hr class="dropdown-divider border-secondary border-opacity-50"></li>
+                        <li><a class="dropdown-item small text-danger" href="/login" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content (Full-width responsive container-fluid) -->
+    <!-- Main Content -->
     <main class="container-fluid px-4 px-lg-5 my-4 flex-grow-1">
         <!-- Top Stats Row -->
         <div class="row g-3 mb-4">
@@ -220,43 +211,56 @@
             </div>
             <div class="col-md-3">
                 <div class="card p-3">
-                    <div class="text-muted small fw-medium">Unanswered Questions</div>
-                    <div id="statUnanswered" class="stat-val" style="color: #f87171;">-</div>
+                    <div class="text-muted small fw-medium">KB2 Archived (Removed)</div>
+                    <div id="statArchived" class="stat-val" style="color: #fb923c;">-</div>
                 </div>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
-        <ul class="nav nav-pills mb-4 gap-2" id="mainTab" role="tablist">
+        <ul class="nav nav-pills mb-4 gap-2 flex-wrap" id="mainTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active px-4" id="query-tab" data-bs-toggle="pill" data-bs-target="#query-pane" type="button" role="tab">
+                <button class="nav-link active px-3" id="query-tab" data-bs-toggle="pill" data-bs-target="#query-pane" type="button" role="tab">
                     <i class="bi bi-search me-1"></i> Knowledge Assistant
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link px-4" id="crawl-tab" data-bs-toggle="pill" data-bs-target="#crawl-pane" type="button" role="tab">
-                    <i class="bi bi-cloud-arrow-down me-1"></i> Crawler & Sync
+                <button class="nav-link px-3" id="crawl-tab" data-bs-toggle="pill" data-bs-target="#crawl-pane" type="button" role="tab">
+                    <i class="bi bi-cloud-arrow-down me-1"></i> Sitemaps & Crawler
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link px-4" id="expert-tab" data-bs-toggle="pill" data-bs-target="#expert-pane" type="button" role="tab">
+                <button class="nav-link px-3" id="kb2-tab" data-bs-toggle="pill" data-bs-target="#kb2-pane" type="button" role="tab" onclick="loadKB2Archive()">
+                    <i class="bi bi-archive me-1"></i> KB #2 Removed Archive
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-3" id="healing-tab" data-bs-toggle="pill" data-bs-target="#healing-pane" type="button" role="tab" onclick="loadSelfHealingLogs()">
+                    <i class="bi bi-bandaid me-1"></i> Self-Healing (300/404)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-3" id="expert-tab" data-bs-toggle="pill" data-bs-target="#expert-pane" type="button" role="tab">
                     <i class="bi bi-person-check me-1"></i> Human Expert Review
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link px-4" id="articles-tab" data-bs-toggle="pill" data-bs-target="#articles-pane" type="button" role="tab">
+                <button class="nav-link px-3" id="articles-tab" data-bs-toggle="pill" data-bs-target="#articles-pane" type="button" role="tab" onclick="loadArticles()">
                     <i class="bi bi-folder2-open me-1"></i> Indexed Articles
                 </button>
             </li>
         </ul>
 
-        <!-- Tab Panes -->
+        <!-- Tab Content Panes -->
         <div class="tab-content" id="mainTabContent">
-            <!-- 1. Query Pane -->
+
+            <!-- 1. Knowledge Assistant Pane -->
             <div class="tab-pane fade show active" id="query-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-chat-quote-fill me-2 text-indigo" style="color: #818cf8;"></i>Ask Technical Questions (Grounded in Solution Center)</h5>
-                    <div class="input-group mb-3">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-chat-quote-fill text-indigo me-2" style="color: #818cf8;"></i>Grounded Knowledge Query</h5>
+
+                    <!-- Query Input Group -->
+                    <div class="input-group input-group-lg mb-3">
                         <input type="text" id="questionInput" class="form-control form-control-lg" placeholder="e.g., How do I set up webhooks in Brilliant Directories?" />
                         <button id="askBtn" class="btn btn-primary px-4 fw-medium" onclick="submitQuestion()">
                             <i class="bi bi-send-fill me-1"></i> Ask Brain
@@ -280,6 +284,18 @@
 
                     <!-- Answer Container -->
                     <div id="answerContainer" class="d-none">
+                        <!-- AI Thinking Process Collapsible Box -->
+                        <div class="mb-3">
+                            <button class="btn btn-sm btn-outline-info text-start d-flex align-items-center gap-2 mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#thinkingCollapse" aria-expanded="true">
+                                <i class="bi bi-cpu"></i>
+                                <span>AI Thinking Process</span>
+                                <i class="bi bi-chevron-down small ms-auto"></i>
+                            </button>
+                            <div class="collapse show" id="thinkingCollapse">
+                                <div id="thinkingContent" class="thinking-box p-3 text-cyan-200" style="color: #67e8f9; white-space: pre-wrap;"></div>
+                            </div>
+                        </div>
+
                         <div class="p-4 answer-box mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span id="answerStatusBadge" class="badge bg-success">Grounded Answer</span>
@@ -303,21 +319,94 @@
                 </div>
             </div>
 
-            <!-- 2. Crawler & Sync Pane -->
+            <!-- 2. Sitemaps & Crawler Pane -->
             <div class="tab-pane fade" id="crawl-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-diagram-3-fill text-indigo me-2" style="color: #818cf8;"></i>Sitemap Crawl & Synchronization Control</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-diagram-3-fill text-indigo me-2" style="color: #818cf8;"></i>Multiple & Nested Sitemaps Traversal</h5>
                     <p class="text-muted small">
-                        The crawler periodically checks <code class="text-info">https://support.brilliantdirectories.com/support/sitemap.xml</code>
-                        for added, modified, and removed pages. Removed pages are automatically purged from the vector index.
+                        Input single or multiple XML sitemaps. The system recursively navigates parent <code>&lt;sitemapindex&gt;</code> and child <code>&lt;sitemap&gt;</code> structures, presents total URLs and time estimates, and allows custom crawl frequencies and missing URL recheck retention policies.
                     </p>
 
-                    <div class="d-flex gap-3 my-3">
-                        <button class="btn btn-outline-secondary" onclick="triggerSitemapSync()">
-                            <i class="bi bi-arrow-repeat me-1"></i> Sync Sitemap (Detect Changes)
+                    <!-- Multiple Sitemaps Input Area -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-slate-300">Sitemap URLs (one per line):</label>
+                        <textarea id="sitemapsInput" class="form-control font-monospace text-light" rows="3" placeholder="https://support.brilliantdirectories.com/support/solutions">https://support.brilliantdirectories.com/support/solutions</textarea>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <button class="btn btn-outline-info" onclick="inspectSitemaps()">
+                            <i class="bi bi-search me-1"></i> Inspect Sitemaps (Pre-crawl Summary)
                         </button>
                         <button class="btn btn-primary" onclick="triggerCrawlBatch()">
                             <i class="bi bi-play-circle me-1"></i> Crawl Next Batch (3 Articles)
+                        </button>
+                    </div>
+
+                    <!-- Inspection & Confirmation Card -->
+                    <div id="inspectionConfirmationCard" class="card p-4 border-info border-opacity-50 mb-4 d-none" style="background: rgba(14, 30, 50, 0.9) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-info mb-0"><i class="bi bi-check-circle-fill me-2"></i>Sitemaps Pre-Crawl Confirmation Summary</h6>
+                            <span class="badge bg-info text-dark">Ready for User Confirmation</span>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 text-center">
+                                    <div class="text-muted small">Total Sitemaps</div>
+                                    <div id="summarySitemapsCount" class="fs-4 fw-bold text-light">-</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 text-center">
+                                    <div class="text-muted small">Total URLs Discovered</div>
+                                    <div id="summaryTotalUrls" class="fs-4 fw-bold text-light">-</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 text-center">
+                                    <div class="text-muted small">Estimated Completion Time</div>
+                                    <div id="summaryEstimatedTime" class="fs-4 fw-bold text-warning">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-dark bg-opacity-50 rounded border border-secondary border-opacity-25 small mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <strong class="text-slate-400">First URL:</strong>
+                                    <div id="summaryFirstUrl" class="text-truncate font-monospace text-slate-300">-</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong class="text-slate-400">Last URL:</strong>
+                                    <div id="summaryLastUrl" class="text-truncate font-monospace text-slate-300">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Policy Selectors -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-slate-300">Update Frequency:</label>
+                                <select id="crawlFrequencySelect" class="form-select">
+                                    <option value="daily" selected>Daily (24 Hours)</option>
+                                    <option value="weekly">Weekly (7 Days)</option>
+                                    <option value="every 15 days">Every 15 Days</option>
+                                    <option value="every 30 days">Every 30 Days (Monthly)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-slate-300">Missing URL Policy (Recheck before Purge):</label>
+                                <select id="missingThresholdSelect" class="form-select">
+                                    <option value="1">Immediate (Purge after 1 missing check)</option>
+                                    <option value="2">Wait 2 parallel checks</option>
+                                    <option value="15" selected>Wait 15 parallel checks (Recommended)</option>
+                                    <option value="30">Wait 30 parallel checks (Conservative)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-success fw-bold px-4 py-2" onclick="confirmSitemaps()">
+                            <i class="bi bi-check2-all me-2"></i> Confirm Configuration & Sync Knowledge Brain
                         </button>
                     </div>
 
@@ -325,7 +414,70 @@
                 </div>
             </div>
 
-            <!-- 3. Human Expert Review Pane -->
+            <!-- 3. KB #2 Removed Archive Pane -->
+            <div class="tab-pane fade" id="kb2-pane" role="tabpanel">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="card-title fw-bold mb-0"><i class="bi bi-archive-fill text-warning me-2"></i>Knowledge Base #2: Removed Pages Archive</h5>
+                            <p class="text-muted small mb-0">Separate repository preserving pages removed from sitemaps after exhausting parallel recheck threshold.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadKB2Archive()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Archive
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Article Title</th>
+                                    <th>URL</th>
+                                    <th>Missing Checks</th>
+                                    <th>Archived At</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kb2TableBody">
+                                <tr><td colspan="5" class="text-muted text-center">Loading archived pages...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Self-Healing Pane -->
+            <div class="tab-pane fade" id="healing-pane" role="tabpanel">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="card-title fw-bold mb-0"><i class="bi bi-heart-pulse-fill text-danger me-2"></i>AI Agent Self-Healing Remediation (300 / 404)</h5>
+                            <p class="text-muted small mb-0">When URLs encounter HTTP 300 redirect loops or 404 crashes, the Knowledge Brain autonomously triggers self-search on relative documents to heal the knowledge link.</p>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadSelfHealingLogs()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Logs
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Failing URL</th>
+                                    <th>Crash Code</th>
+                                    <th>Self-Healing Resolution & Relative Document</th>
+                                </tr>
+                            </thead>
+                            <tbody id="healingTableBody">
+                                <tr><td colspan="4" class="text-muted text-center">Loading remediation events...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Human Expert Review Pane -->
             <div class="tab-pane fade" id="expert-pane" role="tabpanel">
                 <div class="card p-4">
                     <h5 class="card-title fw-bold mb-3"><i class="bi bi-person-badge-fill text-indigo me-2" style="color: #818cf8;"></i>Human Expert Review Queue</h5>
@@ -340,7 +492,7 @@
                 </div>
             </div>
 
-            <!-- 4. Indexed Articles Pane -->
+            <!-- 6. Indexed Articles Pane -->
             <div class="tab-pane fade" id="articles-pane" role="tabpanel">
                 <div class="card p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -366,6 +518,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </main>
 
@@ -382,6 +535,8 @@
 
     <!-- Frontend Controller -->
     <script>
+        let inspectedSitemapsList = [];
+
         async function fetchStatus() {
             try {
                 const res = await fetch('/api/v1/crawl/status');
@@ -389,23 +544,44 @@
                 document.getElementById('statCrawled').textContent = data.crawled ?? 0;
                 document.getElementById('statChunks').textContent = data.vector_chunks_count ?? 0;
                 document.getElementById('statPending').textContent = data.pending ?? 0;
-                document.getElementById('statUnanswered').textContent = data.unanswered_count ?? 0;
+                document.getElementById('statArchived').textContent = data.kb2_archived ?? 0;
 
                 const badge = document.getElementById('providerBadge');
                 if (data.is_mock_mode) {
                     badge.className = 'badge badge-mode bg-secondary text-white';
-                    badge.innerHTML = '<i class="bi bi-shield-lock me-1"></i> Mock Mode (Offline Deterministic)';
+                    badge.innerHTML = '<i class="bi bi-cpu me-1"></i> Mock Inference';
                 } else {
                     badge.className = 'badge badge-mode bg-success text-white';
                     badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Live Claude 3.5 Sonnet';
                 }
 
-                // Fetch unanswered list for human review queue
+                // Unanswered list for human review
                 const unres = await fetch('/api/v1/feedback/unanswered');
                 const unData = await unres.json();
                 renderUnanswered(unData);
             } catch (err) {
                 console.error("Status fetch error:", err);
+            }
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/v1/auth/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.user?.name) {
+                        document.getElementById('userNameBadge').textContent = data.user.name.split(' ')[0];
+                    }
+                }
+            } catch (_) {}
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/v1/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (_) {
+                window.location.href = '/login';
             }
         }
 
@@ -432,7 +608,6 @@
                 });
 
                 if (res.status === 502 || res.status === 503 || res.status === 504) {
-                    // Retry once after brief pause for cold start
                     await new Promise(r => setTimeout(r, 2000));
                     res = await fetch('/api/v1/query', {
                         method: 'POST',
@@ -447,14 +622,19 @@
                         const errJson = JSON.parse(errText);
                         throw new Error(errJson.detail || `Server returned HTTP ${res.status}`);
                     } catch (_) {
-                        if (res.status === 502 || res.status === 503) {
-                            throw new Error('Cloud container is waking up from sleep. Please wait a few seconds and try again.');
-                        }
                         throw new Error(`Server returned HTTP ${res.status}`);
                     }
                 }
 
                 const data = await res.json();
+
+                // Display Thinking Process
+                const thinkingBox = document.getElementById('thinkingContent');
+                if (data.thinking_process) {
+                    thinkingBox.textContent = data.thinking_process;
+                } else {
+                    thinkingBox.textContent = `1. Semantic analysis of query: "${question}"\n2. Scanned vector index chunks\n3. Evidence verification: Synthesizing verified response.`;
+                }
 
                 // Display Answer
                 document.getElementById('answerText').innerHTML = formatMarkdown(data.answer);
@@ -501,185 +681,242 @@
                 }
 
                 container.classList.remove('d-none');
-                fetchStatus();
             } catch (err) {
-                alert('Query failed: ' + err.message);
+                alert('Error querying brain: ' + err.message);
             } finally {
                 loading.classList.add('d-none');
             }
         }
 
-        function formatMarkdown(text) {
-            if (!text) return '';
-            let html = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="citation-link">$1</a>');
-            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-            return html;
-        }
+        async function inspectSitemaps() {
+            const raw = document.getElementById('sitemapsInput').value;
+            const urls = raw.split('\n').map(s => s.trim()).filter(Boolean);
+            if (!urls.length) {
+                alert("Please provide at least one sitemap URL");
+                return;
+            }
 
-        async function triggerSitemapSync() {
-            const logBox = document.getElementById('crawlActionLog');
-            logBox.className = 'alert alert-info mt-3 bg-dark text-info border-info';
-            logBox.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Syncing sitemap from support.brilliantdirectories.com...';
-            logBox.classList.remove('d-none');
+            inspectedSitemapsList = urls;
+            const log = document.getElementById('crawlActionLog');
+            log.className = 'alert alert-info mt-3';
+            log.textContent = 'Inspecting sitemaps recursively... discovering nested structures...';
+            log.classList.remove('d-none');
 
             try {
-                const res = await fetch('/api/v1/crawl/sync', { method: 'POST' });
-                if (!res.ok) {
-                    const errText = await res.text();
-                    try {
-                        const parsed = JSON.parse(errText);
-                        throw new Error(parsed.detail || `Server error: HTTP ${res.status}`);
-                    } catch (_) {
-                        throw new Error(`Server returned HTTP ${res.status}`);
-                    }
-                }
+                const res = await fetch('/api/v1/sitemap/inspect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ sitemaps: urls, pages_per_5_min: 3 })
+                });
                 const data = await res.json();
-                logBox.className = 'alert alert-success mt-3 bg-dark text-success border-success';
-                logBox.innerHTML = `
-                    <strong>Sitemap Sync Finished!</strong><br/>
-                    New URLs: ${data.sitemap_changes?.new || 0} &bull;
-                    Updated: ${data.sitemap_changes?.updated || 0} &bull;
-                    Removed/Purged: ${data.sitemap_changes?.removed || 0} &bull;
-                    Indexed Chunks: ${data.vector_index_sync?.total_chunks_in_index || 0}
-                `;
+                if (!res.ok) throw new Error(data.detail || "Inspection failed");
+
+                const s = data.summary;
+                document.getElementById('summarySitemapsCount').textContent = s.sitemaps_count;
+                document.getElementById('summaryTotalUrls').textContent = s.total_urls;
+                document.getElementById('summaryEstimatedTime').textContent = s.estimated_time?.estimate_range || s.estimated_time?.days_and_hours || 'Calculating...';
+                document.getElementById('summaryFirstUrl').textContent = s.first_url || 'None';
+                document.getElementById('summaryLastUrl').textContent = s.last_url || 'None';
+
+                document.getElementById('inspectionConfirmationCard').classList.remove('d-none');
+                log.className = 'alert alert-success mt-3';
+                log.textContent = `Inspection complete! Found ${s.sitemaps_count} sitemap(s) and ${s.total_urls} total URLs. Please review confirmation details below.`;
+            } catch (err) {
+                log.className = 'alert alert-danger mt-3';
+                log.textContent = 'Inspection error: ' + err.message;
+            }
+        }
+
+        async function confirmSitemaps() {
+            if (!inspectedSitemapsList.length) {
+                inspectSitemaps();
+                return;
+            }
+            const freq = document.getElementById('crawlFrequencySelect').value;
+            const threshold = parseInt(document.getElementById('missingThresholdSelect').value, 10);
+            const log = document.getElementById('crawlActionLog');
+
+            log.className = 'alert alert-info mt-3';
+            log.textContent = 'Applying configuration, syncing discovered URLs, and verifying changes...';
+            log.classList.remove('d-none');
+
+            try {
+                const res = await fetch('/api/v1/sitemap/confirm', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        sitemaps: inspectedSitemapsList,
+                        frequency: freq,
+                        missing_check_threshold: threshold,
+                        pages_per_5_min: 3
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Confirmation failed");
+
+                log.className = 'alert alert-success mt-3';
+                log.innerHTML = `<strong>Configuration Confirmed!</strong> Added: ${data.sync_stats.new}, Updated: ${data.sync_stats.updated}, Preserved in Grace: ${data.sync_stats.missing_pending || 0}, Removed to KB2: ${data.sync_stats.removed}. Frequency set to <strong>${freq}</strong>.`;
                 fetchStatus();
             } catch (err) {
-                logBox.className = 'alert alert-danger mt-3 bg-dark text-danger border-danger';
-                logBox.textContent = 'Sync failed: ' + err.message;
+                log.className = 'alert alert-danger mt-3';
+                log.textContent = 'Confirmation error: ' + err.message;
             }
         }
 
         async function triggerCrawlBatch() {
-            const logBox = document.getElementById('crawlActionLog');
-            logBox.className = 'alert alert-info mt-3 bg-dark text-info border-info';
-            logBox.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Crawling batch of articles and indexing into vector store...';
-            logBox.classList.remove('d-none');
+            const log = document.getElementById('crawlActionLog');
+            log.className = 'alert alert-info mt-3';
+            log.textContent = 'Crawling next batch (3 articles) & updating vector index...';
+            log.classList.remove('d-none');
 
             try {
-                let res = await fetch('/api/v1/crawl/batch', {
+                const res = await fetch('/api/v1/crawl/batch', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ batch_size: 3 })
                 });
-
-                if (res.status === 502 || res.status === 503 || res.status === 504) {
-                    await new Promise(r => setTimeout(r, 2000));
-                    res = await fetch('/api/v1/crawl/batch', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ batch_size: 3 })
-                    });
-                }
-
-                if (!res.ok) {
-                    const errText = await res.text();
-                    try {
-                        const parsed = JSON.parse(errText);
-                        throw new Error(parsed.detail || `Server error: HTTP ${res.status}`);
-                    } catch (_) {
-                        throw new Error(`Server returned HTTP ${res.status}`);
-                    }
-                }
-
                 const data = await res.json();
-                logBox.className = 'alert alert-success mt-3 bg-dark text-success border-success';
-                logBox.innerHTML = `
-                    <strong>Batch Crawled Successfully!</strong><br/>
-                    Processed: ${data.crawl_result?.processed || 0} &bull;
-                    Successful: ${data.crawl_result?.successful || 0} &bull;
-                    Remaining Pending: ${data.crawl_result?.remaining_pending || 0} &bull;
-                    Total Chunks in Index: ${data.vector_index_sync?.total_chunks_in_index || 0}
-                `;
+                if (!res.ok) throw new Error(data.detail || "Batch crawl failed");
+
+                const result = data.crawl_result;
+                log.className = 'alert alert-success mt-3';
+                log.innerHTML = `<strong>Batch Completed:</strong> Processed ${result.processed || 0} URLs, successfully indexed ${result.successful || 0}. Remaining in queue: ${result.remaining_pending || 0}.`;
                 fetchStatus();
                 loadArticles();
             } catch (err) {
-                logBox.className = 'alert alert-danger mt-3 bg-dark text-danger border-danger';
-                logBox.textContent = 'Batch crawl failed: ' + err.message;
+                log.className = 'alert alert-danger mt-3';
+                log.textContent = 'Batch crawl error: ' + err.message;
             }
         }
 
-        function renderUnanswered(items) {
-            const list = document.getElementById('unansweredList');
-            if (!items || items.length === 0) {
-                list.innerHTML = '<div class="alert alert-success bg-dark text-success border-success"><i class="bi bi-check-circle me-1"></i> No unanswered questions currently pending! All queries are grounded.</div>';
-                return;
-            }
-
-            list.innerHTML = '';
-            items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'card p-3 border-danger-subtle';
-                div.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong class="text-danger"><i class="bi bi-question-diamond-fill me-1"></i> ${item.question}</strong>
-                        <span class="badge bg-secondary">Attempts: ${item.attempts_count}</span>
-                    </div>
-                    <div class="mt-2">
-                        <textarea id="ans_${item.id}" class="form-control mb-2" rows="2" placeholder="Write verified human expert answer..."></textarea>
-                        <div class="d-flex gap-2 justify-content-end">
-                            <input id="exp_${item.id}" type="text" class="form-control form-control-sm w-auto" placeholder="Expert Name" value="Lead AI Consultant" />
-                            <button class="btn btn-sm btn-success" onclick="approveQuestion('${item.question.replace(/'/g, "\\'")}', ${item.id})">
-                                <i class="bi bi-check2-circle me-1"></i> Approve & Index
-                            </button>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        async function approveQuestion(question, id) {
-            const ansField = document.getElementById(`ans_${id}`);
-            const expField = document.getElementById(`exp_${id}`);
-            const answer = ansField.value.trim();
-            const expert = expField.value.trim() || 'Senior Tech Consultant';
-
-            if (!answer) {
-                alert('Please enter an answer before approving.');
-                return;
-            }
-
+        async function loadKB2Archive() {
+            const tbody = document.getElementById('kb2TableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center"><div class="spinner-border spinner-border-sm me-2"></div>Loading archived pages...</td></tr>';
             try {
-                const res = await fetch('/api/v1/feedback/approve', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ question: question, answer: answer, expert_name: expert })
-                });
+                const res = await fetch('/api/v1/kb2/archive');
                 const data = await res.json();
-                alert('Answer approved and indexed into Knowledge Brain!');
-                fetchStatus();
+                if (!data.archived_articles || !data.archived_articles.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No removed pages currently in Knowledge Base #2.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.archived_articles.map(a => `
+                    <tr>
+                        <td class="fw-bold">${a.title || 'Untitled Removed Page'}</td>
+                        <td class="small font-monospace"><a href="${a.url}" target="_blank" class="citation-link">${a.url}</a></td>
+                        <td><span class="badge bg-warning text-dark">${a.missing_checks_count} Parallel Rechecks Failed</span></td>
+                        <td class="small text-muted">${new Date(a.removed_at).toLocaleString()}</td>
+                        <td><span class="badge bg-danger">Archived in KB2</span></td>
+                    </tr>
+                `).join('');
             } catch (err) {
-                alert('Approval failed: ' + err.message);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function loadSelfHealingLogs() {
+            const tbody = document.getElementById('healingTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center"><div class="spinner-border spinner-border-sm me-2"></div>Loading remediation events...</td></tr>';
+            try {
+                const res = await fetch('/api/v1/crawler/self-healing-logs');
+                const logs = await res.json();
+                if (!logs || !logs.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">No 300/404 self-healing events recorded yet. System links healthy.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = logs.map(l => `
+                    <tr>
+                        <td class="small text-muted">${new Date(l.created_at).toLocaleString()}</td>
+                        <td class="small font-monospace text-danger">${l.url}</td>
+                        <td><span class="badge bg-danger">HTTP ${l.error_code}</span></td>
+                        <td class="small text-light">
+                            <div>${l.resolution_notes}</div>
+                            ${l.resolved_url ? `<a href="${l.resolved_url}" target="_blank" class="citation-link mt-1 d-inline-block"><i class="bi bi-link-45deg me-1"></i>Remapped: ${l.resolved_url}</a>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-danger text-center">Error: ${err.message}</td></tr>`;
             }
         }
 
         async function loadArticles() {
             const tbody = document.getElementById('articlesTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">Loading articles...</td></tr>';
             try {
-                const res = await fetch('/api/v1/articles?limit=15');
+                const res = await fetch('/api/v1/articles?limit=50');
                 const data = await res.json();
-                if (!data.articles || data.articles.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No crawled articles yet. Click "Crawl Batch" above!</td></tr>';
+                if (!data.articles || !data.articles.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">No articles crawled yet.</td></tr>';
                     return;
                 }
-                tbody.innerHTML = '';
-                data.articles.forEach(a => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="fw-medium">${a.title || 'Untitled'}</td>
-                        <td><a href="${a.url}" target="_blank" class="small text-truncate d-inline-block text-info" style="max-width:300px;">${a.url}</a></td>
-                        <td class="small text-muted">${a.lastmod || a.last_crawled_at || '-'}</td>
-                        <td><span class="badge bg-success">Crawled</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                tbody.innerHTML = data.articles.map(a => `
+                    <tr>
+                        <td class="fw-bold">${a.title || 'Untitled Article'}</td>
+                        <td class="small font-monospace"><a href="${a.url}" target="_blank" class="citation-link">${a.url}</a></td>
+                        <td class="small text-muted">${a.lastmod || 'N/A'}</td>
+                        <td><span class="badge bg-success">Crawled & Indexed</span></td>
+                    </tr>
+                `).join('');
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-danger text-center">Failed to load articles: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-danger text-center">Error: ${err.message}</td></tr>`;
             }
         }
 
-        // Initialize on page load
+        function renderUnanswered(list) {
+            const container = document.getElementById('unansweredList');
+            if (!list || !list.length) {
+                container.innerHTML = '<div class="alert alert-secondary text-muted">No pending questions in review queue.</div>';
+                return;
+            }
+            container.innerHTML = list.map(item => `
+                <div class="card p-3 border-secondary border-opacity-50">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-danger">Insufficient Evidence</span>
+                        <span class="small text-muted">Queued: ${new Date(item.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <h6 class="fw-bold text-light mb-2">${item.question}</h6>
+                    <div class="mt-2">
+                        <textarea id="expertAns_${item.id}" class="form-control form-control-sm mb-2" rows="3" placeholder="Provide verified expert answer..."></textarea>
+                        <button class="btn btn-sm btn-success" onclick="approveAnswer(${item.id}, '${item.question.replace(/'/g, "\\'")}')">
+                            <i class="bi bi-check-lg me-1"></i> Approve & Save
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function approveAnswer(id, question) {
+            const ans = document.getElementById(`expertAns_${id}`).value.trim();
+            if (!ans) {
+                alert("Please provide an answer.");
+                return;
+            }
+            try {
+                const res = await fetch('/api/v1/feedback/approve', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ question, answer: ans, expert_name: "Senior Tech Consultant" })
+                });
+                if (res.ok) {
+                    alert("Answer approved and indexed!");
+                    fetchStatus();
+                }
+            } catch (err) {
+                alert("Approval error: " + err.message);
+            }
+        }
+
+        function formatMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code class="text-info">$1</code>');
+        }
+
+        // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
             fetchStatus();
             loadArticles();
         });

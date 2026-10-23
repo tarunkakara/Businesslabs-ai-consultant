@@ -15,8 +15,17 @@ class EmailClassifier:
 
     # Lexical triggers with category association
     KEYWORD_MAPPINGS = {
+        EmailCategory.BILLING: [
+            "billing portal", "invoice statement", "payment gateway setup", "subscription renewal", "tax invoice", "billing address", "vat", "receipt"
+        ],
+        EmailCategory.FILTERS: [
+            "filter", "filters", "sidebar filter", "search filter", "facet", "filtering", "dropdown filter", "custom filter"
+        ],
+        EmailCategory.DESIGN_SETTINGS: [
+            "design settings", "design setting", "typography", "css", "color theme", "logo", "header layout", "font", "branding", "styling"
+        ],
         EmailCategory.REFUND: [
-            "refund", "double charge", "charged twice", "cancel", "money back",
+            "refund", "double charge", "charged twice", "double billed", "cancel subscription", "money back",
             "overcharged", "billing dispute", "accidental renewal", "reverse charge"
         ],
         EmailCategory.COMPLAINT: [

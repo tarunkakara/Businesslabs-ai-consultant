@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 
 class EmailCategory(str, Enum):
     """Supported customer email categories."""
+    BILLING = "billing"
+    FILTERS = "filters"
+    DESIGN_SETTINGS = "design_settings"
     PRODUCT_QUESTION = "product_question"
     PROJECT_REQUEST = "project_request"
     REFUND = "refund"

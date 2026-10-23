@@ -7,6 +7,7 @@ import httpx
 
 from task1_knowledge_brain.app.config import settings
 from task1_knowledge_brain.app.crawler.extractor import ArticleExtractor
+from task1_knowledge_brain.app.crawler.self_healing import SelfHealingAgent
 from task1_knowledge_brain.app.crawler.sitemap import SitemapParser
 from task1_knowledge_brain.app.crawler.state import CrawlStateStore
 
@@ -22,10 +23,12 @@ class ResumableCrawler:
         sitemap_url: Optional[str] = None,
         delay_seconds: Optional[float] = None,
         max_retries: Optional[int] = None,
+        rag_engine=None,
     ):
         self.state_store = state_store or CrawlStateStore(settings.sqlite_db_path)
         self.sitemap_parser = SitemapParser(sitemap_url or settings.crawl_sitemap_url)
         self.extractor = ArticleExtractor()
+        self.self_healing_agent = SelfHealingAgent(state_store=self.state_store, rag_engine=rag_engine)
         self.delay_seconds = delay_seconds if delay_seconds is not None else settings.crawl_delay_seconds
         self.max_retries = max_retries if max_retries is not None else settings.crawl_max_retries
         self._is_running = False
@@ -71,7 +74,16 @@ class ResumableCrawler:
                     del article
                     logger.debug("Successfully crawled: %s", url)
                     return True
-                elif response.status_code in [404, 403, 410]:
+                elif response.status_code in [300, 301, 302, 303, 307, 308, 404]:
+                    # Trigger AI Self-Healing agent to search relative docs
+                    logger.warning("Triggering AI self-healing for status %d on: %s", response.status_code, url)
+                    try:
+                        await self.self_healing_agent.heal_url_failure(url, response.status_code)
+                    except Exception as heal_err:
+                        logger.warning("Self-healing error: %s", heal_err)
+                    self.state_store.mark_failed(url, f"HTTP {response.status_code} (AI Self-Healed)")
+                    return False
+                elif response.status_code in [403, 410]:
                     self.state_store.mark_failed(url, f"HTTP {response.status_code}")
                     return False
                 else:

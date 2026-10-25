@@ -6,37 +6,38 @@
     <title>AI Tech Consultant — Meeting-to-Scope Agent</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/graphite-emerald.css">
     <style>
         :root {
-            --bg-base: #090d16;
-            --bg-card: rgba(22, 30, 49, 0.75);
-            --border-glass: rgba(255, 255, 255, 0.09);
-            --accent-indigo: #818cf8;
-            --accent-glow: rgba(99, 102, 241, 0.35);
+            --bg-base: #101418;
+            --bg-card: #20282F;
+            --bg-nested: #252F37;
+            --bg-header: #151B21;
+            --border-glass: #36424A;
+            --accent-primary: #10B981;
+            --accent-hover: #059669;
+            --accent-secondary: #A3E635;
         }
         body {
-            background: radial-gradient(ellipse at 80% 0%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
-            background-attachment: fixed;
-            color: #f1f5f9;
+            background-color: #101418 !important;
+            color: #F3F4F6 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             min-height: 100vh;
         }
         .navbar {
-            background: rgba(15, 23, 42, 0.85) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--border-glass);
+            background: #151B21 !important;
+            border-bottom: 1px solid #36424A !important;
         }
         .brand-gradient {
-            background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            background: linear-gradient(135deg, #F3F4F6 0%, #34D399 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
             font-weight: 800;
             letter-spacing: -0.5px;
             font-size: 1.25rem;
         }
         .nav-service-pill {
-            color: #94a3b8;
+            color: #B0BAC3;
             font-size: 0.85rem;
             padding: 0.35rem 0.95rem;
             border-radius: 9999px;
@@ -45,88 +46,99 @@
             border: 1px solid transparent;
         }
         .nav-service-pill:hover {
-            color: #ffffff;
+            color: #F3F4F6;
             background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.12);
+            border-color: #36424A;
         }
         .nav-service-pill.active {
-            color: #ffffff;
-            background: rgba(99, 102, 241, 0.25);
-            border-color: rgba(99, 102, 241, 0.5);
-            box-shadow: 0 0 12px var(--accent-glow);
+            color: #F3F4F6;
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
         }
         .card {
-            background: var(--bg-card) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-glass) !important;
+            background: #20282F !important;
+            border: 1px solid #36424A !important;
             border-radius: 16px;
-            box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.45);
-            color: #f1f5f9;
+            box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.35);
+            color: #F3F4F6;
         }
         .metric-card {
-            background: rgba(15, 23, 42, 0.75) !important;
+            background: #252F37 !important;
             border-radius: 12px;
-            border: 1px solid var(--border-glass);
+            border: 1px solid #36424A !important;
         }
-        .native-badge { background-color: #10b981; color: white; }
-        .custom-badge { background-color: #6366f1; color: white; }
+        .native-badge {
+            background-color: rgba(16, 185, 129, 0.15) !important;
+            color: #34D399 !important;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        .custom-badge {
+            background-color: #252F37 !important;
+            color: #B0BAC3 !important;
+            border: 1px solid #36424A;
+        }
         .form-control, .form-select {
-            background-color: rgba(15, 23, 42, 0.8) !important;
-            border: 1px solid rgba(255, 255, 255, 0.14) !important;
-            color: #f8fafc !important;
+            background-color: #171E24 !important;
+            border: 1px solid #3A474F !important;
+            color: #F3F4F6 !important;
             border-radius: 10px;
         }
         .form-control:focus, .form-select:focus {
-            background-color: rgba(15, 23, 42, 0.95) !important;
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
-            color: #ffffff !important;
+            background-color: #171E24 !important;
+            border-color: #10B981 !important;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25) !important;
+            color: #F3F4F6 !important;
         }
-        .form-control::placeholder { color: #64748b !important; }
+        .form-control::placeholder { color: #8996A2 !important; }
         .btn-primary {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            background: #10B981 !important;
+            color: #101418 !important;
             border: none !important;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
             font-weight: 600;
         }
         .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+            background: #059669 !important;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
             transform: translateY(-1px);
         }
         .btn-success {
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+            background: #10B981 !important;
+            color: #101418 !important;
             border: none !important;
             box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
             font-weight: 600;
         }
         .btn-success:hover {
+            background: #059669 !important;
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
             transform: translateY(-1px);
         }
         .btn-outline-secondary {
-            border-color: rgba(255, 255, 255, 0.15) !important;
-            color: #cbd5e1 !important;
+            border-color: #36424A !important;
+            color: #B0BAC3 !important;
         }
         .btn-outline-secondary:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            color: #ffffff !important;
+            background: #252F37 !important;
+            border-color: #10B981 !important;
+            color: #F3F4F6 !important;
         }
         .table {
-            color: #f1f5f9 !important;
-            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #F3F4F6 !important;
+            border-color: #36424A !important;
         }
         .table thead th {
-            background-color: rgba(15, 23, 42, 0.85) !important;
-            color: #94a3b8 !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+            background-color: #252F37 !important;
+            color: #B0BAC3 !important;
+            border-bottom: 1px solid #36424A !important;
         }
         .summary-box {
-            background: rgba(15, 23, 42, 0.7) !important;
-            border: 1px solid var(--border-glass) !important;
+            background: #252F37 !important;
+            border: 1px solid #36424A !important;
             border-radius: 10px;
         }
-        .text-muted { color: #94a3b8 !important; }
+        .text-muted { color: #8996A2 !important; }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -191,7 +203,7 @@
             <!-- Left: Transcript Input & Controls -->
             <div class="col-lg-5">
                 <div class="card p-4 h-100">
-                    <h5 class="fw-bold mb-3 text-light"><i class="bi bi-mic-fill text-indigo me-2" style="color: #818cf8;"></i>Input Meeting Transcript</h5>
+                    <h5 class="fw-bold mb-3 text-light"><i class="bi bi-mic-fill me-2" style="color: #10B981;"></i>Input Meeting Transcript</h5>
 
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-light">Client / Company Name:</label>
@@ -206,7 +218,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         <span class="small text-muted w-100">Quick sample transcripts:</span>
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadSample(1)">Sample 1: Initial Discovery</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="loadSample(2)">Sample 2: Revised Transcript (Scope Creep)</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadSample(2)">Sample 2: Revised Transcript (Scope Creep)</button>
                     </div>
 
                     <input type="hidden" id="prevMeetingId" value="" />
@@ -221,7 +233,7 @@
             <div class="col-lg-7">
                 <div id="outputEmpty" class="card p-5 text-center text-muted h-100 d-flex align-items-center justify-content-center">
                     <div>
-                        <i class="bi bi-file-text fs-1 text-secondary mb-3 d-block"></i>
+                        <i class="bi bi-file-text fs-1 mb-3 d-block" style="color: #36424A;"></i>
                         <h5 class="text-light">Submit a transcript on the left to generate SOW, check native features, and review proposal.</h5>
                         <p class="small text-muted">The 5-stage pipeline detects ambiguities, cross-references Brilliant Directories docs, computes $120/hr estimates, and monitors scope creep.</p>
                     </div>
@@ -239,7 +251,7 @@
                         <div class="col-sm-4">
                             <div class="metric-card p-3">
                                 <div class="small text-muted fw-bold">Estimated Cost ($120/h)</div>
-                                <div id="displayCost" class="fs-3 fw-bold text-indigo" style="color: #a5b4fc !important;">-</div>
+                                <div id="displayCost" class="fs-3 fw-bold" style="color: #34D399 !important;">-</div>
                             </div>
                         </div>
                         <div class="col-sm-4">
@@ -251,7 +263,7 @@
                     </div>
 
                     <!-- Revision Diff Notice (If applicable) -->
-                    <div id="diffAlertBox" class="alert alert-warning d-none bg-dark text-warning border-warning shadow-sm mb-3">
+                    <div id="diffAlertBox" class="alert alert-warning d-none text-warning border-warning shadow-sm mb-3" style="background: #252F37; border-color: #FBBF24 !important;">
                         <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Transcript Revision Detected:</h6>
                         <div id="diffContent" class="small" style="white-space: pre-wrap;"></div>
                     </div>
@@ -270,12 +282,12 @@
 
                         <!-- Executive Summary -->
                         <div class="p-3 summary-box mb-3">
-                            <h6 class="small fw-bold text-indigo mb-1" style="color: #a5b4fc;"><i class="bi bi-card-text me-1"></i>Executive Summary:</h6>
+                            <h6 class="small fw-bold mb-1" style="color: #34D399;"><i class="bi bi-card-text me-1"></i>Executive Summary:</h6>
                             <p id="proposalSummary" class="small mb-0 text-light"></p>
                         </div>
 
                         <!-- Task Breakdown Table -->
-                        <h6 class="fw-bold mb-2 text-light"><i class="bi bi-list-check text-indigo me-1" style="color: #818cf8;"></i>Detailed Work Packages:</h6>
+                        <h6 class="fw-bold mb-2 text-light"><i class="bi bi-list-check me-1" style="color: #10B981;"></i>Detailed Work Packages:</h6>
                         <div class="table-responsive mb-3">
                             <table class="table table-sm table-bordered align-middle">
                                 <thead>
@@ -291,19 +303,19 @@
                         </div>
 
                         <!-- Open Questions -->
-                        <div id="questionsContainer" class="alert alert-info py-2 px-3 small d-none bg-dark text-info border-info">
-                            <strong><i class="bi bi-question-circle me-1"></i> Ambiguous Requirements & Follow-Up Questions:</strong>
+                        <div id="questionsContainer" class="alert alert-info py-2 px-3 small d-none" style="background: #252F37; border-color: #36424A; color: #B0BAC3;">
+                            <strong style="color: #FBBF24;"><i class="bi bi-question-circle me-1"></i> Ambiguous Requirements & Follow-Up Questions:</strong>
                             <ul id="questionsList" class="mb-0 mt-1 ps-3"></ul>
                         </div>
 
                         <!-- Action Bar -->
-                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary border-opacity-25 flex-wrap gap-2">
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2" style="border-color: #36424A !important;">
                             <div class="d-flex gap-2">
                                 <button class="btn btn-outline-secondary btn-sm" onclick="exportProposal()">
                                     <i class="bi bi-download me-1"></i> Export SOW (Markdown)
                                 </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportProposalPdf()">
-                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export SOW (PDF)
+                                <button class="btn btn-outline-secondary btn-sm" onclick="exportProposalPdf()">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1" style="color: #34D399;"></i> Export SOW (PDF)
                                 </button>
                             </div>
                             <button id="approveProposalBtn" class="btn btn-success" onclick="approveProposal()">
@@ -419,15 +431,15 @@ John: And we dropped the fast search requirement for now.`
                 const isQA = t.work_type === 'qa_testing';
                 let citationsHtml = '';
                 if (t.source_citations && t.source_citations.length > 0) {
-                    citationsHtml = '<div class="mt-2 pt-1 border-top border-secondary border-opacity-25 small">' +
-                        '<strong class="text-indigo me-1" style="color: #a5b4fc;"><i class="bi bi-bookmark-check-fill me-1"></i>Verified Source:</strong> ' +
-                        t.source_citations.map(c => `<a href="${c.url}" target="_blank" class="citation-link me-2 text-decoration-none" style="color: #818cf8;"><i class="bi bi-box-arrow-up-right me-1"></i>${c.title}</a>`).join('') +
+                    citationsHtml = '<div class="mt-2 pt-1 small" style="border-top: 1px solid #36424A;">' +
+                        '<strong class="me-1" style="color: #34D399;"><i class="bi bi-bookmark-check-fill me-1"></i>Verified Source:</strong> ' +
+                        t.source_citations.map(c => `<a href="${c.url}" target="_blank" class="citation-link me-2 text-decoration-none" style="color: #10B981;"><i class="bi bi-box-arrow-up-right me-1"></i>${c.title}</a>`).join('') +
                         '</div>';
                 }
 
                 let typeBadge = '<span class="badge custom-badge">Custom Dev</span>';
                 if (isNative) typeBadge = '<span class="badge native-badge">Native Config</span>';
-                else if (isQA) typeBadge = '<span class="badge bg-info text-dark">Dedicated QA</span>';
+                else if (isQA) typeBadge = '<span class="badge" style="background: rgba(163, 230, 53, 0.2); color: #A3E635; border: 1px solid rgba(163, 230, 53, 0.4);">Dedicated QA</span>';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -438,7 +450,7 @@ John: And we dropped the fast search requirement for now.`
                     </td>
                     <td>${typeBadge}</td>
                     <td class="text-end fw-bold text-light">${t.developer_hours.toFixed(1)}h</td>
-                    <td class="text-end fw-bold text-indigo" style="color: #a5b4fc !important;">$${t.estimated_cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="text-end fw-bold" style="color: #34D399 !important;">$${t.estimated_cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 `;
                 tbody.appendChild(tr);
             });

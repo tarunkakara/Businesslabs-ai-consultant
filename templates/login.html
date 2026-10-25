@@ -6,56 +6,98 @@
     <title>Authentication — AI Tech Consultant Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/graphite-emerald.css">
     <style>
         body {
-            background: radial-gradient(circle at 10% 20%, rgb(15, 23, 42) 0%, rgb(3, 7, 18) 90.2%);
+            background-color: #101418 !important;
+            color: #F3F4F6 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        .auth-card {
+            background-color: #20282F !important;
+            border: 1px solid #36424A !important;
+            border-radius: 16px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
         }
         .req-item {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.75rem;
-            color: #94a3b8;
+            color: #8996A2;
             transition: color 0.15s;
         }
         .req-item.valid {
-            color: #34d399;
+            color: #34D399;
         }
         .field-error {
             font-size: 0.75rem;
-            color: #f87171;
+            color: #F87171;
             margin-top: 0.25rem;
+        }
+        .auth-input {
+            background-color: #171E24 !important;
+            border: 1px solid #3A474F !important;
+            color: #F3F4F6 !important;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+        .auth-input:focus {
+            background-color: #1b232a !important;
+            border-color: #34D399 !important;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25) !important;
+            outline: none !important;
+        }
+        .btn-auth-primary {
+            background-color: #10B981 !important;
+            color: #041f14 !important;
+            font-weight: 600 !important;
+            border: none !important;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+            transition: all 0.18s ease;
+        }
+        .btn-auth-primary:hover {
+            background-color: #059669 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+            transform: translateY(-1px);
+        }
+        .tab-active-btn {
+            background-color: #10B981 !important;
+            color: #041f14 !important;
+            font-weight: 700 !important;
+            box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3) !important;
+        }
+        .tab-inactive-btn {
+            background: transparent !important;
+            color: #B0BAC3 !important;
+        }
+        .tab-inactive-btn:hover {
+            color: #F3F4F6 !important;
+            background: rgba(255, 255, 255, 0.04) !important;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 text-slate-100">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="glass-card w-full max-w-md rounded-2xl p-6 sm:p-8 border border-slate-700/60 my-6">
+    <div class="auth-card w-full max-w-md p-6 sm:p-8 my-6">
         <!-- Logo & Branding -->
         <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 shadow-lg shadow-indigo-500/25 mb-3">
-                <i class="fa-solid fa-brain text-2xl text-white"></i>
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 mb-3 shadow-sm">
+                <i class="fa-solid fa-brain text-2xl" style="color: #10B981;"></i>
             </div>
             <h1 class="text-2xl font-bold tracking-tight text-white">AI Tech Consultant Suite</h1>
-            <p class="text-xs text-slate-400 mt-1">Autonomous Enterprise Consulting Monorepo</p>
+            <p class="text-xs text-slate-400 mt-1" style="color: #B0BAC3;">Autonomous Enterprise Consulting Monorepo</p>
         </div>
 
         <!-- Tab Switcher (Sign In vs Register) -->
-        <div class="flex rounded-lg bg-slate-900/90 p-1 mb-5 border border-slate-800">
+        <div class="flex rounded-lg p-1 mb-5 border" style="background-color: #171E24; border-color: #36424A;">
             <button id="tab-login" onclick="switchTab('login')"
-                class="flex-1 py-2 text-xs font-semibold rounded-md transition text-white bg-indigo-600 shadow-sm">
+                class="flex-1 py-2 text-xs rounded-md transition tab-active-btn">
                 <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> Sign In
             </button>
             <button id="tab-register" onclick="switchTab('register')"
-                class="flex-1 py-2 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white">
+                class="flex-1 py-2 text-xs rounded-md transition tab-inactive-btn">
                 <i class="fa-solid fa-user-plus mr-1.5"></i> Create Account
             </button>
         </div>
@@ -66,20 +108,20 @@
         <!-- 1. SIGN IN FORM -->
         <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
             <div>
-                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: #B0BAC3;">Email Address</label>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-regular fa-envelope"></i>
                     </span>
                     <input type="email" id="login-email" required
                         oninput="this.value = this.value.toLowerCase().trim(); clearFieldError('login-email-err')"
-                        class="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                        class="w-full pl-10 pr-3 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="name@company.com">
                 </div>
                 <div id="login-email-err" class="field-error hidden"></div>
-                <div class="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                <div class="flex items-center justify-between mt-1 text-[11px]" style="color: #8996A2;">
                     <span>Normalized to lowercase</span>
-                    <button type="button" onclick="useAnotherEmail()" class="text-cyan-400 hover:text-cyan-300 underline">
+                    <button type="button" onclick="useAnotherEmail()" class="hover:underline" style="color: #10B981;">
                         Use another email
                     </button>
                 </div>
@@ -87,18 +129,18 @@
 
             <div>
                 <div class="flex items-center justify-between mb-1.5">
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Password</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider" style="color: #B0BAC3;">Password</label>
                 </div>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-solid fa-lock"></i>
                     </span>
                     <input type="password" id="login-password" required
                         oninput="clearFieldError('login-pwd-err')"
-                        class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                        class="w-full pl-10 pr-10 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="Enter your password">
                     <button type="button" onclick="togglePasswordVisibility('login-password', 'eye-login')"
-                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200">
+                        class="absolute inset-y-0 right-0 flex items-center pr-3" style="color: #8996A2;">
                         <i id="eye-login" class="fa-regular fa-eye"></i>
                     </button>
                 </div>
@@ -106,7 +148,7 @@
             </div>
 
             <button type="submit" id="login-btn"
-                class="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-medium text-sm rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
+                class="w-full py-2.5 px-4 btn-auth-primary text-sm rounded-lg flex items-center justify-center gap-2">
                 <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
             </button>
         </form>
@@ -114,52 +156,52 @@
         <!-- 2. REGISTER FORM -->
         <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
             <div>
-                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Full Name</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: #B0BAC3;">Full Name</label>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-regular fa-user"></i>
                     </span>
                     <input type="text" id="reg-name" required minlength="2"
-                        class="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                        class="w-full pl-10 pr-3 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="Your full name">
                 </div>
                 <div id="reg-name-err" class="field-error hidden"></div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Work Email</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: #B0BAC3;">Work Email</label>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-regular fa-envelope"></i>
                     </span>
                     <input type="email" id="reg-email" required
                         oninput="this.value = this.value.toLowerCase().trim(); clearFieldError('reg-email-err')"
-                        class="w-full pl-10 pr-3 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                        class="w-full pl-10 pr-3 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="you@company.com">
                 </div>
                 <div id="reg-email-err" class="field-error hidden"></div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: #B0BAC3;">Password</label>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-solid fa-lock"></i>
                     </span>
                     <input type="password" id="reg-password" required
                         oninput="checkPasswordRequirements(this.value); clearFieldError('reg-pwd-err')"
-                        class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                        class="w-full pl-10 pr-10 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="Create strong password">
                     <button type="button" onclick="togglePasswordVisibility('reg-password', 'eye-reg')"
-                        class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200">
+                        class="absolute inset-y-0 right-0 flex items-center pr-3" style="color: #8996A2;">
                         <i id="eye-reg" class="fa-regular fa-eye"></i>
                     </button>
                 </div>
                 <div id="reg-pwd-err" class="field-error hidden"></div>
 
                 <!-- Password Complexity Checklist -->
-                <div class="mt-2.5 p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1.5">
-                    <div class="text-[11px] font-semibold text-slate-400 mb-1 uppercase tracking-wide">Password Requirements:</div>
+                <div class="mt-2.5 p-3 rounded-lg border space-y-1.5" style="background-color: #252F37; border-color: #36424A;">
+                    <div class="text-[11px] font-semibold mb-1 uppercase tracking-wide" style="color: #B0BAC3;">Password Requirements:</div>
                     <div id="req-len" class="req-item"><i class="fa-regular fa-circle text-[10px]"></i> Minimum 8 characters</div>
                     <div id="req-upper" class="req-item"><i class="fa-regular fa-circle text-[10px]"></i> At least one uppercase letter (A-Z)</div>
                     <div id="req-lower" class="req-item"><i class="fa-regular fa-circle text-[10px]"></i> At least one lowercase letter (a-z)</div>
@@ -169,20 +211,21 @@
             </div>
 
             <button type="submit" id="reg-btn"
-                class="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium text-sm rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
+                class="w-full py-2.5 px-4 btn-auth-primary text-sm rounded-lg flex items-center justify-center gap-2">
                 <i class="fa-solid fa-user-check"></i> Create Account
             </button>
         </form>
 
         <!-- OAuth / Alternative Methods Divider -->
         <div class="relative my-5">
-            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
-            <div class="relative flex justify-center text-xs uppercase"><span class="bg-slate-800/80 px-2 text-slate-400 rounded">Or continue with</span></div>
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t" style="border-color: #36424A;"></div></div>
+            <div class="relative flex justify-center text-xs uppercase"><span class="px-2 rounded" style="background-color: #20282F; color: #8996A2;">Or continue with</span></div>
         </div>
 
         <!-- Google OAuth Button -->
         <button type="button" onclick="handleGoogleSignIn()"
-            class="w-full py-2.5 px-4 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-lg text-sm font-medium text-slate-200 transition flex items-center justify-center gap-3 shadow-sm">
+            class="w-full py-2.5 px-4 border rounded-lg text-sm font-medium transition flex items-center justify-center gap-3 shadow-sm"
+            style="background-color: #171E24; border-color: #3A474F; color: #F3F4F6;">
             <svg class="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -193,31 +236,31 @@
         </button>
 
         <!-- Google OAuth Guidance Modal / Banner -->
-        <div id="google-config-modal" class="hidden mt-4 p-4 rounded-xl bg-slate-900 border border-amber-500/30 text-xs space-y-2">
-            <div class="flex items-center gap-2 text-amber-400 font-semibold">
+        <div id="google-config-modal" class="hidden mt-4 p-4 rounded-xl border text-xs space-y-2" style="background-color: #171E24; border-color: #FBBF24;">
+            <div class="flex items-center gap-2 font-semibold" style="color: #FBBF24;">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <span>Google OAuth Configuration Required</span>
             </div>
-            <p class="text-slate-300 leading-relaxed" id="google-instructions">
+            <p class="leading-relaxed" style="color: #B0BAC3;" id="google-instructions">
                 To enable Google Sign-In, please configure your Google Cloud credentials.
             </p>
-            <div class="bg-slate-950 p-2.5 rounded border border-slate-800 font-mono text-[11px] text-cyan-300 break-all" id="google-redirect-url">
+            <div class="p-2.5 rounded border font-mono text-[11px] break-all" style="background-color: #101418; border-color: #36424A; color: #34D399;" id="google-redirect-url">
                 Redirect URI: loading...
             </div>
-            <p class="text-[11px] text-slate-400">
+            <p class="text-[11px]" style="color: #8996A2;">
                 Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your Render dashboard Environment settings.
             </p>
             <button onclick="document.getElementById('google-config-modal').classList.add('hidden')"
-                class="mt-1 w-full py-1 text-slate-400 hover:text-white border border-slate-700 rounded text-center">
+                class="mt-1 w-full py-1 border rounded text-center transition" style="border-color: #36424A; color: #B0BAC3;">
                 Close
             </button>
         </div>
 
         <!-- Switch Account Option (if already in cookie) -->
-        <div class="mt-5 text-center text-xs text-slate-400 border-t border-slate-800 pt-4 flex items-center justify-between">
+        <div class="mt-5 text-center text-xs border-t pt-4 flex items-center justify-between" style="border-color: #36424A; color: #8996A2;">
             <span id="account-status-label">Need an account?</span>
             <button type="button" onclick="switchTab(currentTab === 'login' ? 'register' : 'login')"
-                id="switch-tab-btn" class="text-indigo-400 hover:text-indigo-300 font-medium underline">
+                id="switch-tab-btn" class="font-medium hover:underline" style="color: #10B981;">
                 Create Account
             </button>
         </div>
@@ -253,15 +296,15 @@
             if (tab === "login") {
                 loginForm.classList.remove("hidden");
                 regForm.classList.add("hidden");
-                tabLogin.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-white bg-indigo-600 shadow-sm";
-                tabReg.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white";
+                tabLogin.className = "flex-1 py-2 text-xs rounded-md transition tab-active-btn";
+                tabReg.className = "flex-1 py-2 text-xs rounded-md transition tab-inactive-btn";
                 switchBtn.textContent = "Create Account";
                 statusLabel.textContent = "Need an account?";
             } else {
                 loginForm.classList.add("hidden");
                 regForm.classList.remove("hidden");
-                tabReg.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-white bg-emerald-600 shadow-sm";
-                tabLogin.className = "flex-1 py-2 text-xs font-semibold rounded-md transition text-slate-400 hover:text-white";
+                tabReg.className = "flex-1 py-2 text-xs rounded-md transition tab-active-btn";
+                tabLogin.className = "flex-1 py-2 text-xs rounded-md transition tab-inactive-btn";
                 switchBtn.textContent = "Sign In";
                 statusLabel.textContent = "Already have an account?";
             }

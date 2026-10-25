@@ -6,100 +6,103 @@
     <title>AI Tech Consultant Suite — Autonomous Monorepo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/graphite-emerald.css">
     <style>
         :root {
-            --bg-base: #090d16;
-            --bg-card: rgba(22, 30, 49, 0.75);
-            --border-glass: rgba(255, 255, 255, 0.09);
-            --accent-primary: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.35);
+            --bg-base: #101418;
+            --bg-card: #20282F;
+            --bg-nested: #252F37;
+            --bg-header: #151B21;
+            --border-glass: #36424A;
+            --accent-primary: #10B981;
+            --accent-hover: #059669;
+            --accent-secondary: #A3E635;
+            --accent-glow: rgba(16, 185, 129, 0.25);
         }
         body {
-            background: radial-gradient(ellipse at 20% 0%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
-            background-attachment: fixed;
-            color: #f1f5f9;
+            background-color: #101418 !important;
+            color: #F3F4F6 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             min-height: 100vh;
         }
         .navbar {
-            background: rgba(15, 23, 42, 0.85) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--border-glass);
+            background: #151B21 !important;
+            border-bottom: 1px solid #36424A !important;
         }
         .brand-gradient {
-            background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            background: linear-gradient(135deg, #F3F4F6 0%, #34D399 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
             font-weight: 800;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             font-size: 1.25rem;
         }
         .nav-service-pill {
-            color: #94a3b8;
+            color: #B0BAC3 !important;
             font-size: 0.85rem;
             font-weight: 500;
-            padding: 0.45rem 0.9rem;
+            padding: 0.42rem 0.9rem;
             border-radius: 9999px;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
             border: 1px solid transparent;
         }
         .nav-service-pill:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.08);
+            color: #F3F4F6 !important;
+            background: #20282F !important;
+            border-color: #36424A !important;
         }
         .nav-service-pill.active {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: #ffffff;
-            box-shadow: 0 4px 18px var(--accent-glow);
+            background: rgba(16, 185, 129, 0.15) !important;
+            color: #F3F4F6 !important;
+            border-color: #10B981 !important;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.25) !important;
         }
         .glass-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-glass);
-            border-radius: 16px;
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            background: #20282F !important;
+            border: 1px solid #36424A !important;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
         .glass-card:hover {
-            border-color: rgba(99, 102, 241, 0.35);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            border-color: #10B981 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
         }
         .hero-banner {
-            background: linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0) 100%);
-            border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            padding: 2.75rem 2rem;
+            background: linear-gradient(180deg, #151B21 0%, #101418 100%) !important;
+            border: 1px solid #36424A !important;
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
             position: relative;
             overflow: hidden;
         }
         .icon-circle {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
         }
         .icon-circle-sm {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             flex-shrink: 0;
         }
         .workspace-frame-container {
-            background: #020617;
-            border: 1px solid var(--border-glass);
-            border-radius: 16px;
+            background: #101418 !important;
+            border: 1px solid #36424A !important;
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
         }
         .workspace-frame {
             width: 100%;
@@ -108,72 +111,74 @@
             display: block;
         }
         .frame-header-bar {
-            background: rgba(15, 23, 42, 0.95);
-            border-bottom: 1px solid var(--border-glass);
+            background: #151B21 !important;
+            border-bottom: 1px solid #36424A !important;
             padding: 0.65rem 1.25rem;
         }
         .btn-portal-primary {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: #ffffff;
-            border: none;
-            font-weight: 600;
-            border-radius: 10px;
-            padding: 0.55rem 1.25rem;
-            box-shadow: 0 4px 14px var(--accent-glow);
-            transition: all 0.2s ease;
+            background-color: #10B981 !important;
+            background-image: none !important;
+            color: #041f14 !important;
+            border: 1px solid #10B981 !important;
+            font-weight: 600 !important;
+            border-radius: 9px;
+            padding: 0.52rem 1.2rem;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+            transition: all 0.18s ease;
         }
         .btn-portal-primary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.55);
-            color: #ffffff;
+            background-color: #059669 !important;
+            border-color: #059669 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
         }
         .btn-portal-outline {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            color: #e2e8f0;
-            border-radius: 10px;
-            padding: 0.55rem 1.1rem;
+            background: #20282F !important;
+            border: 1px solid #36424A !important;
+            color: #B0BAC3 !important;
+            border-radius: 9px;
+            padding: 0.52rem 1.1rem;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
         }
         .btn-portal-outline:hover {
-            background: rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.3);
+            background: #252F37 !important;
+            color: #F3F4F6 !important;
+            border-color: #10B981 !important;
         }
         .tab-btn {
             background: transparent;
             border: 1px solid transparent;
-            color: #94a3b8;
+            color: #B0BAC3 !important;
             font-weight: 600;
-            font-size: 0.9rem;
-            padding: 0.55rem 1.15rem;
-            border-radius: 10px;
-            transition: all 0.2s ease;
+            font-size: 0.88rem;
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
+            transition: all 0.18s ease;
         }
         .tab-btn:hover {
-            color: #f1f5f9;
+            color: #F3F4F6 !important;
             background: rgba(255, 255, 255, 0.05);
         }
         .tab-btn.active {
-            background: rgba(99, 102, 241, 0.2);
-            color: #a5b4fc;
-            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(16, 185, 129, 0.15) !important;
+            color: #34D399 !important;
+            border-color: #10B981 !important;
         }
         .badge-live-pulse {
             display: inline-block;
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: #10b981;
-            box-shadow: 0 0 10px #10b981;
+            background-color: #10B981;
+            box-shadow: 0 0 10px #10B981;
             margin-right: 6px;
         }
         footer {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid var(--border-glass);
-            color: #64748b;
+            background: #151B21 !important;
+            border-top: 1px solid #36424A !important;
+            color: #8996A2 !important;
         }
     </style>
 </head>
@@ -183,7 +188,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark py-3 sticky-top">
         <div class="container-fluid px-4 px-lg-5">
             <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-                <i class="bi bi-cpu-fill fs-4" style="color: #818cf8;"></i>
+                <i class="bi bi-cpu-fill fs-4 text-emerald" style="color: #10B981;"></i>
                 <span class="brand-gradient">AI Tech Consultant</span>
             </a>
 
@@ -244,7 +249,7 @@
         <div class="hero-banner mb-4">
             <div class="row align-items-center">
                 <div class="col-lg-8">
-                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary bg-opacity-10 border border-primary border-opacity-25 text-indigo mb-3" style="color: #a5b4fc;">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-success bg-opacity-10 border border-success border-opacity-30 text-success mb-3">
                         <i class="bi bi-layers-fill"></i>
                         <span class="small fw-semibold">Autonomous Technical Consulting Monorepo &middot; Brilliant Directories Platform</span>
                     </div>
@@ -270,23 +275,23 @@
                     </div>
                 </div>
                 <div class="col-lg-4 d-none d-lg-block text-end">
-                    <div class="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-start shadow-sm" style="display: inline-block; min-width: 280px;">
-                        <div class="small text-muted fw-bold mb-2 text-uppercase tracking-wider">Gateway Telemetry</div>
+                    <div class="p-3 rounded-4 text-start shadow-sm" style="display: inline-block; min-width: 280px; background-color: #151B21; border: 1px solid #36424A;">
+                        <div class="small fw-bold mb-2 text-uppercase tracking-wider" style="color: #8996A2;">Gateway Telemetry</div>
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-secondary">Public Gateway:</span>
-                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Online</span>
+                            <span class="small" style="color: #B0BAC3;">Public Gateway:</span>
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-30">Online</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-secondary">Active Services:</span>
+                            <span class="small" style="color: #B0BAC3;">Active Services:</span>
                             <span class="small text-light fw-bold">3 / 3 Mounted</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small text-secondary">Gateway State:</span>
+                            <span class="small" style="color: #B0BAC3;">Gateway State:</span>
                             <span class="small text-success fw-bold">Single Public Link</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="small text-secondary">API Spec:</span>
-                            <a href="/docs" target="_blank" class="small text-decoration-none" style="color: #818cf8;">OpenAPI / Swagger</a>
+                            <span class="small" style="color: #B0BAC3;">API Spec:</span>
+                            <a href="/docs" target="_blank" class="small text-decoration-none" style="color: #34D399;">OpenAPI / Swagger</a>
                         </div>
                     </div>
                 </div>
@@ -299,14 +304,14 @@
             <div class="col-md-4">
                 <div class="glass-card p-4 h-100 d-flex flex-column">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="icon-circle" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
+                        <div class="icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.25);">
                             <i class="bi bi-brain"></i>
                         </div>
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">RAG Engine</span>
+                        <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-30 px-2 py-1">RAG Engine</span>
                     </div>
                     <h5 class="fw-bold text-white mb-1">Knowledge Brain</h5>
-                    <div class="small text-indigo mb-2" style="color: #a5b4fc;">Task 1: Grounded RAG &amp; Verified Citations</div>
-                    <p class="text-secondary small flex-grow-1">
+                    <div class="small mb-2" style="color: #34D399;">Task 1: Grounded RAG &amp; Verified Citations</div>
+                    <p class="small flex-grow-1" style="color: #B0BAC3;">
                         Semantic search indexing the Brilliant Directories Solution Center. Grounded Q&amp;A, verified official citation attribution, hallucination refusal, and human expert verification.
                     </p>
                     <div class="pt-3 border-top border-secondary border-opacity-10 d-flex align-items-center justify-content-between">
@@ -327,14 +332,14 @@
             <div class="col-md-4">
                 <div class="glass-card p-4 h-100 d-flex flex-column">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="icon-circle" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <div class="icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.25);">
                             <i class="bi bi-inbox-fill"></i>
                         </div>
-                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">Support Triage</span>
+                        <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-30 px-2 py-1">Support Triage</span>
                     </div>
                     <h5 class="fw-bold text-white mb-1">Inbox Agent</h5>
-                    <div class="small text-success mb-2" style="color: #6ee7b7;">Task 2: Classification &amp; Autonomy Gate</div>
-                    <p class="text-secondary small flex-grow-1">
+                    <div class="small mb-2" style="color: #10B981;">Task 2: Classification &amp; Autonomy Gate</div>
+                    <p class="small flex-grow-1" style="color: #B0BAC3;">
                         Automated support email classification across 6 categories, grounded response drafting with tone calibration, and strict 20-streak consecutive approval autonomy promotion.
                     </p>
                     <div class="pt-3 border-top border-secondary border-opacity-10 d-flex align-items-center justify-content-between">
@@ -355,14 +360,14 @@
             <div class="col-md-4">
                 <div class="glass-card p-4 h-100 d-flex flex-column">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="icon-circle" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                        <div class="icon-circle" style="background: rgba(163, 230, 53, 0.12); color: #A3E635; border: 1px solid rgba(163, 230, 53, 0.25);">
                             <i class="bi bi-file-earmark-spreadsheet-fill"></i>
                         </div>
-                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">Proposal Generator</span>
+                        <span class="badge bg-opacity-15 text-light border px-2 py-1" style="background: rgba(163, 230, 53, 0.15); color: #A3E635; border-color: rgba(163, 230, 53, 0.3);">Proposal Generator</span>
                     </div>
                     <h5 class="fw-bold text-white mb-1">Meeting-to-Scope Agent</h5>
-                    <div class="small text-warning mb-2" style="color: #fde68a;">Task 3: Scoping &amp; Capstone PDF Export</div>
-                    <p class="text-secondary small flex-grow-1">
+                    <div class="small mb-2" style="color: #A3E635;">Task 3: Scoping &amp; Capstone PDF Export</div>
+                    <p class="small flex-grow-1" style="color: #B0BAC3;">
                         Transforms raw client discovery transcripts into work packages with verifiable native feature checking, QA allowance calculation ($120/hr), diff tracking, and professional PDF export.
                     </p>
                     <div class="pt-3 border-top border-secondary border-opacity-10 d-flex align-items-center justify-content-between">
@@ -407,47 +412,47 @@
             </div>
 
             <!-- Frame Body: Overview Section -->
-            <div id="overviewPanel" class="p-4 p-lg-5" style="background: rgba(10, 15, 29, 0.95); min-height: 550px;">
+            <div id="overviewPanel" class="p-4 p-lg-5" style="background: #151B21; border: 1px solid #36424A; min-height: 550px;">
                 <div class="row g-4">
                     <!-- Left: Core Capabilities -->
                     <div class="col-lg-6">
                         <h4 class="fw-bold text-white mb-3">
-                            <i class="bi bi-cpu-fill text-indigo me-2" style="color: #818cf8;"></i>
+                            <i class="bi bi-cpu-fill me-2" style="color: #10B981;"></i>
                             Autonomous Multi-Agent Architecture
                         </h4>
-                        <p class="text-secondary small leading-relaxed mb-4">
+                        <p class="small leading-relaxed mb-4" style="color: #B0BAC3;">
                             This unified portal hosts all three specialized consulting agents on a single public Render web service. All agent interactions, internal RAG grounding, and data stores communicate seamlessly:
                         </p>
                         <div class="space-y-3">
                             <div class="d-flex align-items-start gap-3 mb-3">
-                                <div class="icon-circle-sm" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3);">
+                                <div class="icon-circle-sm" style="background: rgba(16, 185, 129, 0.12); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.25);">
                                     <i class="bi bi-brain"></i>
                                 </div>
                                 <div>
                                     <h6 class="text-white fw-bold mb-1">Knowledge Brain RAG Engine</h6>
-                                    <p class="text-secondary small mb-0">
+                                    <p class="small mb-0" style="color: #B0BAC3;">
                                         Indexes official Brilliant Directories Solution Center documentation. Provides grounded answers with deduplicated official citations, refuses hallucinated answers (&lt;0.35 similarity), and supports human expert sign-off.
                                     </p>
                                 </div>
                             </div>
                             <div class="d-flex align-items-start gap-3 mb-3">
-                                <div class="icon-circle-sm" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                                <div class="icon-circle-sm" style="background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.25);">
                                     <i class="bi bi-inbox-fill"></i>
                                 </div>
                                 <div>
                                     <h6 class="text-white fw-bold mb-1">Client Inbox Routing Agent</h6>
-                                    <p class="text-secondary small mb-0">
+                                    <p class="small mb-0" style="color: #B0BAC3;">
                                         Classifies inbound client queries into 6 categories, generates grounded draft responses in 3 tones (Professional, Urgent, Friendly), and enforces a strict 20-approval streak autonomy gate with automatic revocation on edit.
                                     </p>
                                 </div>
                             </div>
                             <div class="d-flex align-items-start gap-3">
-                                <div class="icon-circle-sm" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                                <div class="icon-circle-sm" style="background: rgba(163, 230, 53, 0.12); color: #A3E635; border: 1px solid rgba(163, 230, 53, 0.25);">
                                     <i class="bi bi-file-earmark-spreadsheet-fill"></i>
                                 </div>
                                 <div>
                                     <h6 class="text-white fw-bold mb-1">Meeting-to-Scope Proposal Generator</h6>
-                                    <p class="text-secondary small mb-0">
+                                    <p class="small mb-0" style="color: #B0BAC3;">
                                         Parses discovery call transcripts into work packages, validates against native Brilliant Directories features to protect client budget, tracks scope creep, and exports publication-ready PDF documents.
                                     </p>
                                 </div>
@@ -462,9 +467,9 @@
                             Unified Health &amp; Subsystem Telemetry
                         </h4>
                         <div class="table-responsive">
-                            <table class="table table-dark table-borderless small mb-3">
+                            <table class="table small mb-3">
                                 <thead>
-                                    <tr class="text-secondary border-bottom border-secondary border-opacity-25">
+                                    <tr>
                                         <th>Subsystem</th>
                                         <th>Core Capability</th>
                                         <th>Status</th>
@@ -473,41 +478,41 @@
                                 <tbody>
                                     <tr>
                                         <td class="fw-semibold text-white">Knowledge Brain</td>
-                                        <td class="text-secondary">Grounded Documentation RAG &amp; Citations</td>
-                                        <td><span class="badge bg-success bg-opacity-25 text-success" id="telemetryT1">Online</span></td>
+                                        <td style="color: #B0BAC3;">Grounded Documentation RAG &amp; Citations</td>
+                                        <td><span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-30" id="telemetryT1">Online</span></td>
                                     </tr>
                                     <tr>
                                         <td class="fw-semibold text-white">Inbox Agent</td>
-                                        <td class="text-secondary">Support Email Triage &amp; Autonomy Gate</td>
-                                        <td><span class="badge bg-success bg-opacity-25 text-success" id="telemetryT2">Online</span></td>
+                                        <td style="color: #B0BAC3;">Support Email Triage &amp; Autonomy Gate</td>
+                                        <td><span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-30" id="telemetryT2">Online</span></td>
                                     </tr>
                                     <tr>
                                         <td class="fw-semibold text-white">Scope Agent</td>
-                                        <td class="text-secondary">Meeting Scoping &amp; Publication PDF Export</td>
-                                        <td><span class="badge bg-success bg-opacity-25 text-success" id="telemetryT3">Online</span></td>
+                                        <td style="color: #B0BAC3;">Meeting Scoping &amp; Publication PDF Export</td>
+                                        <td><span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-30" id="telemetryT3">Online</span></td>
                                     </tr>
                                     <tr>
                                         <td class="fw-semibold text-white">ChromaDB Vector Store</td>
-                                        <td class="text-secondary">768-Dim Semantic Embedding Index</td>
-                                        <td><span class="badge bg-info bg-opacity-25 text-info" id="telemetryChroma">Persistent</span></td>
+                                        <td style="color: #B0BAC3;">768-Dim Semantic Embedding Index</td>
+                                        <td><span class="badge bg-opacity-15 text-light border" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3);" id="telemetryChroma">Persistent</span></td>
                                     </tr>
                                     <tr>
                                         <td class="fw-semibold text-white">SQLite Relational DB</td>
-                                        <td class="text-secondary">Multi-Table State &amp; Audit Logging</td>
-                                        <td><span class="badge bg-info bg-opacity-25 text-info" id="telemetrySqlite">Connected</span></td>
+                                        <td style="color: #B0BAC3;">Multi-Table State &amp; Audit Logging</td>
+                                        <td><span class="badge bg-opacity-15 text-light border" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3);" id="telemetrySqlite">Connected</span></td>
                                     </tr>
                                     <tr>
                                         <td class="fw-semibold text-white">AI Model Engine</td>
-                                        <td class="text-secondary" id="telemetryModelName">Deterministic Offline &amp; Claude 3.5</td>
+                                        <td style="color: #B0BAC3;" id="telemetryModelName">Deterministic Offline &amp; Claude 3.5</td>
                                         <td><span class="badge bg-secondary bg-opacity-25 text-light" id="telemetryProviderMode">Mock Mode</span></td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div class="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-20 d-flex align-items-center justify-content-between">
+                        <div class="p-3 rounded-3 border d-flex align-items-center justify-content-between" style="background: #20282F; border-color: #36424A !important;">
                             <div class="small text-light">
                                 <i class="bi bi-check2-circle text-success me-1"></i>
-                                Evaluator ready &middot; 70 automated tests passing.
+                                Evaluator ready &middot; automated tests passing.
                             </div>
                             <a href="/docs" target="_blank" class="btn btn-sm btn-portal-primary">
                                 <i class="bi bi-journal-code me-1"></i> Swagger API Docs

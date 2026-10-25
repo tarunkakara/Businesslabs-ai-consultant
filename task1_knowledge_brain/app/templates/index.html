@@ -6,133 +6,154 @@
     <title>AI Tech Consultant — Knowledge Brain</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/graphite-emerald.css">
     <style>
         :root {
-            --bg-base: #090d16;
-            --bg-card: rgba(22, 30, 49, 0.75);
-            --border-glass: rgba(255, 255, 255, 0.09);
-            --accent-primary: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.35);
+            --bg-base: #101418;
+            --bg-card: #20282F;
+            --bg-nested: #252F37;
+            --bg-header: #151B21;
+            --border-glass: #36424A;
+            --accent-primary: #10B981;
+            --accent-hover: #059669;
+            --accent-secondary: #A3E635;
+            --accent-glow: rgba(16, 185, 129, 0.25);
         }
         body {
-            background: radial-gradient(ellipse at 20% 0%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
-            background-attachment: fixed;
-            color: #f1f5f9;
+            background-color: #101418 !important;
+            color: #F3F4F6 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             min-height: 100vh;
         }
         .navbar {
-            background: rgba(15, 23, 42, 0.85) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--border-glass);
+            background: #151B21 !important;
+            border-bottom: 1px solid #36424A !important;
         }
         .brand-gradient {
-            background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            background: linear-gradient(135deg, #F3F4F6 0%, #34D399 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
             font-weight: 800;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
             font-size: 1.25rem;
         }
         .nav-service-pill {
-            color: #94a3b8;
+            color: #B0BAC3 !important;
             font-size: 0.85rem;
-            padding: 0.35rem 0.95rem;
+            padding: 0.38rem 0.95rem;
             border-radius: 9999px;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
             border: 1px solid transparent;
         }
         .nav-service-pill:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.12);
+            color: #F3F4F6 !important;
+            background: #20282F !important;
+            border-color: #36424A !important;
         }
         .nav-service-pill.active {
-            color: #ffffff;
-            background: rgba(99, 102, 241, 0.25);
-            border-color: rgba(99, 102, 241, 0.5);
-            box-shadow: 0 0 12px var(--accent-glow);
+            color: #F3F4F6 !important;
+            background: rgba(16, 185, 129, 0.15) !important;
+            border-color: #10B981 !important;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.25) !important;
         }
         .badge-mode { font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 9999px; }
         .card {
-            background: var(--bg-card) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-glass) !important;
-            border-radius: 16px;
-            box-shadow: 0 10px 32px 0 rgba(0, 0, 0, 0.45);
-            color: #f1f5f9;
+            background: #20282F !important;
+            border: 1px solid #36424A !important;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+            color: #F3F4F6;
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .card:hover {
-            border-color: rgba(99, 102, 241, 0.3) !important;
+            border-color: rgba(16, 185, 129, 0.45) !important;
         }
         .source-card {
-            border-left: 4px solid var(--accent-primary) !important;
-            background: rgba(15, 23, 42, 0.7) !important;
-            border: 1px solid var(--border-glass);
+            border-left: 4px solid #10B981 !important;
+            background: #252F37 !important;
+            border: 1px solid #36424A;
         }
-        .citation-link { font-weight: 600; color: #818cf8; text-decoration: none; }
-        .citation-link:hover { color: #a5b4fc; text-decoration: underline; }
+        .citation-link { font-weight: 600; color: #34D399; text-decoration: none; }
+        .citation-link:hover { color: #A3E635; text-decoration: underline; }
         .stat-val {
             font-size: 2.2rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #F3F4F6;
         }
         .nav-pills .nav-link {
-            color: #94a3b8;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-glass);
-            border-radius: 10px;
-            transition: all 0.2s ease;
+            color: #B0BAC3 !important;
+            background: #20282F !important;
+            border: 1px solid #36424A !important;
+            border-radius: 9px;
+            font-weight: 500;
+            transition: all 0.18s ease;
         }
         .nav-pills .nav-link:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.08);
+            color: #F3F4F6 !important;
+            border-color: #10B981 !important;
         }
         .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-            color: #ffffff !important;
-            border-color: transparent !important;
+            background: #10B981 !important;
+            color: #041f14 !important;
+            border-color: #10B981 !important;
+            font-weight: 700 !important;
         }
         .answer-box {
-            background: rgba(15, 23, 42, 0.9) !important;
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: #171E24 !important;
+            border: 1px solid #36424A !important;
             border-radius: 12px;
         }
         .thinking-box {
-            background: rgba(10, 15, 30, 0.85);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-left: 3px solid #a855f7;
+            background: #171E24 !important;
+            border: 1px solid #36424A !important;
+            border-left: 3px solid #10B981 !important;
             border-radius: 8px;
             font-family: monospace;
             font-size: 0.85rem;
+            color: #B0BAC3;
         }
         .table {
-            color: #e2e8f0;
-            --bs-table-bg: transparent;
-            --bs-table-border-color: rgba(255, 255, 255, 0.08);
+            color: #F3F4F6 !important;
+            --bs-table-bg: transparent !important;
+            --bs-table-border-color: #36424A !important;
+        }
+        .table thead th {
+            background-color: #252F37 !important;
+            color: #B0BAC3 !important;
+            border-bottom: 1px solid #36424A !important;
+        }
+        .table tbody td {
+            color: #F3F4F6 !important;
+            border-bottom: 1px solid #36424A !important;
         }
         .form-control, .form-select {
-            background: rgba(15, 23, 42, 0.8) !important;
-            color: #f8fafc !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-            border-radius: 10px;
+            background: #171E24 !important;
+            color: #F3F4F6 !important;
+            border: 1px solid #3A474F !important;
+            border-radius: 9px;
         }
         .form-control:focus, .form-select:focus {
-            background: rgba(15, 23, 42, 0.95) !important;
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25) !important;
+            background: #1a2229 !important;
+            border-color: #34D399 !important;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25) !important;
+        }
+        .btn-primary {
+            background-color: #10B981 !important;
+            border-color: #10B981 !important;
+            color: #041f14 !important;
+            font-weight: 600 !important;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+        }
+        .btn-primary:hover {
+            background-color: #059669 !important;
+            border-color: #059669 !important;
+            color: #ffffff !important;
         }
         footer {
-            background: rgba(15, 23, 42, 0.85) !important;
-            backdrop-filter: blur(12px);
-            border-top: 1px solid var(--border-glass) !important;
-            color: #64748b !important;
+            background: #151B21 !important;
+            border-top: 1px solid #36424A !important;
+            color: #8996A2 !important;
         }
     </style>
 </head>
@@ -142,9 +163,9 @@
     <nav class="navbar navbar-expand-lg navbar-dark py-3 sticky-top">
         <div class="container-fluid px-4 px-lg-5">
             <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-cpu-fill text-indigo fs-4" style="color: #818cf8;"></i>
+                <i class="bi bi-cpu-fill fs-4" style="color: #10B981;"></i>
                 <span class="brand-gradient">AI Tech Consultant</span>
-                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 ms-1">Knowledge Brain</span>
+                <span class="badge ms-1" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3);">Knowledge Brain</span>
             </a>
 
             <!-- Cross-Task Quick Nav Switcher -->
@@ -263,7 +284,7 @@
             <!-- 1. Knowledge Assistant Pane -->
             <div class="tab-pane fade show active" id="query-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-chat-quote-fill text-indigo me-2" style="color: #818cf8;"></i>Grounded Knowledge Query</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-chat-quote-fill me-2" style="color: #10B981;"></i>Grounded Knowledge Query</h5>
 
                     <!-- Query Input Group -->
                     <div class="input-group input-group-lg mb-3">
@@ -284,7 +305,7 @@
 
                     <!-- Loading Spinner -->
                     <div id="loadingIndicator" class="text-center py-4 d-none">
-                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="spinner-border" style="color: #10B981;" role="status"></div>
                         <p class="mt-2 text-muted">Retrieving verified documentation and formulating grounded response...</p>
                     </div>
 
@@ -292,14 +313,14 @@
                     <div id="answerContainer" class="d-none">
                         <!-- AI Processing Status Steps (User-Friendly Stages) -->
                         <div class="mb-3">
-                            <div class="d-flex align-items-center justify-content-between p-2 rounded bg-dark border border-secondary border-opacity-25 mb-2">
-                                <span class="small fw-semibold text-info d-flex align-items-center gap-2">
-                                    <i class="bi bi-gear-wide-connected text-indigo"></i>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded border mb-2" style="background: #252F37; border-color: #36424A !important;">
+                                <span class="small fw-semibold d-flex align-items-center gap-2" style="color: #34D399;">
+                                    <i class="bi bi-gear-wide-connected" style="color: #10B981;"></i>
                                     <span>AI Processing Status Stages</span>
                                 </span>
-                                <span class="badge bg-success bg-opacity-25 text-success small"><i class="bi bi-shield-check me-1"></i>Verified Grounding</span>
+                                <span class="badge small" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3);"><i class="bi bi-shield-check me-1"></i>Verified Grounding</span>
                             </div>
-                            <div id="processingStagesList" class="d-flex flex-column gap-2 p-3 rounded" style="background: rgba(10, 15, 30, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div id="processingStagesList" class="d-flex flex-column gap-2 p-3 rounded" style="background: #171E24; border: 1px solid #36424A;">
                             </div>
                         </div>
 
@@ -319,7 +340,7 @@
 
                         <!-- Sources Section -->
                         <div id="sourcesContainer" class="mt-4">
-                            <h6 class="fw-bold text-light mb-3"><i class="bi bi-bookmark-check-fill text-indigo me-1" style="color: #818cf8;"></i>Cited Sources & Relevant Screenshots:</h6>
+                            <h6 class="fw-bold text-light mb-3"><i class="bi bi-bookmark-check-fill me-1" style="color: #10B981;"></i>Cited Sources & Relevant Screenshots:</h6>
                             <div id="sourcesList" class="row g-3"></div>
                         </div>
                     </div>
@@ -329,7 +350,7 @@
             <!-- 2. Sitemaps & Crawler Pane -->
             <div class="tab-pane fade" id="crawl-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-diagram-3-fill text-indigo me-2" style="color: #818cf8;"></i>Multiple & Nested Sitemaps Traversal</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-diagram-3-fill me-2" style="color: #10B981;"></i>Multiple & Nested Sitemaps Traversal</h5>
                     <p class="text-muted small">
                         Input single or multiple XML sitemaps. The system recursively navigates parent <code>&lt;sitemapindex&gt;</code> and child <code>&lt;sitemap&gt;</code> structures, presents total URLs and time estimates, and allows custom crawl frequencies and missing URL recheck retention policies.
                     </p>
@@ -487,7 +508,7 @@
             <!-- 5. Human Expert Review Pane -->
             <div class="tab-pane fade" id="expert-pane" role="tabpanel">
                 <div class="card p-4">
-                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-person-badge-fill text-indigo me-2" style="color: #818cf8;"></i>Human Expert Review Queue</h5>
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-person-badge-fill me-2" style="color: #10B981;"></i>Human Expert Review Queue</h5>
                     <p class="text-muted small">
                         Questions where the AI system found insufficient documentation evidence are queued here.
                         Once a human expert submits an approved answer, it is stored and immediately retrievable for future queries.
@@ -503,7 +524,7 @@
             <div class="tab-pane fade" id="articles-pane" role="tabpanel">
                 <div class="card p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="card-title fw-bold mb-0"><i class="bi bi-collection-fill text-indigo me-2" style="color: #818cf8;"></i>Indexed Solution Articles</h5>
+                        <h5 class="card-title fw-bold mb-0"><i class="bi bi-collection-fill me-2" style="color: #10B981;"></i>Indexed Solution Articles</h5>
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadArticles()">
                             <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                         </button>

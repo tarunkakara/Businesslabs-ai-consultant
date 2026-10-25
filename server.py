@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import httpx
@@ -99,9 +100,27 @@ app = FastAPI(
     ),
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
+    docs_url=None,
     redoc_url="/redoc",
 )
+
+# Mount static assets for Graphite Emerald UI theme
+static_dir = Path(__file__).resolve().parent / "static"
+static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Custom Swagger UI with Graphite Emerald Theme
+@app.get("/docs", include_in_schema=False, tags=["Documentation"])
+async def custom_swagger_ui_html():
+    response = get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="AI Tech Consultant Suite — OpenAPI Docs",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+    )
+    custom_css = '<link rel="stylesheet" href="/static/css/swagger-graphite-emerald.css">'
+    html = response.body.decode("utf-8").replace("</head>", f"{custom_css}</head>")
+    return HTMLResponse(content=html)
 
 # Enable CORS for browser access
 app.add_middleware(

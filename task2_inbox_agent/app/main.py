@@ -40,6 +40,7 @@ from task2_inbox_agent.app.models import (
     DraftStatus,
     EmailCategory,
     ReviewSubmission,
+    normalize_voice,
 )
 from task2_inbox_agent.app.similarity import calculate_draft_similarity
 from pydantic import BaseModel, Field
@@ -152,21 +153,25 @@ async def get_email(email_id: str):
 
 class SaveDraftBody(BaseModel):
     draft_text: str
-    voice: Optional[CompanyVoice] = None
+    voice: Optional[Any] = None
     subject: Optional[str] = None
 
 
 @router.post("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
-async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None, force_regenerate: bool = False):
+async def generate_draft(email_id: str, voice: Optional[Any] = None, force_regenerate: bool = False):
     """Classify email, query Knowledge Brain if applicable, and generate structured draft."""
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
 
+    selected_voice = normalize_voice(voice or settings.default_voice)
+
     if not force_regenerate:
         existing = _store.get_draft_by_email(email_id)
         if existing:
-            return existing
+            # If user explicitly requested a specific voice and it differs from existing draft, regenerate!
+            if voice is None or existing.voice == selected_voice:
+                return existing
 
     classification = _classifier.classify(email)
     # Update email category & priority if unclassified
@@ -177,7 +182,7 @@ async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None, fo
     draft = await _drafter.draft_response(
         email=email,
         classification=classification,
-        voice=voice or settings.default_voice,
+        voice=selected_voice,
     )
     _store.save_draft(draft)
     return draft
@@ -193,17 +198,44 @@ async def get_draft(email_id: str):
 
 
 @router.post("/api/v1/emails/{email_id}/save-draft", response_model=DraftResponse, tags=["Drafts"])
-async def save_draft(email_id: str, body: SaveDraftBody):
-    """Save or update draft content without dispatching."""
+async def save_draft(request: Request, email_id: str, body: SaveDraftBody):
+    """Save or update draft content without dispatching, and synchronize to Gmail Drafts if connected."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+
+    v = normalize_voice(body.voice)
     saved = _store.save_draft_content(
         email_id=email_id,
         draft_text=body.draft_text,
-        voice=body.voice,
+        voice=v,
         subject=body.subject,
     )
+
+    # Sync to real Gmail Drafts if user has connected Gmail OAuth
+    if user_id and not email.is_simulated:
+        try:
+            gmail_res = await GmailOAuthClient.create_or_update_user_draft(
+                user_id=user_id,
+                auth_store=_auth_store,
+                to_email=email.sender_email,
+                subject=saved.subject,
+                body_text=saved.original_draft,
+                thread_id=email.thread_id,
+                existing_draft_id=email.gmail_draft_id,
+            )
+            if gmail_res.get("success"):
+                d_id = gmail_res.get("gmail_draft_id")
+                email.gmail_draft_id = d_id
+                saved.gmail_draft_id = d_id
+                _store.save_emails([email])
+                _store.save_draft(saved)
+        except Exception as exc:
+            logger.warning("Could not sync draft to Gmail: %s", exc)
+
     return saved
 
 

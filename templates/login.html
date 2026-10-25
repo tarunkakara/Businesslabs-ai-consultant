@@ -9,71 +9,71 @@
     <link rel="stylesheet" href="/static/css/graphite-emerald.css">
     <style>
         body {
-            background-color: #101418 !important;
-            color: #F3F4F6 !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0B1120 !important;
+            color: #F8FAFC !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         .auth-card {
-            background-color: #20282F !important;
-            border: 1px solid #36424A !important;
-            border-radius: 16px;
-            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+            background-color: #1E293B !important;
+            border: 1px solid #334155 !important;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
         }
         .req-item {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.75rem;
-            color: #8996A2;
+            color: #94A3B8;
             transition: color 0.15s;
         }
         .req-item.valid {
-            color: #34D399;
+            color: #10B981;
         }
         .field-error {
             font-size: 0.75rem;
-            color: #F87171;
+            color: #EF4444;
             margin-top: 0.25rem;
         }
         .auth-input {
-            background-color: #171E24 !important;
-            border: 1px solid #3A474F !important;
-            color: #F3F4F6 !important;
-            border-radius: 8px;
+            background-color: #0F172A !important;
+            border: 1px solid #334155 !important;
+            color: #F8FAFC !important;
+            border-radius: 7px;
             transition: all 0.15s ease;
         }
         .auth-input:focus {
-            background-color: #1b232a !important;
-            border-color: #34D399 !important;
-            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25) !important;
+            background-color: #131E35 !important;
+            border-color: #3B82F6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
             outline: none !important;
         }
         .btn-auth-primary {
-            background-color: #10B981 !important;
-            color: #041f14 !important;
+            background-color: #2563EB !important;
+            color: #FFFFFF !important;
             font-weight: 600 !important;
             border: none !important;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+            border-radius: 7px;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
             transition: all 0.18s ease;
         }
         .btn-auth-primary:hover {
-            background-color: #059669 !important;
-            color: #ffffff !important;
-            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
-            transform: translateY(-1px);
+            background-color: #1D4ED8 !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
         }
         .tab-active-btn {
-            background-color: #10B981 !important;
-            color: #041f14 !important;
-            font-weight: 700 !important;
-            box-shadow: 0 1px 4px rgba(16, 185, 129, 0.3) !important;
+            background-color: #2563EB !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3) !important;
         }
         .tab-inactive-btn {
             background: transparent !important;
-            color: #B0BAC3 !important;
+            color: #94A3B8 !important;
         }
         .tab-inactive-btn:hover {
-            color: #F3F4F6 !important;
+            color: #F8FAFC !important;
             background: rgba(255, 255, 255, 0.04) !important;
         }
     </style>
@@ -83,15 +83,15 @@
     <div class="auth-card w-full max-w-md p-6 sm:p-8 my-6">
         <!-- Logo & Branding -->
         <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 mb-3 shadow-sm">
-                <i class="fa-solid fa-brain text-2xl" style="color: #10B981;"></i>
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 mb-3 shadow-sm">
+                <i class="fa-solid fa-brain text-2xl" style="color: #60A5FA;"></i>
             </div>
             <h1 class="text-2xl font-bold tracking-tight text-white">AI Tech Consultant Suite</h1>
-            <p class="text-xs text-slate-400 mt-1" style="color: #B0BAC3;">Autonomous Enterprise Consulting Monorepo</p>
+            <p class="text-xs text-slate-400 mt-1" style="color: #94A3B8;">Autonomous Enterprise Consulting Monorepo</p>
         </div>
 
         <!-- Tab Switcher (Sign In vs Register) -->
-        <div class="flex rounded-lg p-1 mb-5 border" style="background-color: #171E24; border-color: #36424A;">
+        <div class="flex rounded-lg p-1 mb-5 border" style="background-color: #0F172A; border-color: #334155;">
             <button id="tab-login" onclick="switchTab('login')"
                 class="flex-1 py-2 text-xs rounded-md transition tab-active-btn">
                 <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> Sign In

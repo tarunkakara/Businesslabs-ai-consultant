@@ -9,22 +9,22 @@
     <link rel="stylesheet" href="/static/css/graphite-emerald.css">
     <style>
         :root {
-            --bg-base: #101418;
-            --bg-sidebar: #151B21;
-            --bg-card: #20282F;
-            --bg-nested: #252F37;
-            --border-glass: #36424A;
-            --accent-primary: #10B981;
-            --accent-hover: #059669;
-            --accent-secondary: #A3E635;
-            --text-main: #F3F4F6;
-            --text-secondary: #B0BAC3;
-            --text-muted: #8996A2;
+            --bg-base: #0B1120;
+            --bg-sidebar: #0F172A;
+            --bg-card: #1E293B;
+            --bg-nested: #172033;
+            --border-glass: #334155;
+            --accent-primary: #2563EB;
+            --accent-hover: #1D4ED8;
+            --accent-secondary: #0284C7;
+            --text-main: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
         }
         body {
             background-color: var(--bg-base) !important;
             color: var(--text-main) !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             height: 100vh;
             overflow: hidden;
             display: flex;
@@ -32,8 +32,8 @@
         }
         /* Top Navigation Header */
         .gmail-navbar {
-            background: #151B21 !important;
-            border-bottom: 1px solid #36424A !important;
+            background: #0F172A !important;
+            border-bottom: 1px solid #334155 !important;
             height: 64px;
             padding: 0 1.25rem;
             display: flex;
@@ -42,34 +42,35 @@
             z-index: 100;
         }
         .brand-gradient {
-            background: linear-gradient(135deg, #F3F4F6 0%, #34D399 100%) !important;
+            background: linear-gradient(135deg, #FFFFFF 0%, #60A5FA 100%) !important;
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
-            font-weight: 800;
+            font-weight: 700;
             font-size: 1.15rem;
         }
         .nav-service-pill {
-            color: #B0BAC3;
+            color: #94A3B8;
             font-size: 0.85rem;
             padding: 0.35rem 0.85rem;
-            border-radius: 9999px;
+            border-radius: 8px;
             text-decoration: none;
             transition: all 0.2s ease;
             border: 1px solid transparent;
         }
         .nav-service-pill:hover {
-            color: #F3F4F6;
+            color: #F8FAFC;
             background: rgba(255, 255, 255, 0.06);
         }
         .nav-service-pill.active {
-            color: #F3F4F6;
-            background: rgba(16, 185, 129, 0.2);
-            border-color: rgba(16, 185, 129, 0.5);
+            color: #93C5FD;
+            background: rgba(37, 99, 235, 0.18);
+            border-color: rgba(37, 99, 235, 0.5);
+            font-weight: 600;
         }
         /* Gmail Search Bar */
         .gmail-search-box {
-            background: #171E24;
-            border: 1px solid #3A474F;
+            background: #0F172A;
+            border: 1px solid #334155;
             border-radius: 28px;
             padding: 0.5rem 1.25rem;
             width: 480px;
@@ -79,19 +80,19 @@
             transition: all 0.2s;
         }
         .gmail-search-box:focus-within {
-            background: #151B21;
-            border-color: #10B981;
-            box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+            background: #131E35;
+            border-color: #3B82F6;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
         }
         .gmail-search-input {
             background: transparent;
             border: none;
-            color: #F3F4F6;
+            color: #F8FAFC;
             outline: none;
             width: 100%;
             font-size: 0.9rem;
         }
-        .gmail-search-input::placeholder { color: #8996A2; }
+        .gmail-search-input::placeholder { color: #64748B; }
 
         /* App Body Layout */
         .app-body {
@@ -104,32 +105,32 @@
         /* Gmail Sidebar */
         .gmail-sidebar {
             width: 256px;
-            background: #151B21;
-            border-right: 1px solid #36424A;
+            background: #0F172A;
+            border-right: 1px solid #334155;
             display: flex;
             flex-direction: column;
             padding: 1rem 0.75rem;
             user-select: none;
         }
         .btn-compose {
-            background: #20282F;
-            color: #F3F4F6;
-            border: 1px solid #36424A;
+            background: #1E293B;
+            color: #F8FAFC;
+            border: 1px solid #334155;
             font-weight: 600;
-            border-radius: 16px;
-            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            padding: 0.75rem 1.4rem;
             display: inline-flex;
             align-items: center;
             gap: 0.75rem;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
             transition: all 0.2s;
             margin-bottom: 1.25rem;
         }
         .btn-compose:hover {
-            background: #252F37;
-            border-color: #10B981;
-            color: #34D399;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.15);
+            background: #172033;
+            border-color: #2563EB;
+            color: #93C5FD;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
             transform: translateY(-1px);
         }
         .sidebar-folder {
@@ -137,8 +138,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 0.55rem 1rem;
-            border-radius: 9999px;
-            color: #B0BAC3;
+            border-radius: 8px;
+            color: #94A3B8;
             font-size: 0.88rem;
             font-weight: 500;
             cursor: pointer;
@@ -147,35 +148,35 @@
         }
         .sidebar-folder:hover {
             background: rgba(255, 255, 255, 0.05);
-            color: #F3F4F6;
+            color: #F8FAFC;
         }
         .sidebar-folder.active {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34D399;
+            background: rgba(37, 99, 235, 0.15);
+            color: #93C5FD;
             font-weight: 600;
         }
 
         /* Email List Pane */
         .email-list-pane {
             width: 380px;
-            border-right: 1px solid #36424A;
+            border-right: 1px solid #334155;
             display: flex;
             flex-direction: column;
-            background: #171E24;
+            background: #0F172A;
             overflow: hidden;
         }
         .email-item {
             padding: 0.85rem 1.15rem;
-            border-bottom: 1px solid #36424A;
+            border-bottom: 1px solid #334155;
             cursor: pointer;
             transition: background 0.15s;
         }
         .email-item:hover {
-            background: #20282F;
+            background: #1E293B;
         }
         .email-item.active {
-            background: #252F37 !important;
-            border-left: 3px solid #10B981;
+            background: #172033 !important;
+            border-left: 3px solid #2563EB;
         }
         .email-item.unread {
             font-weight: 600;
@@ -187,33 +188,33 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: #101418;
+            background: #0B1120;
             overflow-y: auto;
             padding: 1.5rem;
         }
 
         /* AI Draft Box */
         .ai-draft-card {
-            background: #20282F;
-            border: 1px solid #36424A;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            background: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         .learning-banner {
-            background: #252F37;
-            border: 1px dashed #36424A;
-            border-left: 4px solid #A3E635;
-            border-radius: 8px;
+            background: #172033;
+            border: 1px dashed #334155;
+            border-left: 4px solid #38BDF8;
+            border-radius: 7px;
             padding: 0.65rem 0.9rem;
             font-size: 0.8rem;
-            color: #B0BAC3;
+            color: #94A3B8;
         }
 
         .badge-cat {
             font-size: 0.72rem;
             font-weight: 600;
             padding: 0.25rem 0.6rem;
-            border-radius: 9999px;
+            border-radius: 6px;
             text-transform: uppercase;
         }
         .cat-billing { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
@@ -228,16 +229,16 @@
             bottom: 0;
             right: 40px;
             width: 520px;
-            background: #20282F;
-            border: 1px solid #36424A;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            background: #1E293B;
+            border: 1px solid #334155;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
             z-index: 1050;
         }
         .modal-content {
-            background: #20282F !important;
-            border: 1px solid #36424A !important;
+            background: #1E293B !important;
+            border: 1px solid #334155 !important;
             color: #F3F4F6 !important;
         }
         .modal-header, .modal-footer {
@@ -747,6 +748,15 @@
                     ? `To: ${e.recipient_email || e.sender_email}`
                     : (e.sender_name || 'Customer');
 
+                let statusPill = '';
+                if (currentFolder === 'drafts' || e.folder === 'drafts' || e.status === 'pending_review') {
+                    statusPill = e.gmail_draft_id
+                        ? '<span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-30" style="font-size:0.6rem; padding: 2px 5px;"><i class="bi bi-google me-1"></i>GMAIL DRAFT</span>'
+                        : '<span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30" style="font-size:0.6rem; padding: 2px 5px;">AI DRAFT</span>';
+                } else if (currentFolder === 'sent' || e.folder === 'sent' || e.status === 'approved') {
+                    statusPill = '<span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30" style="font-size:0.6rem; padding: 2px 5px;"><i class="bi bi-check-all me-1"></i>SENT</span>';
+                }
+
                 return `
                     <div class="email-item ${isActive ? 'active' : ''}" onclick="selectEmail('${e.id}')">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -754,6 +764,7 @@
                                 ${unreadIndicator}${contactDisplay}
                             </span>
                             <div class="d-flex gap-1 align-items-center">
+                                ${statusPill}
                                 ${sourceBadge}
                                 <span class="badge-cat ${catClass}">${e.category || 'INQUIRY'}</span>
                             </div>
@@ -925,10 +936,12 @@
                         <div class="d-flex align-items-center gap-2">
                             <label class="small text-slate-400">Voice:</label>
                             <select id="voiceSelector" class="form-select form-select-sm" style="background: #171E24; border-color: #36424A; color: #F3F4F6;" onchange="regenerateVoice('${email.id}', this.value)">
-                                <option value="professional" ${draft.voice === 'professional' ? 'selected' : ''}>Professional</option>
-                                <option value="empathetic" ${draft.voice === 'empathetic' ? 'selected' : ''}>Empathetic</option>
-                                <option value="concise" ${draft.voice === 'concise' ? 'selected' : ''}>Concise</option>
-                                <option value="executive" ${draft.voice === 'executive' ? 'selected' : ''}>Executive</option>
+                                <option value="professional" ${draft.voice === 'professional' ? 'selected' : ''}>Professional (Polished)</option>
+                                <option value="friendly" ${draft.voice === 'friendly' ? 'selected' : ''}>Friendly (Warm & Approachable)</option>
+                                <option value="formal" ${draft.voice === 'formal' ? 'selected' : ''}>Formal (Respectful & Structured)</option>
+                                <option value="concise" ${draft.voice === 'concise' ? 'selected' : ''}>Concise (Direct & Bullets)</option>
+                                <option value="empathetic" ${draft.voice === 'empathetic' ? 'selected' : ''}>Empathetic (Attentive)</option>
+                                <option value="executive" ${draft.voice === 'executive' ? 'selected' : ''}>Executive (Advisory)</option>
                             </select>
                         </div>
                     </div>
@@ -1017,8 +1030,11 @@
                 const saved = await res.json();
                 currentDraft = saved;
 
+                const isGmailSynced = Boolean(saved.gmail_draft_id);
+                const syncBadge = isGmailSynced ? ' <span class="badge bg-primary text-white ms-2"><i class="bi bi-google me-1"></i>Saved to Gmail Drafts</span>' : '';
+
                 fb.className = 'alert alert-success mt-3';
-                fb.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i><strong>Draft Saved:</strong> Content preserved in Drafts folder without sending.';
+                fb.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i><strong>Draft Saved:</strong> Content preserved in Drafts folder without sending.${syncBadge}`;
                 fb.classList.remove('d-none');
 
                 updateFolderCounts();
@@ -1149,13 +1165,34 @@
         }
 
         async function regenerateVoice(emailId, voice) {
+            const editor = document.getElementById('draftEditor');
+            const originalVal = editor ? editor.value : '';
+            if (editor) {
+                editor.disabled = true;
+                editor.style.opacity = '0.6';
+            }
             try {
-                const res = await fetch(`/api/v1/emails/${emailId}/draft?voice=${voice}`, { method: 'POST' });
+                const res = await fetch(`/api/v1/emails/${emailId}/draft?voice=${encodeURIComponent(voice)}&force_regenerate=true`, { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to regenerate draft with selected voice (" + res.status + ")");
                 const draft = await res.json();
                 currentDraft = draft;
-                document.getElementById('draftEditor').value = draft.original_draft;
+                if (editor) {
+                    editor.value = draft.original_draft;
+                }
+                const fb = document.getElementById('actionFeedback');
+                if (fb) {
+                    fb.className = 'alert alert-info mt-3 py-2 small';
+                    fb.innerHTML = `<i class="bi bi-magic me-1"></i> Regenerated draft using <strong>${voice.toUpperCase()}</strong> tone.`;
+                    fb.classList.remove('d-none');
+                }
             } catch (err) {
                 console.error("Voice regeneration error:", err);
+                if (editor) editor.value = originalVal;
+            } finally {
+                if (editor) {
+                    editor.disabled = false;
+                    editor.style.opacity = '1.0';
+                }
             }
         }
 

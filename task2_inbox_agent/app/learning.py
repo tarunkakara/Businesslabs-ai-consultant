@@ -72,19 +72,31 @@ class ContinuousLearningEngine:
 
         learned_points: List[str] = []
 
-        # 1. Sign-off analysis
-        if edit_lines and orig_lines:
-            last_orig = orig_lines[-1]
-            last_edit = edit_lines[-1]
-            if last_orig.lower() != last_edit.lower():
-                learned_points.append(f"Sign off with: '{last_edit}'")
+        GREETING_WORDS = ("hi", "hello", "dear", "good morning", "good afternoon", "good evening", "greetings")
+        SIGNOFF_WORDS = ("best", "regards", "warm regards", "warmly", "sincerely", "thanks", "thank you", "cheers", "respectfully", "warmest regards")
 
-        # 2. Greeting analysis
+        # 1. Sign-off analysis (only if it matches genuine sign-off syntax)
+        if edit_lines and orig_lines:
+            signoff_candidate = None
+            if len(edit_lines) >= 2 and any(edit_lines[-2].lower().startswith(w) for w in SIGNOFF_WORDS):
+                signoff_candidate = f"{edit_lines[-2]} {edit_lines[-1]}"
+            elif any(edit_lines[-1].lower().startswith(w) for w in SIGNOFF_WORDS):
+                signoff_candidate = edit_lines[-1]
+
+            if signoff_candidate and len(signoff_candidate) < 65:
+                # Check that it differs from the original signoff
+                orig_last = orig_lines[-1].lower()
+                orig_prev = orig_lines[-2].lower() if len(orig_lines) >= 2 else ""
+                if not any(w in orig_prev for w in SIGNOFF_WORDS if w in signoff_candidate.lower()) or signoff_candidate.lower() != orig_last:
+                    learned_points.append(f"Sign off with: '{signoff_candidate}'")
+
+        # 2. Greeting analysis (only if it matches genuine greeting syntax)
         if edit_lines and orig_lines:
             first_orig = orig_lines[0]
             first_edit = edit_lines[0]
-            if first_orig.lower() != first_edit.lower():
-                learned_points.append(f"Start email with: '{first_edit}'")
+            if first_orig.lower() != first_edit.lower() and len(first_edit) < 35:
+                if any(first_edit.lower().startswith(w) for w in GREETING_WORDS):
+                    learned_points.append(f"Start email with: '{first_edit}'")
 
         # 3. Conciseness or expansion
         orig_words = len(original_draft.split())

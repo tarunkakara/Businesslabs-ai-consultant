@@ -269,6 +269,81 @@ class GmailOAuthClient:
             return {"success": False, "message": f"Failed to send email: {str(exc)}"}
 
     @classmethod
+    async def create_or_update_user_draft(
+        cls,
+        user_id: str,
+        auth_store: Any,
+        to_email: str,
+        subject: str,
+        body_text: str,
+        thread_id: Optional[str] = None,
+        existing_draft_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Save or synchronize an unsent reply draft directly into user's Google Gmail Drafts."""
+        access_token, gmail_address, err = await cls.get_valid_token(user_id, auth_store)
+        if err or not access_token:
+            return {"success": False, "message": err or "Not authorized with Gmail."}
+
+        msg = MIMEMultipart()
+        msg["To"] = to_email
+        msg["From"] = gmail_address or "me"
+        sub = subject if subject.lower().startswith("re:") else f"Re: {subject}"
+        msg["Subject"] = sub
+        msg.attach(MIMEText(body_text, "plain", "utf-8"))
+
+        raw_bytes = msg.as_bytes()
+        raw_b64 = base64.urlsafe_b64encode(raw_bytes).decode("utf-8")
+
+        message_obj: Dict[str, Any] = {"raw": raw_b64}
+        if thread_id:
+            message_obj["threadId"] = thread_id
+
+        payload = {"message": message_obj}
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            async with httpx.AsyncClient() as http_client:
+                if existing_draft_id:
+                    # Attempt update
+                    put_resp = await http_client.put(
+                        f"{GMAIL_API_BASE}/drafts/{existing_draft_id}",
+                        json=payload,
+                        headers=headers,
+                        timeout=20.0,
+                    )
+                    if put_resp.status_code in (200, 201):
+                        d_data = put_resp.json()
+                        return {
+                            "success": True,
+                            "gmail_draft_id": d_data.get("id", existing_draft_id),
+                            "message": f"Draft synchronized with your Google Gmail Drafts ({gmail_address}).",
+                        }
+
+                # Otherwise create new draft
+                post_resp = await http_client.post(
+                    f"{GMAIL_API_BASE}/drafts",
+                    json=payload,
+                    headers=headers,
+                    timeout=20.0,
+                )
+                if post_resp.status_code not in (200, 201):
+                    logger.warning("Gmail draft creation returned status %d: %s", post_resp.status_code, post_resp.text)
+                    return {"success": False, "message": f"Gmail Drafts API error: {post_resp.text}"}
+
+                d_data = post_resp.json()
+                return {
+                    "success": True,
+                    "gmail_draft_id": d_data.get("id"),
+                    "message": f"Draft saved and synchronized to your Google Gmail Drafts folder ({gmail_address}).",
+                }
+        except Exception as exc:
+            logger.error("Error creating/updating draft via Gmail API: %s", exc)
+            return {"success": False, "message": f"Failed to save draft to Gmail: {str(exc)}"}
+
+    @classmethod
     async def disconnect(cls, user_id: str, auth_store: Any) -> Tuple[bool, str]:
         """Revoke Gmail OAuth token with Google and remove credentials from database."""
         token_info = auth_store.get_gmail_token(user_id)

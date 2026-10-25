@@ -29,10 +29,23 @@ class EmailPriority(str, Enum):
 
 class CompanyVoice(str, Enum):
     """Configurable company voice styles."""
-    PROFESSIONAL = "professional"  # Polite, structured, solution-oriented
+    PROFESSIONAL = "professional"  # Concise, polished, business-appropriate
+    FRIENDLY = "friendly"          # Warm, approachable, helpful
+    FORMAL = "formal"              # Respectful, structured, more formal
     EMPATHETIC = "empathetic"      # Understanding, apologetic, highly attentive
     CONCISE = "concise"            # Direct, bullet-pointed, efficient
     EXECUTIVE = "executive"        # Strategic, consultative, authoritative
+
+
+def normalize_voice(voice: Optional[Any]) -> CompanyVoice:
+    """Safely map any string or enum value to a valid CompanyVoice, defaulting to PROFESSIONAL."""
+    if not voice:
+        return CompanyVoice.PROFESSIONAL
+    val = str(getattr(voice, "value", voice)).lower().strip()
+    for cv in CompanyVoice:
+        if cv.value == val or cv.name.lower() == val:
+            return cv
+    return CompanyVoice.PROFESSIONAL
 
 
 class DraftStatus(str, Enum):
@@ -62,6 +75,7 @@ class CustomerEmail(BaseModel):
     is_simulated: bool = False
     folder: str = "inbox"
     recipient_email: Optional[str] = None
+    gmail_draft_id: Optional[str] = None
 
 
 class EmailClassification(BaseModel):
@@ -84,6 +98,7 @@ class DraftResponse(BaseModel):
     kb_sources_cited: List[Dict[str, Any]] = Field(default_factory=list)
     confidence_score: float = 0.0
     status: DraftStatus = DraftStatus.PENDING_REVIEW
+    gmail_draft_id: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 

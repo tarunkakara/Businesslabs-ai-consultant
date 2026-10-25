@@ -21,6 +21,13 @@
             --text-secondary: #94A3B8;
             --text-muted: #64748B;
         }
+        .spin-animation {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
         body {
             background-color: var(--bg-base) !important;
             color: var(--text-main) !important;
@@ -453,10 +460,41 @@
         </aside>
 
         <!-- Center Email List Pane -->
-        <section class="email-list-pane">
-            <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="border-color: #36424A !important;">
-                <span id="currentFolderTitle" class="fw-bold text-light">Primary Inbox</span>
-                <button class="btn btn-sm btn-link text-slate-400 p-0" onclick="loadEmails()"><i class="bi bi-arrow-clockwise"></i></button>
+        <section class="email-list-pane d-flex flex-column">
+            <!-- Header with Title, Read/Unread Filters, Last Sync & Refresh Button -->
+            <div class="p-3 border-bottom" style="border-color: #36424A !important; background: #151B21;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="currentFolderTitle" class="fw-bold text-light fs-6">Primary Inbox</span>
+                        <span id="folderCountBadge" class="badge rounded-pill bg-secondary bg-opacity-30 text-slate-300" style="font-size: 0.72rem;">0</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="syncSpinnerBadge" class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-30 d-none" style="font-size: 0.7rem;">
+                            <span class="spinner-border spinner-border-sm me-1" style="width: 0.75rem; height: 0.75rem;"></span>Syncing...
+                        </span>
+                        <button id="btnRefreshInbox" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 rounded-pill px-3 py-1" onclick="triggerManualSync()" title="Fetch current messages from Gmail and update UI">
+                            <i id="refreshIcon" class="bi bi-arrow-clockwise"></i>
+                            <span id="refreshBtnText" style="font-size: 0.78rem;">Refresh Inbox</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center text-xs">
+                    <!-- Read / Unread Filter Pills -->
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-sm btn-dark text-slate-300 px-2 py-0 border-secondary active" id="filterRead_all" onclick="setReadFilter('all')" style="font-size: 0.72rem;">All</button>
+                        <button type="button" class="btn btn-sm btn-dark text-slate-300 px-2 py-0 border-secondary" id="filterRead_unread" onclick="setReadFilter('unread')" style="font-size: 0.72rem;"><i class="bi bi-circle-fill text-primary me-1" style="font-size: 0.5rem;"></i>Unread</button>
+                        <button type="button" class="btn btn-sm btn-dark text-slate-300 px-2 py-0 border-secondary" id="filterRead_read" onclick="setReadFilter('read')" style="font-size: 0.72rem;">Read</button>
+                    </div>
+                    <!-- Last Synced Timestamp -->
+                    <span id="lastSyncLabel" class="text-slate-400" style="font-size: 0.72rem;" title="Last time Gmail mailbox was queried">
+                        <i class="bi bi-clock-history me-1"></i>Last synced: <span id="lastSyncTimeText">Checking...</span>
+                    </span>
+                </div>
+                <!-- Dynamic notification bar for new emails -->
+                <div id="syncNotificationBar" class="alert alert-success d-none py-1 px-2 mt-2 mb-0 small rounded-2 d-flex justify-content-between align-items-center" style="font-size: 0.75rem;">
+                    <span id="syncNotificationText"><i class="bi bi-check-circle-fill me-1"></i>New emails received</span>
+                    <button type="button" class="btn-close btn-close-white p-1" style="font-size: 0.5rem;" onclick="dismissSyncNotification()"></button>
+                </div>
             </div>
             <div id="emailListContainer" class="flex-grow-1 overflow-y-auto">
                 <div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2" style="color: #10B981;"></div>Loading messages...</div>
@@ -712,17 +750,31 @@
             loadEmails();
         }
 
+        let currentReadFilter = 'all';
+
+        function setReadFilter(filter) {
+            currentReadFilter = filter;
+            document.querySelectorAll('#filterRead_all, #filterRead_unread, #filterRead_read').forEach(el => el.classList.remove('active'));
+            const activeBtn = document.getElementById(`filterRead_${filter}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            loadEmails();
+        }
+
         async function loadEmails() {
             try {
                 let url = `/api/v1/emails?limit=100&folder=${currentFolder}&source=${currentSource}`;
                 if (activeCategoryFilter) url += `&category=${activeCategoryFilter}`;
                 if (currentFolder === 'drafts') url += `&status=pending_review`;
                 if (currentFolder === 'sent') url += `&status=approved`;
+                if (currentReadFilter === 'unread') url += `&is_unread=true`;
+                if (currentReadFilter === 'read') url += `&is_unread=false`;
 
                 const res = await fetch(url);
                 const data = await res.json();
                 allEmails = data;
                 renderEmailList(allEmails);
+                const countBadge = document.getElementById('folderCountBadge');
+                if (countBadge) countBadge.textContent = allEmails.length;
                 updateFolderCounts();
             } catch (err) {
                 console.error("Load emails error:", err);
@@ -1196,25 +1248,123 @@
             }
         }
 
+        let isSyncing = false;
+        let lastSyncTimestamp = null;
+        let syncIntervalTimer = null;
+
+        function showSyncNotification(msg) {
+            const bar = document.getElementById('syncNotificationBar');
+            const txt = document.getElementById('syncNotificationText');
+            if (bar && txt) {
+                txt.innerHTML = `<i class="bi bi-info-circle-fill me-1"></i>${msg}`;
+                bar.classList.remove('d-none');
+                setTimeout(() => {
+                    dismissSyncNotification();
+                }, 7000);
+            }
+        }
+
+        function dismissSyncNotification() {
+            const bar = document.getElementById('syncNotificationBar');
+            if (bar) bar.classList.add('d-none');
+        }
+
+        function updateLastSyncDisplay() {
+            const label = document.getElementById('lastSyncTimeText');
+            if (!label) return;
+            if (!lastSyncTimestamp) {
+                label.textContent = 'Not yet synced';
+                return;
+            }
+            const diffSec = Math.floor((Date.now() - lastSyncTimestamp) / 1000);
+            if (diffSec < 15) {
+                label.textContent = 'Just now';
+            } else if (diffSec < 60) {
+                label.textContent = `${diffSec}s ago`;
+            } else {
+                const diffMin = Math.floor(diffSec / 60);
+                label.textContent = `${diffMin}m ago`;
+            }
+        }
+
+        async function triggerManualSync() {
+            await performSync({ background: false, forceFull: false });
+        }
+
         async function syncGmail() {
+            await triggerManualSync();
+        }
+
+        async function performSync({ background = false, forceFull = false } = {}) {
+            if (isSyncing) return;
+            isSyncing = true;
+
+            const refreshIcon = document.getElementById('refreshIcon');
+            const spinnerBadge = document.getElementById('syncSpinnerBadge');
+            const btnRefresh = document.getElementById('btnRefreshInbox');
+            const btnSyncTop = document.getElementById('btnSyncGmail');
+
+            if (refreshIcon) refreshIcon.classList.add('spin-animation');
+            if (spinnerBadge) spinnerBadge.classList.remove('d-none');
+            if (btnRefresh) btnRefresh.disabled = true;
+            if (btnSyncTop) btnSyncTop.disabled = true;
+
             try {
                 const res = await fetch('/api/v1/gmail/sync', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ limit: 15, folder: currentFolder })
+                    body: JSON.stringify({
+                        limit: 20,
+                        folder: currentFolder,
+                        force_full_sync: forceFull
+                    })
                 });
                 const data = await res.json();
-                if (data.status === 'not_connected') {
-                    if (confirm("Your personal Gmail account is not connected yet.\n\nWould you like to connect your Gmail account via Google OAuth 2.0 now?")) {
-                        connectGmail();
+                lastSyncTimestamp = Date.now();
+                updateLastSyncDisplay();
+
+                if (data.status === 'success') {
+                    await loadEmails();
+                    await updateFolderCounts();
+                    if (data.new_count > 0) {
+                        showSyncNotification(`Received ${data.new_count} new email(s) from ${data.connected_email || 'Gmail'}.`);
+                    } else if (!background) {
+                        showSyncNotification(`Inbox is up to date (${data.count} emails verified).`);
                     }
-                    return;
+                } else if (data.status === 'not_connected') {
+                    if (!background) {
+                        if (confirm("Your personal Gmail account is not connected yet.\n\nWould you like to connect your Gmail account via Google OAuth 2.0 now?")) {
+                            connectGmail();
+                        }
+                    }
+                } else if (data.status === 'in_progress') {
+                    if (!background) {
+                        showSyncNotification("Sync already in progress. Please wait a moment.");
+                    }
+                } else if (data.status === 'error' && !background) {
+                    alert("Gmail sync error: " + (data.message || "Failed to fetch emails."));
                 }
-                alert(data.message || `Synced ${data.count} emails from Gmail.`);
-                loadEmails();
             } catch (err) {
-                alert("Gmail sync error: " + err.message);
+                console.error("Gmail sync error:", err);
+                if (!background) alert("Gmail sync error: " + err.message);
+            } finally {
+                isSyncing = false;
+                if (refreshIcon) refreshIcon.classList.remove('spin-animation');
+                if (spinnerBadge) spinnerBadge.classList.add('d-none');
+                if (btnRefresh) btnRefresh.disabled = false;
+                if (btnSyncTop) btnSyncTop.disabled = false;
             }
+        }
+
+        function startPeriodicSync() {
+            if (syncIntervalTimer) clearInterval(syncIntervalTimer);
+            // Run automatic periodic background sync every 30 seconds
+            syncIntervalTimer = setInterval(() => {
+                if (isGmailConnected && !isSyncing) {
+                    performSync({ background: true, forceFull: false });
+                }
+                updateLastSyncDisplay();
+            }, 30000);
         }
 
         async function checkGmailStatus() {
@@ -1275,6 +1425,21 @@
             } catch (err) {
                 console.error("Check Gmail OAuth status error:", err);
             }
+        }
+
+        async function fetchInitialSyncStatus() {
+            try {
+                const res = await fetch('/api/v1/gmail/sync/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.last_sync_time) {
+                        lastSyncTimestamp = data.last_sync_time * 1000;
+                        updateLastSyncDisplay();
+                    } else {
+                        updateLastSyncDisplay();
+                    }
+                }
+            } catch (_) {}
         }
 
         function handleProceedOAuth(event) {
@@ -1501,22 +1666,29 @@
             window.location.replace('/login');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const isConnected = urlParams.get('gmail_connected') === '1' || urlParams.get('gmail_connected') === 'true';
             const authErr = urlParams.get('error') || urlParams.get('gmail_error');
 
             if (isConnected) {
-                alert("Gmail account authorized and connected successfully via Google OAuth 2.0!");
                 window.history.replaceState({}, document.title, window.location.pathname);
+                showSyncNotification("Gmail authorized successfully! Synchronizing inbox messages...");
             } else if (authErr) {
                 alert("Gmail connection notice: " + authErr);
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
 
-            checkAuth();
-            checkGmailStatus();
-            loadEmails();
+            await checkAuth();
+            await checkGmailStatus();
+            await fetchInitialSyncStatus();
+            await loadEmails();
+
+            if (isConnected || isGmailConnected) {
+                startPeriodicSync();
+                // Perform initial background synchronization on page entry
+                performSync({ background: !isConnected, forceFull: isConnected });
+            }
         });
     </script>
 </body>

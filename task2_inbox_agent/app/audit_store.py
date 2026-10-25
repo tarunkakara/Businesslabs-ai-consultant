@@ -1,11 +1,12 @@
 """SQLite Persistence for Customer Emails, Drafts, and Transparent Audit Logs."""
 
+import email.utils
 import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from task2_inbox_agent.app.config import settings
 from task2_inbox_agent.app.models import (
@@ -17,6 +18,30 @@ from task2_inbox_agent.app.models import (
     EmailCategory,
     EmailPriority,
 )
+
+
+def normalize_date_to_iso(date_str: Optional[str]) -> str:
+    """Normalize RFC 2822, epoch, or irregular date into standard ISO 8601 UTC string."""
+    if not date_str:
+        return datetime.now(timezone.utc).isoformat()
+    ds = str(date_str).strip()
+    # Check if already standard ISO 8601 (starts with YYYY-MM-DD)
+    if len(ds) >= 19 and ds[4] == "-" and ds[7] == "-" and ("T" in ds or " " in ds):
+        return ds.replace(" ", "T")
+    try:
+        # Check if numeric epoch (seconds or ms)
+        if ds.replace(".", "", 1).isdigit():
+            val = float(ds)
+            if val > 1e11:  # milliseconds
+                val = val / 1000.0
+            return datetime.fromtimestamp(val, tz=timezone.utc).isoformat()
+        # Parse RFC 2822 format (e.g. Mon, 26 Oct 2026 12:00:00 +0000)
+        dt = email.utils.parsedate_to_datetime(ds)
+        if dt:
+            return dt.astimezone(timezone.utc).isoformat()
+    except Exception:
+        pass
+    return ds
 
 
 class InboxAuditStore:
@@ -79,6 +104,16 @@ class InboxAuditStore:
             # Mark legacy seed/synthetic emails without user_id as simulated
             cursor.execute("UPDATE emails SET is_simulated = 1 WHERE user_id IS NULL AND is_simulated = 0")
 
+            # One-time migration: normalize any non-ISO dates in existing emails table
+            try:
+                cursor.execute("SELECT id, received_at FROM emails WHERE received_at IS NOT NULL AND received_at NOT LIKE '20%'")
+                legacy_rows = cursor.fetchall()
+                for row in legacy_rows:
+                    clean_date = normalize_date_to_iso(row["received_at"])
+                    cursor.execute("UPDATE emails SET received_at = ? WHERE id = ?", (clean_date, row["id"]))
+            except Exception:
+                pass
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS drafts (
                     draft_id TEXT PRIMARY KEY,
@@ -112,22 +147,43 @@ class InboxAuditStore:
             conn.commit()
 
     def save_emails(self, emails: List[CustomerEmail]) -> int:
-        """Insert or replace a batch of customer emails."""
+        """Insert or replace a batch of customer emails, returning count of processed emails."""
+        res = self.save_emails_with_count(emails)
+        return res["total"]
+
+    def save_emails_with_count(self, emails: List[CustomerEmail]) -> Dict[str, int]:
+        """Insert or replace emails while preserving manual review states and tracking new vs updated counts."""
+        new_count = 0
+        updated_count = 0
         with self._get_connection() as conn:
             cursor = conn.cursor()
             for e in emails:
+                # Clean timestamp to standard ISO 8601 for accurate newest-first ordering
+                norm_received_at = normalize_date_to_iso(e.received_at)
+                e.received_at = norm_received_at
+
+                cursor.execute("SELECT id, status FROM emails WHERE id = ?", (e.id,))
+                existing_row = cursor.fetchone()
+                if not existing_row:
+                    new_count += 1
+                else:
+                    updated_count += 1
+
                 cursor.execute("""
                     INSERT INTO emails (id, sender_name, sender_email, subject, body, received_at, category, priority, status, user_id, thread_id, is_unread, is_simulated, folder, recipient_email)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
-                        category = excluded.category,
-                        priority = excluded.priority,
-                        status = excluded.status,
+                        category = COALESCE(emails.category, excluded.category),
+                        priority = COALESCE(emails.priority, excluded.priority),
+                        status = CASE 
+                            WHEN emails.status IN ('approved', 'edited_and_approved', 'sent', 'sent_autonomously') THEN emails.status
+                            ELSE excluded.status
+                        END,
                         user_id = COALESCE(excluded.user_id, emails.user_id),
                         thread_id = COALESCE(excluded.thread_id, emails.thread_id),
                         is_unread = excluded.is_unread,
                         is_simulated = excluded.is_simulated,
-                        folder = excluded.folder,
+                        folder = COALESCE(excluded.folder, emails.folder),
                         recipient_email = COALESCE(excluded.recipient_email, emails.recipient_email)
                 """, (
                     e.id,
@@ -135,7 +191,7 @@ class InboxAuditStore:
                     e.sender_email,
                     e.subject,
                     e.body,
-                    e.received_at,
+                    norm_received_at,
                     e.category.value if e.category else None,
                     e.priority.value,
                     e.status.value,
@@ -147,7 +203,7 @@ class InboxAuditStore:
                     e.recipient_email,
                 ))
             conn.commit()
-        return len(emails)
+        return {"total": len(emails), "new": new_count, "updated": updated_count}
 
     def get_email(self, email_id: str) -> Optional[CustomerEmail]:
         """Fetch email record by ID."""
@@ -184,9 +240,10 @@ class InboxAuditStore:
         folder: Optional[str] = None,
         source: Optional[str] = None,
         search: Optional[str] = None,
+        is_unread: Optional[bool] = None,
         limit: int = 100,
     ) -> List[CustomerEmail]:
-        """List emails with multi-tenant user isolation, folder, and search filtering."""
+        """List emails with multi-tenant user isolation, folder, read/unread, and search filtering."""
         query = "SELECT * FROM emails WHERE 1=1"
         params: List[Any] = []
 
@@ -226,6 +283,11 @@ class InboxAuditStore:
         if status:
             query += " AND status = ?"
             params.append(status)
+
+        if is_unread is True:
+            query += " AND is_unread = 1"
+        elif is_unread is False:
+            query += " AND is_unread = 0"
 
         if search:
             query += " AND (subject LIKE ? OR sender_name LIKE ? OR sender_email LIKE ? OR body LIKE ?)"

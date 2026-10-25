@@ -255,9 +255,28 @@ class AuthStore:
                     scope TEXT NOT NULL,
                     connected_at REAL NOT NULL,
                     updated_at REAL NOT NULL,
+                    last_history_id TEXT,
+                    last_sync_time REAL,
+                    last_sync_status TEXT DEFAULT 'idle',
+                    last_sync_message TEXT,
                     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
+
+            # Add incremental sync columns to user_gmail_tokens if missing
+            token_cols = [c[1] for c in cursor.execute("PRAGMA table_info(user_gmail_tokens)").fetchall()]
+            for col_name, col_type in [
+                ("last_history_id", "TEXT"),
+                ("last_sync_time", "REAL"),
+                ("last_sync_status", "TEXT DEFAULT 'idle'"),
+                ("last_sync_message", "TEXT"),
+            ]:
+                if col_name not in token_cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE user_gmail_tokens ADD COLUMN {col_name} {col_type}")
+                    except Exception:
+                        pass
+
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_gmail_user ON user_gmail_tokens(user_id)")
             conn.commit()
 
@@ -459,6 +478,7 @@ class AuthStore:
         refresh_token: Optional[str],
         expires_in: int,
         scope: str = "",
+        history_id: Optional[str] = None,
     ) -> None:
         """Store encrypted Gmail OAuth credentials associated with a user."""
         now = time.time()
@@ -468,18 +488,29 @@ class AuthStore:
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            # If refresh_token is omitted on re-auth, preserve existing encrypted refresh token
-            if not refresh_token:
-                cursor.execute("SELECT refresh_token_enc FROM user_gmail_tokens WHERE user_id = ?", (user_id,))
-                existing = cursor.fetchone()
-                if existing and existing["refresh_token_enc"]:
+            # If refresh_token is omitted on re-auth, preserve existing encrypted refresh token & history_id
+            last_hist = history_id
+            cursor.execute("SELECT refresh_token_enc, last_history_id FROM user_gmail_tokens WHERE user_id = ?", (user_id,))
+            existing = cursor.fetchone()
+            if existing:
+                if not refresh_token and existing["refresh_token_enc"]:
                     enc_refresh = existing["refresh_token_enc"]
+                if not last_hist and existing["last_history_id"]:
+                    last_hist = existing["last_history_id"]
 
             cursor.execute("""
-                INSERT OR REPLACE INTO user_gmail_tokens
-                (user_id, gmail_address, access_token_enc, refresh_token_enc, token_expiry, scope, connected_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, gmail_address.lower().strip(), enc_access, enc_refresh, expiry, scope, now, now))
+                INSERT INTO user_gmail_tokens
+                (user_id, gmail_address, access_token_enc, refresh_token_enc, token_expiry, scope, connected_at, updated_at, last_history_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    gmail_address = excluded.gmail_address,
+                    access_token_enc = excluded.access_token_enc,
+                    refresh_token_enc = COALESCE(excluded.refresh_token_enc, user_gmail_tokens.refresh_token_enc),
+                    token_expiry = excluded.token_expiry,
+                    scope = excluded.scope,
+                    updated_at = excluded.updated_at,
+                    last_history_id = COALESCE(excluded.last_history_id, user_gmail_tokens.last_history_id)
+            """, (user_id, gmail_address.lower().strip(), enc_access, enc_refresh, expiry, scope, now, now, last_hist))
             conn.commit()
 
     def get_gmail_token(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -491,16 +522,69 @@ class AuthStore:
             if not row:
                 return None
 
+            d = dict(row)
             return {
-                "user_id": row["user_id"],
-                "gmail_address": row["gmail_address"],
-                "access_token": TokenCrypt.decrypt(row["access_token_enc"]),
-                "refresh_token": TokenCrypt.decrypt(row["refresh_token_enc"]),
-                "token_expiry": row["token_expiry"],
-                "scope": row["scope"],
-                "connected_at": row["connected_at"],
-                "is_expired": time.time() >= (row["token_expiry"] - 60),
+                "user_id": d["user_id"],
+                "gmail_address": d["gmail_address"],
+                "access_token": TokenCrypt.decrypt(d["access_token_enc"]),
+                "refresh_token": TokenCrypt.decrypt(d["refresh_token_enc"]),
+                "token_expiry": d["token_expiry"],
+                "scope": d["scope"],
+                "connected_at": d["connected_at"],
+                "updated_at": d.get("updated_at"),
+                "last_history_id": d.get("last_history_id"),
+                "last_sync_time": d.get("last_sync_time"),
+                "last_sync_status": d.get("last_sync_status") or "idle",
+                "last_sync_message": d.get("last_sync_message"),
+                "is_expired": time.time() >= (d["token_expiry"] - 60),
             }
+
+    def get_gmail_sync_state(self, user_id: str) -> Dict[str, Any]:
+        """Fetch current Gmail synchronization checkpoint and health status."""
+        token_info = self.get_gmail_token(user_id)
+        if not token_info:
+            return {
+                "connected": False,
+                "gmail_address": None,
+                "last_history_id": None,
+                "last_sync_time": None,
+                "last_sync_status": "disconnected",
+                "last_sync_message": "No Gmail account connected.",
+            }
+        return {
+            "connected": True,
+            "gmail_address": token_info["gmail_address"],
+            "last_history_id": token_info.get("last_history_id"),
+            "last_sync_time": token_info.get("last_sync_time"),
+            "last_sync_status": token_info.get("last_sync_status") or "idle",
+            "last_sync_message": token_info.get("last_sync_message"),
+            "is_expired": token_info["is_expired"],
+        }
+
+    def update_gmail_sync_state(
+        self,
+        user_id: str,
+        last_history_id: Optional[str] = None,
+        status: str = "success",
+        message: Optional[str] = None,
+    ) -> None:
+        """Update last sync checkpoint, timestamp, and status message."""
+        now = time.time()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if last_history_id:
+                cursor.execute("""
+                    UPDATE user_gmail_tokens
+                    SET last_history_id = ?, last_sync_time = ?, last_sync_status = ?, last_sync_message = ?, updated_at = ?
+                    WHERE user_id = ?
+                """, (str(last_history_id), now, status, message, now, user_id))
+            else:
+                cursor.execute("""
+                    UPDATE user_gmail_tokens
+                    SET last_sync_time = ?, last_sync_status = ?, last_sync_message = ?, updated_at = ?
+                    WHERE user_id = ?
+                """, (now, status, message, now, user_id))
+            conn.commit()
 
     def update_gmail_access_token(self, user_id: str, new_access_token: str, expires_in: int) -> None:
         """Update access token and expiry after a token refresh."""

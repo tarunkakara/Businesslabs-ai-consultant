@@ -126,6 +126,7 @@ async def list_emails(
     folder: Optional[str] = Query(default=None),
     source: Optional[str] = Query(default="all"),
     search: Optional[str] = Query(default=None),
+    is_unread: Optional[bool] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=200),
 ):
     """List customer emails with multi-tenant user isolation, folder selection, and search."""
@@ -138,6 +139,7 @@ async def list_emails(
         folder=folder,
         source=source,
         search=search,
+        is_unread=is_unread,
         limit=limit,
     )
 
@@ -371,7 +373,9 @@ class GmailSyncRequest(BaseModel):
     app_password: Optional[str] = None
     folder: Optional[str] = "inbox"
     query: Optional[str] = None
-    limit: int = 15
+    limit: int = 20
+    force_full_sync: bool = False
+    page_token: Optional[str] = None
 
 
 class GmailSendRequest(BaseModel):
@@ -402,42 +406,78 @@ async def test_gmail_connection(req: GmailTestRequest):
     return result
 
 
+@router.get("/api/v1/gmail/sync/status", tags=["Gmail Integration"])
+async def get_gmail_sync_status(request: Request):
+    """Retrieve current synchronization checkpoint, timestamp, and status for authenticated user."""
+    user = get_session_user(request)
+    if not user:
+        return {"connected": False, "status": "unauthenticated"}
+    return _auth_store.get_gmail_sync_state(user["id"])
+
+
 @router.post("/api/v1/gmail/sync", tags=["Gmail Integration"])
 async def sync_gmail_inbox(request: Request, req: Optional[GmailSyncRequest] = None):
     """Fetch new incoming emails from user's authorized Gmail account via OAuth 2.0 REST API."""
     user = get_session_user(request)
     user_id = user["id"] if user else None
 
-    limit = req.limit if req else 15
+    limit = req.limit if req else 20
     folder = req.folder if req and req.folder else "inbox"
     query = req.query if req and req.query else None
+    force_full = req.force_full_sync if req else False
+    page_token = req.page_token if req else None
 
     # 1. If user is authenticated, attempt real Gmail OAuth REST API fetch
     if user_id:
-        fetched, err = await GmailOAuthClient.fetch_user_emails(
+        sync_result = await GmailOAuthClient.sync_user_emails(
             user_id=user_id,
             auth_store=_auth_store,
             folder=folder,
             search_query=query,
             limit=limit,
+            page_token=page_token,
+            force_full_sync=force_full,
         )
-        if fetched:
-            for e in fetched:
-                cl = _classifier.classify(e)
-                e.category = cl.category
-                e.priority = cl.priority
 
-            count = _store.save_emails(fetched)
+        if sync_result["status"] == "success":
+            fetched = sync_result.get("emails", [])
+            save_stats = {"total": 0, "new": 0, "updated": 0}
+            if fetched:
+                for e in fetched:
+                    cl = _classifier.classify(e)
+                    e.category = cl.category
+                    e.priority = cl.priority
+                save_stats = _store.save_emails_with_count(fetched)
+
             conn_info = _auth_store.get_gmail_token(user_id)
             gmail_addr = conn_info.get("gmail_address") if conn_info else "Gmail"
+
             return {
                 "status": "success",
-                "count": count,
+                "count": save_stats["total"],
+                "new_count": save_stats["new"],
+                "updated_count": save_stats["updated"],
                 "connected_email": gmail_addr,
-                "message": f"Successfully synced {count} emails from {gmail_addr}.",
+                "history_id": sync_result.get("history_id"),
+                "next_page_token": sync_result.get("next_page_token"),
+                "is_incremental": sync_result.get("is_incremental", False),
+                "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                "message": sync_result.get("message") or f"Successfully synced {save_stats['total']} emails from {gmail_addr}.",
             }
-        elif err and "No Gmail account connected" not in err:
-            return {"status": "error", "count": 0, "message": err}
+        elif sync_result["status"] == "in_progress":
+            return {
+                "status": "in_progress",
+                "count": 0,
+                "new_count": 0,
+                "message": "Synchronization is already in progress. Please wait a moment.",
+            }
+        elif sync_result["status"] == "error":
+            return {
+                "status": "error",
+                "count": 0,
+                "new_count": 0,
+                "message": sync_result.get("message", "Gmail synchronization failed."),
+            }
 
     # 2. Check if legacy IMAP credentials were provided in request body
     if req and req.email and req.app_password:
@@ -453,13 +493,21 @@ async def sync_gmail_inbox(request: Request, req: Optional[GmailSyncRequest] = N
                 cl = _classifier.classify(e)
                 e.category = cl.category
                 e.priority = cl.priority
-            count = _store.save_emails(legacy_fetched)
-            return {"status": "success", "count": count, "message": f"Successfully synced {count} emails via IMAP."}
+            save_stats = _store.save_emails_with_count(legacy_fetched)
+            return {
+                "status": "success",
+                "count": save_stats["total"],
+                "new_count": save_stats["new"],
+                "updated_count": save_stats["updated"],
+                "last_sync_time": datetime.now(timezone.utc).isoformat(),
+                "message": f"Successfully synced {save_stats['total']} emails via IMAP.",
+            }
 
     # 3. If not connected, return clear guidance
     return {
         "status": "not_connected",
         "count": 0,
+        "new_count": 0,
         "message": "Gmail account not connected. Please click 'Connect Gmail' to authorize your real inbox.",
     }
 

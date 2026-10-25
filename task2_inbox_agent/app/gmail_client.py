@@ -9,6 +9,7 @@ Supports:
 - Backward-compatible IMAP/SMTP fallback
 """
 
+import asyncio
 import base64
 import email
 from email.header import decode_header
@@ -25,6 +26,7 @@ import uuid
 
 import httpx
 
+from task2_inbox_agent.app.audit_store import normalize_date_to_iso
 from task2_inbox_agent.app.models import (
     CustomerEmail,
     DraftStatus,
@@ -43,7 +45,33 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_GMAIL_CLIENT_SECRET") or os.getenv("GOO
 
 
 class GmailOAuthClient:
-    """Manages real per-user Gmail operations via Google's REST API."""
+    """Manages real per-user Gmail operations via Google's REST API with incremental sync and locking."""
+
+    _sync_locks: Dict[str, asyncio.Lock] = {}
+
+    @classmethod
+    def _get_user_lock(cls, user_id: str) -> asyncio.Lock:
+        """Get or create asyncio lock for this user to avoid overlapping/concurrent sync requests."""
+        if user_id not in cls._sync_locks:
+            cls._sync_locks[user_id] = asyncio.Lock()
+        return cls._sync_locks[user_id]
+
+    @staticmethod
+    def _decode_mime_header(val: Optional[str]) -> str:
+        """Decode MIME encoded-word RFC 2047 headers (e.g. =?UTF-8?B?...?=)."""
+        if not val:
+            return ""
+        try:
+            parts = decode_header(val)
+            decoded_chunks = []
+            for chunk, enc in parts:
+                if isinstance(chunk, bytes):
+                    decoded_chunks.append(chunk.decode(enc or "utf-8", errors="replace"))
+                else:
+                    decoded_chunks.append(str(chunk))
+            return "".join(decoded_chunks).strip()
+        except Exception:
+            return str(val).strip()
 
     @staticmethod
     async def get_valid_token(user_id: str, auth_store: Any) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -67,8 +95,8 @@ class GmailOAuthClient:
         if not refresh_token:
             return None, gmail_address, "Gmail authorization expired. Please reconnect your Gmail account."
 
-        client_id = os.getenv("GOOGLE_CLIENT_ID") or GOOGLE_CLIENT_ID
-        client_secret = os.getenv("GOOGLE_CLIENT_SECRET") or GOOGLE_CLIENT_SECRET
+        client_id = os.getenv("GOOGLE_GMAIL_CLIENT_ID") or os.getenv("GOOGLE_CLIENT_ID") or GOOGLE_CLIENT_ID
+        client_secret = os.getenv("GOOGLE_GMAIL_CLIENT_SECRET") or os.getenv("GOOGLE_CLIENT_SECRET") or GOOGLE_CLIENT_SECRET
         if not client_id or not client_secret:
             return None, gmail_address, "Google OAuth client credentials not configured on server."
 
@@ -99,6 +127,280 @@ class GmailOAuthClient:
             return None, gmail_address, f"Token refresh error: {str(exc)}"
 
     @classmethod
+    def _parse_gmail_message(cls, msg_data: Dict[str, Any], user_id: str, folder_lower: str) -> CustomerEmail:
+        """Parse raw Gmail REST API message object into CustomerEmail domain model."""
+        msg_id = msg_data.get("id", "")
+        thread_id = msg_data.get("threadId")
+        label_ids = msg_data.get("labelIds", [])
+        is_unread = "UNREAD" in label_ids
+
+        payload = msg_data.get("payload", {})
+        p_headers = payload.get("headers", [])
+        header_map = {h["name"].lower(): h["value"] for h in p_headers if "name" in h and "value" in h}
+
+        raw_subject = header_map.get("subject", "No Subject")
+        subject = cls._decode_mime_header(raw_subject) or "No Subject"
+
+        raw_from = header_map.get("from", "Unknown Sender")
+        from_decoded = cls._decode_mime_header(raw_from) or "Unknown Sender"
+        sender_name = from_decoded
+        sender_email = from_decoded
+        if "<" in from_decoded and ">" in from_decoded:
+            sender_name = from_decoded.split("<")[0].strip().strip('"').strip("'")
+            sender_email = from_decoded.split("<")[1].split(">")[0].strip()
+
+        # Date normalization: Use internalDate (ms epoch) if available, else parse header Date
+        internal_ms = msg_data.get("internalDate")
+        if internal_ms:
+            try:
+                epoch_sec = int(internal_ms) / 1000.0
+                date_val = datetime.fromtimestamp(epoch_sec, tz=timezone.utc).isoformat()
+            except Exception:
+                date_val = normalize_date_to_iso(header_map.get("date"))
+        else:
+            date_val = normalize_date_to_iso(header_map.get("date"))
+
+        body_text = cls._extract_body(payload)
+
+        return CustomerEmail(
+            id=f"GMAIL-{msg_id}",
+            user_id=user_id,
+            thread_id=thread_id,
+            sender_name=sender_name or "Client",
+            sender_email=sender_email or "client@example.com",
+            subject=subject,
+            body=body_text.strip() or "(Empty email body)",
+            received_at=date_val,
+            priority=EmailPriority.MEDIUM,
+            status=DraftStatus.UNPROCESSED,
+            is_unread=is_unread,
+            is_simulated=False,
+            folder=folder_lower,
+        )
+
+    @classmethod
+    async def sync_user_emails(
+        cls,
+        user_id: str,
+        auth_store: Any,
+        folder: str = "inbox",
+        search_query: Optional[str] = None,
+        limit: int = 20,
+        page_token: Optional[str] = None,
+        force_full_sync: bool = False,
+    ) -> Dict[str, Any]:
+        """Perform robust Gmail synchronization with incremental historyId support and concurrency locking."""
+        lock = cls._get_user_lock(user_id)
+        if lock.locked():
+            return {
+                "status": "in_progress",
+                "emails": [],
+                "count": 0,
+                "new_count": 0,
+                "message": "Synchronization is already active for this account.",
+            }
+
+        async with lock:
+            access_token, gmail_address, err = await cls.get_valid_token(user_id, auth_store)
+            if err or not access_token:
+                if hasattr(auth_store, "update_gmail_sync_state"):
+                    auth_store.update_gmail_sync_state(user_id, status="error", message=err or "Not authenticated")
+                return {
+                    "status": "not_connected" if "No Gmail account connected" in (err or "") else "error",
+                    "emails": [],
+                    "count": 0,
+                    "new_count": 0,
+                    "message": err or "Failed to obtain valid Gmail credentials.",
+                }
+
+            folder_lower = (folder or "inbox").lower()
+            headers = {"Authorization": f"Bearer {access_token}"}
+
+            try:
+                async with httpx.AsyncClient() as http_client:
+                    # 1. Check for incremental sync via historyId if inbox folder
+                    sync_state = auth_store.get_gmail_sync_state(user_id) if hasattr(auth_store, "get_gmail_sync_state") else {}
+                    last_history_id = sync_state.get("last_history_id") if isinstance(sync_state, dict) else None
+
+                    if last_history_id and folder_lower == "inbox" and not search_query and not page_token and not force_full_sync:
+                        try:
+                            hist_resp = await http_client.get(
+                                f"{GMAIL_API_BASE}/history",
+                                params={"startHistoryId": str(last_history_id), "historyTypes": "messageAdded"},
+                                headers=headers,
+                                timeout=20.0,
+                            )
+                            if hist_resp.status_code == 200:
+                                hist_data = hist_resp.json()
+                                new_history_id = hist_data.get("historyId", last_history_id)
+                                new_msg_ids: List[str] = []
+                                for rec in hist_data.get("history", []):
+                                    for msg_added in rec.get("messagesAdded", []):
+                                        m = msg_added.get("message", {})
+                                        mid = m.get("id")
+                                        if mid and mid not in new_msg_ids:
+                                            new_msg_ids.append(mid)
+
+                                if new_msg_ids:
+                                    new_emails: List[CustomerEmail] = []
+                                    for mid in new_msg_ids[:limit]:
+                                        msg_resp = await http_client.get(
+                                            f"{GMAIL_API_BASE}/messages/{mid}",
+                                            params={"format": "full"},
+                                            headers=headers,
+                                            timeout=15.0,
+                                        )
+                                        if msg_resp.status_code == 200:
+                                            email_obj = cls._parse_gmail_message(msg_resp.json(), user_id, folder_lower)
+                                            new_emails.append(email_obj)
+
+                                    if hasattr(auth_store, "update_gmail_sync_state"):
+                                        auth_store.update_gmail_sync_state(
+                                            user_id,
+                                            last_history_id=new_history_id,
+                                            status="success",
+                                            message=f"Received {len(new_emails)} new email(s)",
+                                        )
+                                    return {
+                                        "status": "success",
+                                        "emails": new_emails,
+                                        "count": len(new_emails),
+                                        "new_count": len(new_emails),
+                                        "gmail_address": gmail_address,
+                                        "history_id": new_history_id,
+                                        "is_incremental": True,
+                                        "message": f"Successfully synced {len(new_emails)} new email(s) from {gmail_address}.",
+                                    }
+                                else:
+                                    # No new message additions in history
+                                    if hasattr(auth_store, "update_gmail_sync_state"):
+                                        auth_store.update_gmail_sync_state(
+                                            user_id,
+                                            last_history_id=new_history_id,
+                                            status="success",
+                                            message="Inbox is up to date",
+                                        )
+                                    return {
+                                        "status": "success",
+                                        "emails": [],
+                                        "count": 0,
+                                        "new_count": 0,
+                                        "gmail_address": gmail_address,
+                                        "history_id": new_history_id,
+                                        "is_incremental": True,
+                                        "message": f"Inbox is up to date. No new emails found in {gmail_address}.",
+                                    }
+                            elif hist_resp.status_code == 404:
+                                logger.warning(
+                                    "Gmail historyId %s is stale or expired (HTTP 404). Falling back to full synchronization.",
+                                    last_history_id,
+                                )
+                                # Fall through to full synchronization!
+                        except Exception as h_exc:
+                            logger.warning("Incremental history sync failed: %s. Falling back to full synchronization.", h_exc)
+
+                    # 2. Full Synchronization via /messages
+                    query_parts = []
+                    if folder_lower == "sent":
+                        query_parts.append("in:sent")
+                    elif folder_lower == "drafts":
+                        query_parts.append("in:draft")
+                    else:
+                        query_parts.append("in:inbox")
+
+                    if search_query:
+                        query_parts.append(search_query.strip())
+                    final_query = " ".join(query_parts)
+
+                    params: Dict[str, Any] = {
+                        "q": final_query,
+                        "maxResults": min(max(limit, 10), 50),
+                    }
+                    if page_token:
+                        params["pageToken"] = page_token
+
+                    list_resp = await http_client.get(
+                        f"{GMAIL_API_BASE}/messages",
+                        params=params,
+                        headers=headers,
+                        timeout=20.0,
+                    )
+                    if list_resp.status_code != 200:
+                        err_text = f"Failed to list messages from Gmail: {list_resp.text}"
+                        if hasattr(auth_store, "update_gmail_sync_state"):
+                            auth_store.update_gmail_sync_state(user_id, status="error", message=err_text)
+                        return {
+                            "status": "error",
+                            "emails": [],
+                            "count": 0,
+                            "new_count": 0,
+                            "message": err_text,
+                        }
+
+                    list_data = list_resp.json()
+                    messages = list_data.get("messages", [])
+                    next_token = list_data.get("nextPageToken")
+
+                    fetched_emails: List[CustomerEmail] = []
+                    for msg_item in messages[:limit]:
+                        msg_id = msg_item["id"]
+                        msg_resp = await http_client.get(
+                            f"{GMAIL_API_BASE}/messages/{msg_id}",
+                            params={"format": "full"},
+                            headers=headers,
+                            timeout=15.0,
+                        )
+                        if msg_resp.status_code != 200:
+                            continue
+                        email_obj = cls._parse_gmail_message(msg_resp.json(), user_id, folder_lower)
+                        fetched_emails.append(email_obj)
+
+                    # Retrieve fresh historyId from profile checkpoint
+                    latest_history_id = None
+                    try:
+                        prof_resp = await http_client.get(
+                            f"{GMAIL_API_BASE}/profile",
+                            headers=headers,
+                            timeout=10.0,
+                        )
+                        if prof_resp.status_code == 200:
+                            latest_history_id = prof_resp.json().get("historyId")
+                    except Exception:
+                        pass
+
+                    if hasattr(auth_store, "update_gmail_sync_state"):
+                        auth_store.update_gmail_sync_state(
+                            user_id,
+                            last_history_id=latest_history_id,
+                            status="success",
+                            message=f"Synced {len(fetched_emails)} emails",
+                        )
+
+                    return {
+                        "status": "success",
+                        "emails": fetched_emails,
+                        "count": len(fetched_emails),
+                        "new_count": len(fetched_emails),
+                        "gmail_address": gmail_address,
+                        "history_id": latest_history_id,
+                        "next_page_token": next_token,
+                        "is_incremental": False,
+                        "message": f"Successfully synced {len(fetched_emails)} emails from {gmail_address}.",
+                    }
+
+            except Exception as exc:
+                logger.error("Gmail sync error for user %s: %s", user_id, exc)
+                if hasattr(auth_store, "update_gmail_sync_state"):
+                    auth_store.update_gmail_sync_state(user_id, status="error", message=str(exc))
+                return {
+                    "status": "error",
+                    "emails": [],
+                    "count": 0,
+                    "new_count": 0,
+                    "message": f"Gmail sync failure: {str(exc)}",
+                }
+
+    @classmethod
     async def fetch_user_emails(
         cls,
         user_id: str,
@@ -106,103 +408,20 @@ class GmailOAuthClient:
         folder: str = "inbox",
         search_query: Optional[str] = None,
         limit: int = 15,
+        force_full_sync: bool = False,
     ) -> Tuple[List[CustomerEmail], Optional[str]]:
-        """Fetch incoming emails from user's authorized Gmail mailbox via REST API."""
-        access_token, gmail_address, err = await cls.get_valid_token(user_id, auth_store)
-        if err or not access_token:
-            return [], err
-
-        # Determine Gmail search query
-        folder_lower = (folder or "inbox").lower()
-        if folder_lower == "sent":
-            q_label = "label:SENT"
-        elif folder_lower == "drafts":
-            q_label = "label:DRAFT"
-        else:
-            q_label = "label:INBOX"
-
-        query_parts = [q_label]
-        if search_query:
-            query_parts.append(search_query.strip())
-        final_query = " ".join(query_parts)
-
-        headers = {"Authorization": f"Bearer {access_token}"}
-        fetched_emails: List[CustomerEmail] = []
-
-        try:
-            async with httpx.AsyncClient() as http_client:
-                # 1. List messages matching query
-                list_resp = await http_client.get(
-                    f"{GMAIL_API_BASE}/messages",
-                    params={"q": final_query, "maxResults": min(limit, 30)},
-                    headers=headers,
-                    timeout=20.0,
-                )
-                if list_resp.status_code != 200:
-                    return [], f"Failed to list messages from Gmail: {list_resp.text}"
-
-                list_data = list_resp.json()
-                messages = list_data.get("messages", [])
-                if not messages:
-                    return [], None
-
-                # 2. Fetch full message details for each
-                for msg_item in messages[:limit]:
-                    msg_id = msg_item["id"]
-                    msg_resp = await http_client.get(
-                        f"{GMAIL_API_BASE}/messages/{msg_id}",
-                        params={"format": "full"},
-                        headers=headers,
-                        timeout=15.0,
-                    )
-                    if msg_resp.status_code != 200:
-                        continue
-
-                    msg_data = msg_resp.json()
-                    thread_id = msg_data.get("threadId")
-                    label_ids = msg_data.get("labelIds", [])
-                    is_unread = "UNREAD" in label_ids
-
-                    # Extract headers
-                    payload = msg_data.get("payload", {})
-                    p_headers = payload.get("headers", [])
-                    header_map = {h["name"].lower(): h["value"] for h in p_headers if "name" in h and "value" in h}
-
-                    subject = header_map.get("subject", "No Subject")
-                    from_val = header_map.get("from", "Unknown Sender")
-                    date_val = header_map.get("date", datetime.now(timezone.utc).isoformat())
-
-                    # Parse sender name and email
-                    sender_name = from_val
-                    sender_email = from_val
-                    if "<" in from_val and ">" in from_val:
-                        sender_name = from_val.split("<")[0].strip().strip('"')
-                        sender_email = from_val.split("<")[1].split(">")[0].strip()
-
-                    # Extract body text
-                    body_text = cls._extract_body(payload)
-
-                    email_obj = CustomerEmail(
-                        id=f"GMAIL-{msg_id}",
-                        user_id=user_id,
-                        thread_id=thread_id,
-                        sender_name=sender_name or "Client",
-                        sender_email=sender_email or "client@example.com",
-                        subject=subject,
-                        body=body_text.strip() or "(Empty email body)",
-                        received_at=date_val,
-                        priority=EmailPriority.MEDIUM,
-                        status=DraftStatus.UNPROCESSED,
-                        is_unread=is_unread,
-                        is_simulated=False,
-                        folder=folder_lower,
-                    )
-                    fetched_emails.append(email_obj)
-
-            return fetched_emails, None
-        except Exception as exc:
-            logger.error("Gmail fetch error: %s", exc)
-            return [], str(exc)
+        """Fetch emails returning (emails, error_msg) for backwards compatibility."""
+        res = await cls.sync_user_emails(
+            user_id=user_id,
+            auth_store=auth_store,
+            folder=folder,
+            search_query=search_query,
+            limit=limit,
+            force_full_sync=force_full_sync,
+        )
+        if res["status"] in ("success", "in_progress"):
+            return res.get("emails", []), None
+        return [], res.get("message")
 
     @classmethod
     async def send_user_reply(

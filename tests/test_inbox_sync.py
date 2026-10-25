@@ -377,3 +377,173 @@ async def test_07_stale_history_checkpoint_falls_back_to_full_sync(auth_store, m
     sync_state = auth_store.get_gmail_sync_state(user_id)
     assert sync_state["last_history_id"] == "99999"
     assert sync_state["last_sync_status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_08_connection_persistence_across_sessions():
+    """8. User Gmail connection persists securely across logout and future login visits."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        email_addr = f"reviewer_{uuid.uuid4().hex[:6]}@example.com"
+        pwd = "ReviewerPass123!"
+
+        # Register
+        reg_res = await client.post("/api/v1/auth/register", json={
+            "email": email_addr,
+            "password": pwd,
+            "full_name": "Persistent Reviewer"
+        })
+        assert reg_res.status_code == 200
+        user_id = reg_res.json()["user"]["id"]
+
+        # Store encrypted Gmail credentials for this reviewer
+        from task2_inbox_agent.app.main import _auth_store
+        _auth_store.save_gmail_token(
+            user_id=user_id,
+            gmail_address="reviewer.work@gmail.com",
+            access_token="tok_123",
+            refresh_token="ref_123",
+            expires_in=3600,
+        )
+
+        # Check status while logged in
+        status1 = await client.get("/api/v1/gmail/oauth/status")
+        assert status1.status_code == 200
+        assert status1.json()["connected"] is True
+        assert status1.json()["gmail_address"] == "reviewer.work@gmail.com"
+
+        # Logout
+        await client.post("/api/v1/auth/logout")
+
+        # After logout, status should require login
+        status_out = await client.get("/api/v1/gmail/oauth/status")
+        assert status_out.status_code == 401
+
+        # Log back in with same credentials
+        login_res = await client.post("/api/v1/auth/login", json={
+            "email": email_addr,
+            "password": pwd,
+        })
+        assert login_res.status_code == 200
+
+        # Status automatically recognizes existing valid Gmail connection
+        status2 = await client.get("/api/v1/gmail/oauth/status")
+        assert status2.status_code == 200
+        assert status2.json()["connected"] is True
+        assert status2.json()["gmail_address"] == "reviewer.work@gmail.com"
+
+
+@pytest.mark.asyncio
+async def test_09_two_different_users_two_different_gmail_accounts():
+    """9. Two distinct users connect two distinct Gmail accounts with full isolation."""
+    from task2_inbox_agent.app.main import _auth_store
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client_a:
+        # User A
+        email_a = f"alice_{uuid.uuid4().hex[:6]}@example.com"
+        await client_a.post("/api/v1/auth/register", json={"email": email_a, "password": "Password123!", "full_name": "Alice"})
+        me_a = await client_a.get("/api/v1/auth/me")
+        user_a_id = me_a.json()["user"]["id"]
+        _auth_store.save_gmail_token(user_id=user_a_id, gmail_address="alice.personal@gmail.com", access_token="tok_a", refresh_token="ref_a", expires_in=3600)
+
+        # User B
+        async with AsyncClient(transport=transport, base_url="http://test") as client_b:
+            email_b = f"bob_{uuid.uuid4().hex[:6]}@example.com"
+            await client_b.post("/api/v1/auth/register", json={"email": email_b, "password": "Password123!", "full_name": "Bob"})
+            me_b = await client_b.get("/api/v1/auth/me")
+            user_b_id = me_b.json()["user"]["id"]
+            _auth_store.save_gmail_token(user_id=user_b_id, gmail_address="bob.consulting@gmail.com", access_token="tok_b", refresh_token="ref_b", expires_in=3600)
+
+            # Verify User A gets Alice's Gmail
+            status_a = await client_a.get("/api/v1/gmail/oauth/status")
+            assert status_a.json()["gmail_address"] == "alice.personal@gmail.com"
+
+            # Verify User B gets Bob's Gmail
+            status_b = await client_b.get("/api/v1/gmail/oauth/status")
+            assert status_b.json()["gmail_address"] == "bob.consulting@gmail.com"
+
+            # Disconnecting User A does NOT affect User B
+            disc_a = await client_a.post("/api/v1/gmail/oauth/disconnect")
+            assert disc_a.status_code == 200
+
+            status_a_post = await client_a.get("/api/v1/gmail/oauth/status")
+            assert status_a_post.json()["connected"] is False
+
+            status_b_post = await client_b.get("/api/v1/gmail/oauth/status")
+            assert status_b_post.json()["connected"] is True
+            assert status_b_post.json()["gmail_address"] == "bob.consulting@gmail.com"
+
+
+@pytest.mark.asyncio
+async def test_10_prevent_cross_user_inbox_and_draft_access():
+    """10. Enforce backend ownership checks preventing cross-user email and draft access."""
+    from task2_inbox_agent.app.main import _store
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client_alice:
+        # User Alice
+        email_a = f"alice_{uuid.uuid4().hex[:6]}@example.com"
+        await client_alice.post("/api/v1/auth/register", json={"email": email_a, "password": "Password123!", "full_name": "Alice"})
+        me_a = await client_alice.get("/api/v1/auth/me")
+        alice_id = me_a.json()["user"]["id"]
+
+        # Alice has a private real email
+        alice_mail_id = f"GMAIL-priv_{uuid.uuid4().hex[:8]}"
+        priv_email = CustomerEmail(
+            id=alice_mail_id,
+            user_id=alice_id,
+            sender_name="Confidential Client",
+            sender_email="confidential@acme.com",
+            subject="Strict Secret Project",
+            body="Confidential project details for Alice.",
+            received_at="2026-10-26T15:00:00+00:00",
+            priority=EmailPriority.HIGH,
+            status=DraftStatus.UNPROCESSED,
+            is_simulated=False,
+        )
+        _store.save_emails([priv_email])
+
+        # Alice can view her email
+        alice_view = await client_alice.get(f"/api/v1/emails/{alice_mail_id}")
+        assert alice_view.status_code == 200
+
+        # Now Bob attempts to access Alice's private email
+        async with AsyncClient(transport=transport, base_url="http://test") as client_bob:
+            email_b = f"bob_{uuid.uuid4().hex[:6]}@example.com"
+            await client_bob.post("/api/v1/auth/register", json={"email": email_b, "password": "Password123!", "full_name": "Bob"})
+
+            # Bob tries to read Alice's email
+            bob_view = await client_bob.get(f"/api/v1/emails/{alice_mail_id}")
+            assert bob_view.status_code == 403
+            assert "permission" in bob_view.json()["detail"].lower()
+
+            # Bob tries to generate draft on Alice's email
+            bob_draft = await client_bob.post(f"/api/v1/emails/{alice_mail_id}/draft")
+            assert bob_draft.status_code == 403
+
+            # Bob tries to save draft on Alice's email
+            bob_save = await client_bob.post(f"/api/v1/emails/{alice_mail_id}/save-draft", json={"draft_text": "Hacked"})
+            assert bob_save.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_11_human_approval_required_before_sending():
+    """11. Real Gmail sends require explicit human approval and connected account."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Register user without Gmail connection
+        email_addr = f"reviewer_{uuid.uuid4().hex[:6]}@example.com"
+        await client.post("/api/v1/auth/register", json={"email": email_addr, "password": "Password123!", "full_name": "Approval Tester"})
+
+        # Attempt to send real email without authorization
+        send_unauth = await client.post("/api/v1/gmail/send", json={
+            "to_email": "client@example.com",
+            "subject": "Approval Test",
+            "body_text": "Attempting auto send",
+        })
+        assert send_unauth.status_code == 200
+        data = send_unauth.json()
+        assert data["success"] is False
+        assert "no authorized gmail" in data["message"].lower() or "not connected" in data["message"].lower()
+

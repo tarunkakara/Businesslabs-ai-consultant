@@ -144,12 +144,27 @@ async def list_emails(
     )
 
 
+def check_email_ownership(email_rec: CustomerEmail, user_id: Optional[str]) -> None:
+    """Enforce strict account isolation: private real emails can only be accessed by their owner."""
+    if email_rec.is_simulated:
+        return
+    if email_rec.user_id:
+        if not user_id or email_rec.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: You do not have permission to access this email.",
+            )
+
+
 @router.get("/api/v1/emails/{email_id}", response_model=CustomerEmail, tags=["Emails"])
-async def get_email(email_id: str):
-    """Get single email record."""
+async def get_email(email_id: str, request: Request):
+    """Get single email record with ownership check."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+    check_email_ownership(email, user_id)
     return email
 
 
@@ -160,11 +175,19 @@ class SaveDraftBody(BaseModel):
 
 
 @router.post("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
-async def generate_draft(email_id: str, voice: Optional[Any] = None, force_regenerate: bool = False):
+async def generate_draft(
+    email_id: str,
+    request: Request,
+    voice: Optional[Any] = None,
+    force_regenerate: bool = False,
+):
     """Classify email, query Knowledge Brain if applicable, and generate structured draft."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+    check_email_ownership(email, user_id)
 
     selected_voice = normalize_voice(voice or settings.default_voice)
 
@@ -191,8 +214,15 @@ async def generate_draft(email_id: str, voice: Optional[Any] = None, force_regen
 
 
 @router.get("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
-async def get_draft(email_id: str):
-    """Retrieve existing draft for an email."""
+async def get_draft(email_id: str, request: Request):
+    """Retrieve existing draft for an email with ownership check."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+    email = _store.get_email(email_id)
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found")
+    check_email_ownership(email, user_id)
+
     draft = _store.get_draft_by_email(email_id)
     if not draft:
         raise HTTPException(status_code=404, detail="No draft found for this email")
@@ -208,6 +238,7 @@ async def save_draft(request: Request, email_id: str, body: SaveDraftBody):
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+    check_email_ownership(email, user_id)
 
     v = normalize_voice(body.voice)
     saved = _store.save_draft_content(
@@ -250,11 +281,19 @@ async def get_email_counts(request: Request, source: Optional[str] = None):
 
 
 @router.post("/api/v1/emails/{email_id}/review", tags=["Review & Autonomy"])
-async def review_draft(email_id: str, submission: ReviewSubmission):
+async def review_draft(
+    request: Request,
+    email_id: str,
+    submission: ReviewSubmission,
+):
     """Review, edit, approve, or reject draft with transparent similarity and autonomy tracking."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+    check_email_ownership(email, user_id)
 
     draft = _store.get_draft_by_email(email_id)
     if not draft:
@@ -340,11 +379,15 @@ async def list_audit_logs(limit: int = Query(default=50, ge=1, le=100)):
 
 
 @router.get("/api/v1/emails/{email_id}/export", tags=["Export"])
-async def export_email(email_id: str):
+async def export_email(email_id: str, request: Request):
     """Export approved email response as formatted text."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+    check_email_ownership(email, user_id)
 
     draft = _store.get_draft_by_email(email_id)
     if not draft:
@@ -519,6 +562,9 @@ async def send_email_via_gmail(request: Request, req: GmailSendRequest):
     user_id = user["id"] if user else None
 
     email_rec = _store.get_email(req.email_id) if req.email_id else None
+    if email_rec:
+        check_email_ownership(email_rec, user_id)
+
     thread_id = email_rec.thread_id if email_rec else None
     is_sim = email_rec.is_simulated if email_rec else False
 
@@ -556,6 +602,13 @@ async def send_email_via_gmail(request: Request, req: GmailSendRequest):
 
     # Real Gmail OAuth dispatch
     if user_id:
+        conn_token = _auth_store.get_gmail_token(user_id)
+        if not conn_token or not conn_token.get("gmail_address"):
+            return {
+                "success": False,
+                "message": "Cannot send email: your account has no authorized Gmail connection. Please click 'Connect Gmail' to authorize.",
+            }
+
         res = await GmailOAuthClient.send_user_reply(
             user_id=user_id,
             auth_store=_auth_store,

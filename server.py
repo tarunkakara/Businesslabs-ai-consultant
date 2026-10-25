@@ -543,7 +543,7 @@ async def api_gmail_oauth_connect(request: Request, return_to: Optional[str] = N
         f"scope={scopes}&"
         f"state={state}&"
         "access_type=offline&"
-        "prompt=consent"
+        "prompt=consent%20select_account"
     )
     resp = RedirectResponse(url=google_auth_url, status_code=303)
     resp.set_cookie(key="gmail_oauth_state", value=state, max_age=600, httponly=True, samesite="lax")

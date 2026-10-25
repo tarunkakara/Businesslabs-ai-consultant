@@ -257,10 +257,12 @@ class InboxAuditStore:
             else:
                 query += " AND (user_id = ? OR is_simulated = 1 OR user_id IS NULL)"
                 params.append(user_id)
-        elif source == "real":
-            query += " AND is_simulated = 0 AND user_id IS NOT NULL"
-        elif source == "simulated":
-            query += " AND (is_simulated = 1 OR user_id IS NULL)"
+        else:
+            # Unauthenticated requests can only view public simulated demo emails
+            if source == "real":
+                query += " AND 1 = 0"
+            else:
+                query += " AND (is_simulated = 1 OR user_id IS NULL)"
 
         if folder and folder.lower() != "all":
             f_clean = folder.lower()

@@ -639,7 +639,7 @@
                 </div>
                 <div class="modal-footer" style="border-color: #36424A;">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                    <a id="btnProceedOAuth" href="/api/v1/gmail/oauth/connect" class="btn btn-danger btn-sm fw-bold">
+                    <a id="btnProceedOAuth" href="/api/v1/gmail/oauth/connect" target="_top" class="btn btn-danger btn-sm fw-bold" onclick="handleProceedOAuth(event)">
                         <i class="bi bi-google me-1"></i> Authorize Gmail via Google
                     </a>
                 </div>
@@ -1240,6 +1240,12 @@
             }
         }
 
+        function handleProceedOAuth(event) {
+            if (event) event.preventDefault();
+            const returnTo = window.self !== window.top ? '/?view=inbox' : '/inbox';
+            window.top.location.href = `/api/v1/gmail/oauth/connect?return_to=${encodeURIComponent(returnTo)}`;
+        }
+
         async function connectGmail() {
             try {
                 const res = await fetch('/api/v1/gmail/oauth/status');
@@ -1248,10 +1254,12 @@
                     const m = new bootstrap.Modal(document.getElementById('gmailOAuthGuideModal'));
                     m.show();
                 } else {
-                    window.location.href = '/api/v1/gmail/oauth/connect';
+                    const returnTo = window.self !== window.top ? '/?view=inbox' : '/inbox';
+                    window.top.location.href = `/api/v1/gmail/oauth/connect?return_to=${encodeURIComponent(returnTo)}`;
                 }
             } catch (e) {
-                window.location.href = '/api/v1/gmail/oauth/connect';
+                const returnTo = window.self !== window.top ? '/?view=inbox' : '/inbox';
+                window.top.location.href = `/api/v1/gmail/oauth/connect?return_to=${encodeURIComponent(returnTo)}`;
             }
         }
 

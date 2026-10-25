@@ -581,8 +581,16 @@
             } else {
                 overviewPanel.classList.add("d-none");
                 iframe.classList.remove("d-none");
-                if (iframe.getAttribute("src") !== views[viewKey].url) {
-                    iframe.setAttribute("src", views[viewKey].url);
+                let targetUrl = views[viewKey].url;
+                if (viewKey === "inbox") {
+                    const params = new URLSearchParams(window.location.search);
+                    const gc = params.get("gmail_connected");
+                    const ge = params.get("error") || params.get("gmail_error");
+                    if (gc) targetUrl += `?gmail_connected=${encodeURIComponent(gc)}`;
+                    else if (ge) targetUrl += `?error=${encodeURIComponent(ge)}`;
+                }
+                if (iframe.getAttribute("src") !== targetUrl) {
+                    iframe.setAttribute("src", targetUrl);
                 }
                 btnExt.href = views[viewKey].url;
                 btnExt.innerHTML = '<i class="bi bi-box-arrow-up-right me-1"></i> Open Full View';
@@ -649,6 +657,14 @@
             loadUserProfile();
             checkGatewayHealth();
             setInterval(checkGatewayHealth, 20000);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewParam = urlParams.get("view") || urlParams.get("tab");
+            if (viewParam && views[viewParam]) {
+                switchEmbeddedView(viewParam);
+            } else if (urlParams.get("gmail_connected") || urlParams.get("error") || urlParams.get("gmail_error")) {
+                switchEmbeddedView("inbox");
+            }
         });
     </script>
 </body>

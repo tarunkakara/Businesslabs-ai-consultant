@@ -505,13 +505,14 @@ async def api_gmail_oauth_status(request: Request):
 
 
 @app.get("/api/v1/gmail/oauth/connect", tags=["Gmail OAuth"])
-async def api_gmail_oauth_connect(request: Request):
+async def api_gmail_oauth_connect(request: Request, return_to: Optional[str] = None):
     """Initiates OAuth 2.0 flow to authorize user's own Gmail mailbox with minimal permissions."""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login?redirect=/inbox", status_code=303)
 
     if not (GOOGLE_GMAIL_CLIENT_ID and GOOGLE_GMAIL_CLIENT_SECRET):
+        logger.warning("Gmail OAuth connect attempt failed: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not configured.")
         return RedirectResponse(url="/inbox?error=gmail_oauth_not_configured", status_code=303)
 
     nonce = secrets.token_urlsafe(16)
@@ -525,6 +526,15 @@ async def api_gmail_oauth_connect(request: Request):
         "https://www.googleapis.com/auth/userinfo.email",
     ])
 
+    logger.info(
+        "Initiating Gmail OAuth authorization for user_id=%s (%s). Client prefix=%s..., redirect_uri=%s, scopes=%s",
+        user["id"],
+        user.get("email"),
+        GOOGLE_GMAIL_CLIENT_ID[:12] if GOOGLE_GMAIL_CLIENT_ID else "NONE",
+        redirect_uri,
+        scopes,
+    )
+
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_GMAIL_CLIENT_ID}&"
@@ -537,6 +547,8 @@ async def api_gmail_oauth_connect(request: Request):
     )
     resp = RedirectResponse(url=google_auth_url, status_code=303)
     resp.set_cookie(key="gmail_oauth_state", value=state, max_age=600, httponly=True, samesite="lax")
+    if return_to:
+        resp.set_cookie(key="gmail_oauth_return_to", value=return_to, max_age=600, httponly=True, samesite="lax")
     return resp
 
 
@@ -548,25 +560,46 @@ async def api_gmail_oauth_callback(
     error: Optional[str] = None,
 ):
     """Handle Gmail OAuth 2.0 callback, exchange code, fetch Gmail address, and store encrypted tokens."""
+    return_to = request.cookies.get("gmail_oauth_return_to") or "/inbox"
+    sep = "&" if "?" in return_to else "?"
+
     user = get_current_user(request)
     if not user:
+        logger.warning("Gmail OAuth callback called without authenticated session.")
         return RedirectResponse(url="/login?redirect=/inbox", status_code=303)
 
     if error or not code:
-        return RedirectResponse(url=f"/inbox?error={error or 'cancelled'}", status_code=303)
+        logger.warning("Gmail OAuth callback received error from Google: %s", error)
+        resp = RedirectResponse(url=f"{return_to}{sep}error={error or 'cancelled'}", status_code=303)
+        resp.delete_cookie("gmail_oauth_return_to")
+        resp.delete_cookie("gmail_oauth_state")
+        return resp
 
     cookie_state = request.cookies.get("gmail_oauth_state")
     if not cookie_state or not state or not secrets.compare_digest(state, cookie_state):
-        return RedirectResponse(url="/inbox?error=invalid_state", status_code=303)
+        logger.error("Gmail OAuth state mismatch or expired cookie.")
+        resp = RedirectResponse(url=f"{return_to}{sep}error=invalid_state", status_code=303)
+        resp.delete_cookie("gmail_oauth_return_to")
+        resp.delete_cookie("gmail_oauth_state")
+        return resp
 
     state_user_id = state.split(":")[0] if ":" in state else ""
     if state_user_id != user["id"]:
-        return RedirectResponse(url="/inbox?error=user_mismatch", status_code=303)
+        logger.error("Gmail OAuth state user mismatch: state=%s, session=%s", state_user_id, user["id"])
+        resp = RedirectResponse(url=f"{return_to}{sep}error=user_mismatch", status_code=303)
+        resp.delete_cookie("gmail_oauth_return_to")
+        resp.delete_cookie("gmail_oauth_state")
+        return resp
 
     base_url = get_request_base_url(request)
     redirect_uri = os.getenv("GOOGLE_GMAIL_REDIRECT_URI") or f"{base_url}/api/v1/gmail/oauth/callback"
 
     try:
+        logger.info(
+            "Exchanging authorization code for Gmail OAuth tokens with redirect_uri=%s, client prefix=%s...",
+            redirect_uri,
+            GOOGLE_GMAIL_CLIENT_ID[:12] if GOOGLE_GMAIL_CLIENT_ID else "NONE",
+        )
         async with httpx.AsyncClient() as http_client:
             token_resp = await http_client.post(
                 "https://oauth2.googleapis.com/token",
@@ -581,8 +614,11 @@ async def api_gmail_oauth_callback(
                 timeout=15.0,
             )
             if token_resp.status_code != 200:
-                logger.error("Gmail token exchange failed: %s", token_resp.text)
-                return RedirectResponse(url="/inbox?error=token_exchange_failed", status_code=303)
+                logger.error("Gmail token exchange failed (status %d): %s", token_resp.status_code, token_resp.text)
+                resp = RedirectResponse(url=f"{return_to}{sep}error=token_exchange_failed", status_code=303)
+                resp.delete_cookie("gmail_oauth_return_to")
+                resp.delete_cookie("gmail_oauth_state")
+                return resp
 
             token_data = token_resp.json()
             access_token = token_data.get("access_token")
@@ -621,12 +657,17 @@ async def api_gmail_oauth_callback(
                 scope=scope,
             )
 
-            resp = RedirectResponse(url="/inbox?gmail_connected=true", status_code=303)
+            logger.info("Gmail OAuth connected successfully for user_id=%s with Gmail address=%s", user["id"], gmail_address)
+            resp = RedirectResponse(url=f"{return_to}{sep}gmail_connected=true", status_code=303)
             resp.delete_cookie("gmail_oauth_state")
+            resp.delete_cookie("gmail_oauth_return_to")
             return resp
     except Exception as exc:
         logger.error("Error in Gmail OAuth callback: %s", exc)
-        return RedirectResponse(url="/inbox?error=oauth_error", status_code=303)
+        resp = RedirectResponse(url=f"{return_to}{sep}error=oauth_error", status_code=303)
+        resp.delete_cookie("gmail_oauth_state")
+        resp.delete_cookie("gmail_oauth_return_to")
+        return resp
 
 
 @app.post("/api/v1/gmail/oauth/disconnect", tags=["Gmail OAuth"])

@@ -321,3 +321,31 @@ async def test_oauth_callback_security_validation():
         gmail_cb_res = await client.get("/api/v1/gmail/oauth/callback?code=fake_code&state=fake_state")
         assert gmail_cb_res.status_code == 303
         assert "/inbox?error=invalid_state" in gmail_cb_res.headers["location"]
+
+
+@pytest.mark.asyncio
+async def test_inbox_gmail_oauth_connect_return_to(monkeypatch):
+    """Verify return_to parameter is stored in cookie and used on callback error or success."""
+    import server
+    monkeypatch.setattr(server, "GOOGLE_GMAIL_CLIENT_ID", "test-client-id-gmail.apps.googleusercontent.com")
+    monkeypatch.setattr(server, "GOOGLE_GMAIL_CLIENT_SECRET", "test-client-secret-gmail")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="https://businesslabs-ai-consultant.onrender.com", follow_redirects=False) as client:
+        reg_email = f"return_user_{uuid.uuid4().hex[:6]}@example.com"
+        await client.post("/api/v1/auth/register", json={
+            "email": reg_email,
+            "password": "Password123!",
+            "full_name": "Return Tester"
+        })
+
+        # Connect with return_to=/?view=inbox
+        conn_res = await client.get("/api/v1/gmail/oauth/connect?return_to=/?view=inbox")
+        assert conn_res.status_code == 303
+        assert "gmail_oauth_return_to" in conn_res.headers.get("set-cookie", "")
+
+        # Simulate Google callback with access_denied error
+        cb_res = await client.get("/api/v1/gmail/oauth/callback?error=access_denied")
+        assert cb_res.status_code == 303
+        assert "view=inbox" in cb_res.headers["location"]
+        assert "error=access_denied" in cb_res.headers["location"]

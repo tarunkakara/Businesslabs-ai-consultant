@@ -340,6 +340,15 @@
         </div>
     </header>
 
+    <!-- Account Mismatch Notice Banner -->
+    <div id="accountMismatchBanner" class="d-none alert alert-warning mb-0 border-0 rounded-0 px-4 py-2 d-flex align-items-center justify-content-between" style="background-color: rgba(251, 191, 36, 0.12); color: #FBBF24; border-bottom: 1px solid rgba(251, 191, 36, 0.25) !important;">
+        <div class="d-flex align-items-center gap-2 small">
+            <i class="bi bi-info-circle-fill fs-6"></i>
+            <span><strong>Account Notice:</strong> Your connected Gmail address (<strong id="mismatchConnectedEmail"></strong>) is different from your logged-in application account (<strong id="mismatchLoggedEmail"></strong>). Incoming messages will be fetched and replies will be sent from this authorized Gmail account.</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white btn-sm" onclick="document.getElementById('accountMismatchBanner').classList.add('d-none')" aria-label="Close"></button>
+    </div>
+
     <!-- 2. Main App Body (Sidebar + Email List + Reading Pane) -->
     <div class="app-body">
 
@@ -734,12 +743,15 @@
                 const unreadIndicator = e.is_unread
                     ? '<span class="d-inline-block rounded-circle bg-primary me-1" style="width: 7px; height: 7px;" title="Unread"></span>'
                     : '';
+                const contactDisplay = (currentFolder === 'sent' || e.folder === 'sent')
+                    ? `To: ${e.recipient_email || e.sender_email}`
+                    : (e.sender_name || 'Customer');
 
                 return `
                     <div class="email-item ${isActive ? 'active' : ''}" onclick="selectEmail('${e.id}')">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="small fw-bold text-light text-truncate" style="max-width: 155px;">
-                                ${unreadIndicator}${e.sender_name || 'Customer'}
+                                ${unreadIndicator}${contactDisplay}
                             </span>
                             <div class="d-flex gap-1 align-items-center">
                                 ${sourceBadge}
@@ -763,14 +775,18 @@
             return 'cat-other';
         }
 
-        function updateFolderCounts() {
-            const inboxCount = allEmails.filter(e => e.status === 'unprocessed' || e.status === 'pending_review').length;
-            const draftsCount = allEmails.filter(e => e.status === 'pending_review').length;
-            const sentCount = allEmails.filter(e => e.status === 'approved' || e.status === 'edited_and_approved').length;
-
-            document.getElementById('badgeInboxCount').textContent = inboxCount;
-            document.getElementById('badgeDraftsCount').textContent = draftsCount;
-            document.getElementById('badgeSentCount').textContent = sentCount;
+        async function updateFolderCounts() {
+            try {
+                const res = await fetch(`/api/v1/emails/counts?source=${currentSource}`);
+                if (res.ok) {
+                    const counts = await res.json();
+                    document.getElementById('badgeInboxCount').textContent = counts.inbox ?? 0;
+                    document.getElementById('badgeDraftsCount').textContent = counts.drafts ?? 0;
+                    document.getElementById('badgeSentCount').textContent = counts.sent ?? 0;
+                }
+            } catch (e) {
+                console.warn("Folder count fetch error:", e);
+            }
         }
 
         async function selectEmail(emailId) {
@@ -779,23 +795,61 @@
             currentEmail = email;
             renderEmailList(allEmails);
 
+            if (email.folder === 'sent') {
+                renderSentPane(email);
+                return;
+            }
+
             const container = document.getElementById('emailViewContainer');
             container.innerHTML = `
                 <div class="text-center py-5 text-muted">
                     <div class="spinner-border text-primary me-2"></div>
-                    Generating AI grounded reply using full conversation...
+                    Loading AI reply draft...
                 </div>
             `;
 
             try {
-                // Generate draft for selected email
+                // Fetch or generate draft for selected email
                 const draftRes = await fetch(`/api/v1/emails/${emailId}/draft`, { method: 'POST' });
                 const draft = await draftRes.json();
                 currentDraft = draft;
                 renderReadingPane(email, draft);
             } catch (err) {
-                container.innerHTML = `<div class="alert alert-danger">Draft generation error: ${err.message}</div>`;
+                container.innerHTML = `<div class="alert alert-danger">Draft loading error: ${err.message}</div>`;
             }
+        }
+
+        function renderSentPane(email) {
+            const container = document.getElementById('emailViewContainer');
+            const catBadge = getCategoryClass(email.category);
+            const sourceBadge = email.is_simulated
+                ? '<span class="badge bg-secondary bg-opacity-40 text-slate-300">Simulated Dispatch</span>'
+                : '<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-40"><i class="bi bi-google me-1"></i>Sent via Gmail OAuth</span>';
+
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start pb-3 mb-4 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h4 class="fw-bold text-white mb-2">${email.subject}</h4>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 small">SENT</span>
+                            <span class="badge-cat ${catBadge}">${email.category || 'REPLY'}</span>
+                            <span class="small text-slate-400">ID: ${email.id}</span>
+                        </div>
+                    </div>
+                    <div>${sourceBadge}</div>
+                </div>
+
+                <div class="card p-3 mb-4" style="background: #252F37; border: 1px solid #36424A;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="fw-bold text-light small"><span class="text-slate-400">To:</span> ${email.recipient_email || 'Customer'}</div>
+                            <div class="text-slate-400 small"><span class="text-slate-400">From:</span> ${email.sender_name || 'Me'} &lt;${email.sender_email}&gt;</div>
+                        </div>
+                        <span class="small text-slate-500">${new Date(email.received_at).toLocaleString()}</span>
+                    </div>
+                    <div class="text-slate-200 small pt-3 border-top border-secondary border-opacity-25" style="white-space: pre-wrap; line-height: 1.6;">${email.body}</div>
+                </div>
+            `;
         }
 
         function renderReadingPane(email, draft) {
@@ -899,9 +953,12 @@
 
                     <!-- Action Buttons -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top" style="border-color: #36424A !important;">
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary fw-bold px-4" onclick="handleSendAndApprove('${email.id}')">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button id="btnSendReply" class="btn btn-primary fw-bold px-4" onclick="handleSendAndApprove('${email.id}')">
                                 <i class="bi bi-send-fill me-1"></i> Send & Learn from Changes
+                            </button>
+                            <button id="btnSaveDraft" class="btn btn-outline-warning fw-semibold px-3" onclick="handleSaveDraft('${email.id}')">
+                                <i class="bi bi-file-earmark-check me-1"></i> Save Draft
                             </button>
                             <button class="btn btn-outline-light" onclick="handleApproveOnly('${email.id}')">
                                 <i class="bi bi-check2 me-1"></i> Approve Draft
@@ -933,11 +990,66 @@
             `;
         }
 
+        async function handleSaveDraft(emailId) {
+            const edited = document.getElementById('draftEditor').value;
+            const voice = document.getElementById('voiceSelector').value;
+            const btnSave = document.getElementById('btnSaveDraft');
+            const originalHtml = btnSave ? btnSave.innerHTML : 'Save Draft';
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+            }
+
+            const fb = document.getElementById('actionFeedback');
+            fb.classList.add('d-none');
+
+            try {
+                const res = await fetch(`/api/v1/emails/${emailId}/save-draft`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        draft_text: edited,
+                        voice: voice,
+                        subject: currentEmail ? `Re: ${currentEmail.subject}` : undefined
+                    })
+                });
+                if (!res.ok) throw new Error("Failed to save draft. Server returned " + res.status);
+                const saved = await res.json();
+                currentDraft = saved;
+
+                fb.className = 'alert alert-success mt-3';
+                fb.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i><strong>Draft Saved:</strong> Content preserved in Drafts folder without sending.';
+                fb.classList.remove('d-none');
+
+                updateFolderCounts();
+                loadEmails();
+            } catch (err) {
+                fb.className = 'alert alert-danger mt-3';
+                fb.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Save Failed:</strong> ' + err.message;
+                fb.classList.remove('d-none');
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = originalHtml;
+                }
+            }
+        }
+
         async function handleSendAndApprove(emailId) {
             const edited = document.getElementById('draftEditor').value;
             const fb = document.getElementById('actionFeedback');
+            const btnSend = document.getElementById('btnSendReply');
+            const btnSave = document.getElementById('btnSaveDraft');
+
+            // State: Sending
+            if (btnSend) {
+                btnSend.disabled = true;
+                btnSend.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+            }
+            if (btnSave) btnSave.disabled = true;
+
             fb.className = 'alert alert-info mt-3';
-            fb.textContent = 'Submitting review, updating 5-minute learning loop, and sending email...';
+            fb.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="spinner-border spinner-border-sm"></span><span><strong>State: Sending</strong> — Submitting review, updating 5-minute learning loop, and dispatching reply via Gmail OAuth...</span></div>';
             fb.classList.remove('d-none');
 
             try {
@@ -954,7 +1066,7 @@
                 });
                 const revData = await revRes.json();
 
-                // 2. Dispatch email (via Gmail SMTP if configured, or stored as dispatched)
+                // 2. Dispatch email (via Gmail OAuth or simulator)
                 const sendRes = await fetch('/api/v1/gmail/send', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -965,18 +1077,40 @@
                         email_id: emailId
                     })
                 });
+                const sendData = await sendRes.json();
 
+                if (!sendData.success) {
+                    // State: Failed
+                    fb.className = 'alert alert-danger mt-3';
+                    fb.innerHTML = `<strong>State: Send Failed</strong> — ${sendData.message || 'Unable to send message via Gmail OAuth.'} Your draft is safely preserved below so you can retry.`;
+                    if (btnSend) {
+                        btnSend.disabled = false;
+                        btnSend.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Retry Send';
+                    }
+                    if (btnSave) btnSave.disabled = false;
+                    return;
+                }
+
+                // State: Sent
                 fb.className = 'alert alert-success mt-3';
-                let msg = `<strong>Email Dispatched & Approved!</strong> Similarity: ${(revData.similarity_score * 100).toFixed(0)}%. Autonomy Streak: ${revData.consecutive_streak}.`;
+                let msg = `<strong>State: Sent!</strong> Message successfully dispatched and recorded in Sent folder. Similarity: ${(revData.similarity_score * 100).toFixed(0)}%. Autonomy Streak: ${revData.consecutive_streak}.`;
                 if (revData.learned_rule) {
-                    msg += `<div class="mt-1 small" style="color: #34D399;"><strong>Learned Rule Extracted:</strong> ${revData.learned_rule.learned_instruction} (applied to next draft within 5 mins).</div>`;
+                    msg += `<div class="mt-1 small" style="color: #34D399;"><strong>Learned Rule Extracted:</strong> ${revData.learned_rule.learned_instruction} (applied to future drafts).</div>`;
                 }
                 fb.innerHTML = msg;
+                if (btnSend) btnSend.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Sent';
 
+                updateFolderCounts();
                 loadEmails();
             } catch (err) {
+                // State: Failed
                 fb.className = 'alert alert-danger mt-3';
-                fb.textContent = 'Submission error: ' + err.message;
+                fb.innerHTML = '<strong>State: Send Failed</strong> — ' + err.message + '. Please check your connection and retry.';
+                if (btnSend) {
+                    btnSend.disabled = false;
+                    btnSend.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Retry Send';
+                }
+                if (btnSave) btnSave.disabled = false;
             }
         }
 
@@ -1070,6 +1204,9 @@
                     const btnConnect = document.getElementById('btnConnectGmail');
                     const badge = document.getElementById('gmailConnectedBadge');
                     const addrSpan = document.getElementById('connectedGmailAddress');
+                    const mismatchBanner = document.getElementById('accountMismatchBanner');
+                    const mismatchConn = document.getElementById('mismatchConnectedEmail');
+                    const mismatchLog = document.getElementById('mismatchLoggedEmail');
 
                     if (data.connected && data.gmail_address) {
                         if (btnConnect) btnConnect.classList.add('d-none');
@@ -1078,12 +1215,24 @@
                             badge.classList.add('d-flex');
                         }
                         if (addrSpan) addrSpan.textContent = data.gmail_address;
+
+                        // Check if connected Gmail differs from authenticated user account
+                        if (currentUser && currentUser.email && data.gmail_address.toLowerCase() !== currentUser.email.toLowerCase()) {
+                            if (mismatchBanner && mismatchConn && mismatchLog) {
+                                mismatchConn.textContent = data.gmail_address;
+                                mismatchLog.textContent = currentUser.email;
+                                mismatchBanner.classList.remove('d-none');
+                            }
+                        } else if (mismatchBanner) {
+                            mismatchBanner.classList.add('d-none');
+                        }
                     } else {
                         if (btnConnect) btnConnect.classList.remove('d-none');
                         if (badge) {
                             badge.classList.add('d-none');
                             badge.classList.remove('d-flex');
                         }
+                        if (mismatchBanner) mismatchBanner.classList.add('d-none');
                     }
                 }
             } catch (err) {
@@ -1112,6 +1261,8 @@
                 const res = await fetch('/api/v1/gmail/oauth/disconnect', { method: 'POST' });
                 const data = await res.json();
                 alert(data.message || "Gmail account disconnected.");
+                const mismatchBanner = document.getElementById('accountMismatchBanner');
+                if (mismatchBanner) mismatchBanner.classList.add('d-none');
                 await checkGmailStatus();
                 loadEmails();
             } catch (err) {

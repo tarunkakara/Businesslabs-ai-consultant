@@ -68,6 +68,7 @@ class InboxAuditStore:
                 ("is_unread", "INTEGER DEFAULT 0"),
                 ("is_simulated", "INTEGER DEFAULT 0"),
                 ("folder", "TEXT DEFAULT 'inbox'"),
+                ("recipient_email", "TEXT"),
             ]:
                 if col_name not in existing_cols:
                     try:
@@ -116,8 +117,8 @@ class InboxAuditStore:
             cursor = conn.cursor()
             for e in emails:
                 cursor.execute("""
-                    INSERT INTO emails (id, sender_name, sender_email, subject, body, received_at, category, priority, status, user_id, thread_id, is_unread, is_simulated, folder)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO emails (id, sender_name, sender_email, subject, body, received_at, category, priority, status, user_id, thread_id, is_unread, is_simulated, folder, recipient_email)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         category = excluded.category,
                         priority = excluded.priority,
@@ -126,7 +127,8 @@ class InboxAuditStore:
                         thread_id = COALESCE(excluded.thread_id, emails.thread_id),
                         is_unread = excluded.is_unread,
                         is_simulated = excluded.is_simulated,
-                        folder = excluded.folder
+                        folder = excluded.folder,
+                        recipient_email = COALESCE(excluded.recipient_email, emails.recipient_email)
                 """, (
                     e.id,
                     e.sender_name,
@@ -142,6 +144,7 @@ class InboxAuditStore:
                     1 if e.is_unread else 0,
                     1 if e.is_simulated else 0,
                     e.folder or "inbox",
+                    e.recipient_email,
                 ))
             conn.commit()
         return len(emails)
@@ -170,6 +173,7 @@ class InboxAuditStore:
                 is_unread=bool(d.get("is_unread", 0)),
                 is_simulated=bool(d.get("is_simulated", 0)),
                 folder=d.get("folder", "inbox"),
+                recipient_email=d.get("recipient_email"),
             )
 
     def list_emails(
@@ -202,11 +206,18 @@ class InboxAuditStore:
             query += " AND (is_simulated = 1 OR user_id IS NULL)"
 
         if folder and folder.lower() != "all":
-            if folder.lower() == "inbox":
-                query += " AND (folder = 'inbox' OR folder IS NULL OR folder = '')"
+            f_clean = folder.lower()
+            if f_clean == "drafts":
+                query += " AND (folder = 'drafts' OR status = 'pending_review' OR id IN (SELECT email_id FROM drafts WHERE status NOT IN ('approved', 'sent')))"
+                status = None
+            elif f_clean == "sent":
+                query += " AND (folder = 'sent' OR status IN ('approved', 'edited_and_approved', 'sent_autonomously', 'sent'))"
+                status = None
+            elif f_clean == "inbox":
+                query += " AND (folder = 'inbox' OR folder IS NULL OR folder = '') AND (status IS NULL OR status NOT IN ('approved', 'edited_and_approved', 'sent'))"
             else:
                 query += " AND folder = ?"
-                params.append(folder.lower())
+                params.append(f_clean)
 
         if category:
             query += " AND category = ?"
@@ -246,6 +257,7 @@ class InboxAuditStore:
                         is_unread=bool(d.get("is_unread", 0)),
                         is_simulated=bool(d.get("is_simulated", 0)),
                         folder=d.get("folder", "inbox"),
+                        recipient_email=d.get("recipient_email"),
                     )
                 )
             return emails
@@ -334,3 +346,49 @@ class InboxAuditStore:
             cursor.execute("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?", (limit,))
             rows = cursor.fetchall()
             return [dict(r) for r in rows]
+
+    def save_draft_content(
+        self,
+        email_id: str,
+        draft_text: str,
+        voice: Optional[CompanyVoice] = None,
+        subject: Optional[str] = None,
+    ) -> DraftResponse:
+        """Save or update draft content without dispatching."""
+        existing = self.get_draft_by_email(email_id)
+        email = self.get_email(email_id)
+        draft_id = existing.draft_id if existing else f"draft_{email_id}"
+        subj = subject or (existing.subject if existing else (f"Re: {email.subject}" if email else "Response"))
+        v = voice or (existing.voice if existing else CompanyVoice.PROFESSIONAL)
+        confidence = existing.confidence_score if existing else 0.95
+        sources = existing.kb_sources_cited if existing else []
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        updated_draft = DraftResponse(
+            draft_id=draft_id,
+            email_id=email_id,
+            subject=subj,
+            original_draft=draft_text,
+            voice=v,
+            kb_sources_cited=sources,
+            confidence_score=confidence,
+            status=DraftStatus.PENDING_REVIEW,
+            created_at=now_iso,
+        )
+        self.save_draft(updated_draft)
+        return updated_draft
+
+    def get_folder_counts(
+        self,
+        user_id: Optional[str] = None,
+        source: Optional[str] = None,
+    ) -> Dict[str, int]:
+        """Return accurate counts for inbox, drafts, and sent folders."""
+        inbox_emails = self.list_emails(folder="inbox", user_id=user_id, source=source, limit=1000)
+        drafts_emails = self.list_emails(folder="drafts", user_id=user_id, source=source, limit=1000)
+        sent_emails = self.list_emails(folder="sent", user_id=user_id, source=source, limit=1000)
+        return {
+            "inbox": len(inbox_emails),
+            "drafts": len(drafts_emails),
+            "sent": len(sent_emails),
+        }

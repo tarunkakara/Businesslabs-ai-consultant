@@ -155,6 +155,7 @@ class AnthropicClaudeProvider(BaseLLMProvider):
                     "similarity_score": c.get("similarity_score", 1.0),
                     "snippet": c.get("text", "")[:180],
                     "image_urls": c.get("image_urls", []),
+                    "source_type": c.get("source_type", "Internal Knowledge Base"),
                 })
                 if len(sources) >= 4:
                     break

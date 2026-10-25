@@ -113,7 +113,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-regular fa-envelope"></i>
                     </span>
-                    <input type="email" id="login-email" required
+                    <input type="email" id="login-email" name="email" autocomplete="username" required
                         oninput="this.value = this.value.toLowerCase().trim(); clearFieldError('login-email-err')"
                         class="w-full pl-10 pr-3 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="name@company.com">
@@ -135,7 +135,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-solid fa-lock"></i>
                     </span>
-                    <input type="password" id="login-password" required
+                    <input type="password" id="login-password" name="password" autocomplete="current-password" required
                         oninput="clearFieldError('login-pwd-err')"
                         class="w-full pl-10 pr-10 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="Enter your password">
@@ -145,6 +145,13 @@
                     </button>
                 </div>
                 <div id="login-pwd-err" class="field-error hidden"></div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+                <label class="flex items-center gap-2 cursor-pointer text-xs" style="color: #B0BAC3;">
+                    <input type="checkbox" id="remember-email" class="rounded accent-emerald-500 w-3.5 h-3.5">
+                    <span>Remember Email</span>
+                </label>
             </div>
 
             <button type="submit" id="login-btn"
@@ -161,7 +168,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-regular fa-user"></i>
                     </span>
-                    <input type="text" id="reg-name" required minlength="2"
+                    <input type="text" id="reg-name" name="name" autocomplete="name" required minlength="2"
                         class="w-full pl-10 pr-3 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="Your full name">
                 </div>
@@ -174,7 +181,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-regular fa-envelope"></i>
                     </span>
-                    <input type="email" id="reg-email" required
+                    <input type="email" id="reg-email" name="email" autocomplete="username" required
                         oninput="this.value = this.value.toLowerCase().trim(); clearFieldError('reg-email-err')"
                         class="w-full pl-10 pr-3 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="you@company.com">
@@ -188,7 +195,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" style="color: #8996A2;">
                         <i class="fa-solid fa-lock"></i>
                     </span>
-                    <input type="password" id="reg-password" required
+                    <input type="password" id="reg-password" name="password" autocomplete="new-password" required
                         oninput="checkPasswordRequirements(this.value); clearFieldError('reg-pwd-err')"
                         class="w-full pl-10 pr-10 py-2.5 auth-input text-sm placeholder-slate-500"
                         placeholder="Create strong password">
@@ -271,6 +278,19 @@
 
         // Check URL params on load (e.g. ?error=... or ?mode=register)
         window.addEventListener("DOMContentLoaded", async () => {
+            // Restore remembered email if available
+            try {
+                const remembered = localStorage.getItem("remembered_email");
+                if (remembered) {
+                    const emailInput = document.getElementById("login-email");
+                    const remBox = document.getElementById("remember-email");
+                    if (emailInput) emailInput.value = remembered;
+                    if (remBox) remBox.checked = true;
+                }
+            } catch (err) {
+                console.warn("Storage access notice:", err);
+            }
+
             const params = new URLSearchParams(window.location.search);
             if (params.get("mode") === "register" || window.location.pathname === "/register") {
                 switchTab("register");
@@ -313,6 +333,9 @@
         function useAnotherEmail() {
             document.getElementById("login-email").value = "";
             document.getElementById("login-password").value = "";
+            const remBox = document.getElementById("remember-email");
+            if (remBox) remBox.checked = false;
+            try { localStorage.removeItem("remembered_email"); } catch (e) {}
             document.getElementById("login-email").focus();
             showAlert("Form cleared. Please enter the email address for your account.", "info");
         }
@@ -411,6 +434,16 @@
                 });
                 const data = await res.json();
                 if (res.ok && data.status === "success") {
+                    // Handle Remember Email preference
+                    try {
+                        const rememberBox = document.getElementById("remember-email");
+                        if (rememberBox && rememberBox.checked) {
+                            localStorage.setItem("remembered_email", email);
+                        } else {
+                            localStorage.removeItem("remembered_email");
+                        }
+                    } catch (e) {}
+
                     showAlert("Authentication successful. Redirecting to workspace...", "success");
                     setTimeout(() => {
                         const params = new URLSearchParams(window.location.search);

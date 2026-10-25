@@ -31,8 +31,41 @@ from cryptography.fernet import Fernet
 logger = logging.getLogger("monorepo.auth")
 
 BASE_DIR = Path(__file__).resolve().parent
-AUTH_DB_PATH = Path(os.getenv("AUTH_DB_PATH", str(BASE_DIR / "data" / "auth.db")))
-AUTH_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+
+def get_persistent_db_path() -> Path:
+    """Determine database path, prioritizing persistent volume paths on Render/cloud hosting."""
+    # 1. Direct environment override
+    custom_path = os.getenv("AUTH_DB_PATH")
+    if custom_path:
+        p = Path(custom_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return p
+
+    # 2. Render persistent disk paths or mounted cloud volumes
+    for candidate_dir in [
+        os.getenv("RENDER_DISK_PATH"),
+        os.getenv("PERSISTENT_DATA_PATH"),
+        os.getenv("DATA_DIR"),
+        "/var/data",
+        "/data",
+    ]:
+        if candidate_dir:
+            cand = Path(candidate_dir)
+            try:
+                cand.mkdir(parents=True, exist_ok=True)
+                if os.access(str(cand), os.W_OK):
+                    return cand / "auth.db"
+            except Exception:
+                continue
+
+    # 3. Default to repository data directory
+    default_p = BASE_DIR / "data" / "auth.db"
+    default_p.parent.mkdir(parents=True, exist_ok=True)
+    return default_p
+
+
+AUTH_DB_PATH = get_persistent_db_path()
 
 SESSION_SECRET = os.getenv("SESSION_SECRET", "businesslabs-ai-consultant-sec-auth-token-2026")
 SESSION_EXPIRY_SECONDS = int(os.getenv("SESSION_EXPIRY_SECONDS", str(7 * 24 * 3600)))  # 7 days
@@ -172,6 +205,11 @@ class AuthStore:
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path), timeout=30.0)
         conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+        except Exception:
+            pass
         return conn
 
     def _init_db(self) -> None:

@@ -1,5 +1,7 @@
 """Task 2: Inbox Agent - FastAPI Service & Review Dashboard."""
 
+import uuid
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -148,12 +150,23 @@ async def get_email(email_id: str):
     return email
 
 
+class SaveDraftBody(BaseModel):
+    draft_text: str
+    voice: Optional[CompanyVoice] = None
+    subject: Optional[str] = None
+
+
 @router.post("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
-async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None):
+async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None, force_regenerate: bool = False):
     """Classify email, query Knowledge Brain if applicable, and generate structured draft."""
     email = _store.get_email(email_id)
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+
+    if not force_regenerate:
+        existing = _store.get_draft_by_email(email_id)
+        if existing:
+            return existing
 
     classification = _classifier.classify(email)
     # Update email category & priority if unclassified
@@ -168,6 +181,38 @@ async def generate_draft(email_id: str, voice: Optional[CompanyVoice] = None):
     )
     _store.save_draft(draft)
     return draft
+
+
+@router.get("/api/v1/emails/{email_id}/draft", response_model=DraftResponse, tags=["Drafts"])
+async def get_draft(email_id: str):
+    """Retrieve existing draft for an email."""
+    draft = _store.get_draft_by_email(email_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="No draft found for this email")
+    return draft
+
+
+@router.post("/api/v1/emails/{email_id}/save-draft", response_model=DraftResponse, tags=["Drafts"])
+async def save_draft(email_id: str, body: SaveDraftBody):
+    """Save or update draft content without dispatching."""
+    email = _store.get_email(email_id)
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found")
+    saved = _store.save_draft_content(
+        email_id=email_id,
+        draft_text=body.draft_text,
+        voice=body.voice,
+        subject=body.subject,
+    )
+    return saved
+
+
+@router.get("/api/v1/emails/counts", tags=["Emails"])
+async def get_email_counts(request: Request, source: Optional[str] = None):
+    """Return count of emails in inbox, drafts, and sent folders."""
+    user = get_session_user(request)
+    user_id = user["id"] if user else None
+    return _store.get_folder_counts(user_id=user_id, source=source)
 
 
 @router.post("/api/v1/emails/{email_id}/review", tags=["Review & Autonomy"])
@@ -402,6 +447,27 @@ async def send_email_via_gmail(request: Request, req: GmailSendRequest):
         if email_rec:
             email_rec.status = DraftStatus.APPROVED
             _store.save_emails([email_rec])
+
+        # Record sent reply in emails table for the Sent folder
+        sent_email = CustomerEmail(
+            id=f"sent_{uuid.uuid4().hex[:12]}",
+            sender_name=(user.get("name") or user.get("email") or "Support Consultant") if user else "Support Consultant",
+            sender_email=req.from_email or (user.get("email") if user else "support@businesslabs.ai"),
+            recipient_email=req.to_email,
+            subject=req.subject if req.subject.startswith("Re:") else f"Re: {req.subject}",
+            body=req.body_text,
+            received_at=datetime.now(timezone.utc).isoformat(),
+            category=email_rec.category if email_rec else None,
+            priority=email_rec.priority if email_rec else EmailPriority.MEDIUM,
+            status=DraftStatus.APPROVED,
+            user_id=user_id,
+            thread_id=thread_id,
+            is_unread=False,
+            is_simulated=True,
+            folder="sent",
+        )
+        _store.save_emails([sent_email])
+
         return {
             "success": True,
             "simulated": True,
@@ -422,6 +488,26 @@ async def send_email_via_gmail(request: Request, req: GmailSendRequest):
             if email_rec:
                 email_rec.status = DraftStatus.APPROVED
                 _store.save_emails([email_rec])
+
+            # Record sent reply in emails table for the Sent folder
+            sent_email = CustomerEmail(
+                id=f"sent_{uuid.uuid4().hex[:12]}",
+                sender_name=(user.get("name") or user.get("email") or "Me") if user else "Me",
+                sender_email=res.get("from_address") or (user.get("email") if user else "me@gmail.com"),
+                recipient_email=req.to_email,
+                subject=req.subject if req.subject.startswith("Re:") else f"Re: {req.subject}",
+                body=req.body_text,
+                received_at=datetime.now(timezone.utc).isoformat(),
+                category=email_rec.category if email_rec else None,
+                priority=email_rec.priority if email_rec else EmailPriority.MEDIUM,
+                status=DraftStatus.APPROVED,
+                user_id=user_id,
+                thread_id=thread_id,
+                is_unread=False,
+                is_simulated=False,
+                folder="sent",
+            )
+            _store.save_emails([sent_email])
             return res
         elif not req.app_password:
             return res
@@ -438,6 +524,25 @@ async def send_email_via_gmail(request: Request, req: GmailSendRequest):
         if smtp_res.get("success") and email_rec:
             email_rec.status = DraftStatus.APPROVED
             _store.save_emails([email_rec])
+
+            sent_email = CustomerEmail(
+                id=f"sent_{uuid.uuid4().hex[:12]}",
+                sender_name=(user.get("name") or user.get("email") or "Me") if user else "Me",
+                sender_email=req.from_email or (user.get("email") if user else "me@gmail.com"),
+                recipient_email=req.to_email,
+                subject=req.subject if req.subject.startswith("Re:") else f"Re: {req.subject}",
+                body=req.body_text,
+                received_at=datetime.now(timezone.utc).isoformat(),
+                category=email_rec.category if email_rec else None,
+                priority=email_rec.priority if email_rec else EmailPriority.MEDIUM,
+                status=DraftStatus.APPROVED,
+                user_id=user_id,
+                thread_id=thread_id,
+                is_unread=False,
+                is_simulated=False,
+                folder="sent",
+            )
+            _store.save_emails([sent_email])
         return smtp_res
 
     return {

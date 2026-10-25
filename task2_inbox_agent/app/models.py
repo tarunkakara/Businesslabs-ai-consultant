@@ -61,6 +61,7 @@ class CustomerEmail(BaseModel):
     is_unread: bool = False
     is_simulated: bool = False
     folder: str = "inbox"
+    recipient_email: Optional[str] = None
 
 
 class EmailClassification(BaseModel):
